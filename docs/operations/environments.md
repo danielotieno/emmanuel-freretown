@@ -6,8 +6,8 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 
 | # | Item | Status |
 |---|---|---|
-| 1 | Neon project `ack-production` (Postgres 18, 7-day restore) in AWS Frankfurt, account on Launch | Not started |
-| 2 | Neon project `ack-nonprod` (Postgres 18) in AWS Frankfurt, branches `staging` and one per developer | Not started |
+| 1 | Neon project `ack-production` (Postgres 18, 7-day restore) in AWS Frankfurt, account on Launch; one branch, `production` | In progress: project created |
+| 2 | Neon project `ack-nonprod` (Postgres 18) in AWS Frankfurt, default branch renamed `staging`, one branch per developer | In progress: project created |
 | 3 | Migrations applied as the owner; `ack_app` login created in each database | Not started (script ready: `pnpm db:app-login`) |
 | 4 | Local development connects as `ack_app` | Done in the repo (`.env.example`, `wrangler.jsonc`) |
 | 5 | Hyperdrive configs for staging and production, caching disabled; ids in `wrangler.jsonc` | Not started |
@@ -28,9 +28,9 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 
 Neon lives in the technical lead's personal Neon account (D40). A Neon account has **one plan for all its projects**, so production and non-production share it. The account is on **Launch** (D26): production needs its 7-day restore window and must never be paused by a monthly limit, and `ack-nonprod` sleeps when unused, so it costs cents. Both projects are billed by usage, with no monthly minimum, and the US$20 ceiling covers the whole account.
 
-1. Project **`ack-production`**: Postgres **18**, region **AWS Europe Central 1 (Frankfurt)**. In its settings, set the restore window (history retention) to **7 days**.
+1. Project **`ack-production`**: Postgres **18**, region **AWS Europe Central 1 (Frankfurt)**. In its settings, set the restore window (history retention) to **7 days**. Its only branch is the default, **`production`**. Delete any other branch Neon creates. The only other branches it should ever have are the short-lived restore branches the deploy pipeline makes before a migration (#7).
 2. Project **`ack-nonprod`**: Postgres 18, same region. Keep its restore window short (1 day is plenty) to keep its storage cost near zero.
-3. In `ack-nonprod`, create branch **`staging`** and one branch per developer (for example `dev-<initials>`), each from the project's empty default branch. Never create these from production.
+3. In `ack-nonprod`, rename the default branch to **`staging`**. Create one branch per developer from it (for example `dev-<initials>`) and, on each developer branch, a second database named `ack_test` for the integration tests. "Reset from parent" refreshes a developer branch from staging. Nothing in this project is ever copied from production.
 
 Notes:
 - **The region can't be changed after a project is created.** If a project is in the wrong region, delete it (while it holds no real data) and create it again.
@@ -49,7 +49,7 @@ pnpm db:migrate
 APP_URL=$(pnpm -s db:app-login)   # creates ack_app, or rotates its password; prints the string once
 ```
 
-`db:app-login` refuses to finish if the login would be a superuser, could create roles or databases, owns anything, or doesn't inherit `app_runtime`. Neon roles belong to a branch, so run it on every branch.
+`db:app-login` refuses to finish if the login would be a superuser, could create roles or databases, owns anything, or doesn't inherit `app_runtime`. Neon roles belong to a branch, and a new branch copies its parent's roles and passwords. So run it on every branch, including right after creating a developer branch, so each branch has its own `ack_app` password.
 
 For a developer branch or a local Postgres, paste `$APP_URL` into `.env` as `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE`.
 
