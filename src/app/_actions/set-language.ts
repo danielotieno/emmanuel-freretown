@@ -1,6 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { isSecureCookieHost } from "@/app/_lib/secure-cookie";
 import { LOCALE_COOKIE } from "@/i18n/locale";
 import { isLocale } from "@/paraglide/runtime";
 
@@ -11,13 +12,14 @@ export async function setLanguage(formData: FormData): Promise<void> {
   const locale = formData.get("locale");
   if (!isLocale(locale)) return;
 
-  const store = await cookies();
+  const [store, requestHeaders] = await Promise.all([cookies(), headers()]);
   store.set(LOCALE_COOKIE, locale, {
     path: "/",
     maxAge: ONE_YEAR_SECONDS,
     sameSite: "lax",
     // Not httpOnly: a language preference is not sensitive, and client components need it.
     httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
+    // Secure everywhere except loopback hosts, where local builds and E2E run over http.
+    secure: isSecureCookieHost(requestHeaders.get("host")),
   });
 }
