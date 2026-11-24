@@ -5,7 +5,7 @@ The parish website and membership registry at ackemmanuelfreretown.org. Start wi
 ## Requirements
 
 - Node.js 24 (`.nvmrc`) and pnpm 10 (`corepack enable`)
-- A PostgreSQL database for local work and integration tests. **Docker is not needed.** Use your development branch in the `ack-nonprod` Neon project (ask the technical lead), or any local PostgreSQL 15+ you already have. Production is Neon, Postgres 17. The integration database's name must contain `test`: the suite wipes it.
+- A PostgreSQL database for local work and integration tests. **Docker is not needed.** Use your development branch in the `ack-nonprod` Neon project (ask the technical lead), or any local PostgreSQL 15+ you already have. Production is Neon, Postgres 18. The integration database's name must contain `test`: the suite wipes it.
 
 ## First run
 

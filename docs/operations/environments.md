@@ -1,13 +1,13 @@
 # Environments: Neon, Hyperdrive and Cloudflare
 
-How to set up and maintain staging and production (issue #6, ADR 0002 and its amendment). These steps run in the church-owned Neon and Cloudflare accounts (D40), so they need the account owner or an invited administrator. Nothing on this page should ever contain a password or connection string.
+How to set up and maintain staging and production (issue #6, ADR 0002 and its amendment). These steps run in the Neon account (the technical lead's) and the church-owned Cloudflare account (D40), so they need the account owner or an invited administrator. Nothing on this page should ever contain a password or connection string.
 
 ## Status
 
 | # | Item | Status |
 |---|---|---|
-| 1 | Neon project `ack-production` (Launch organisation, 7-day restore) in AWS Frankfurt | Not started |
-| 2 | Neon project `ack-nonprod` (Free organisation) in AWS Frankfurt, branches `staging` and one per developer | Not started |
+| 1 | Neon project `ack-production` (Postgres 18, 7-day restore) in AWS Frankfurt, account on Launch | Not started |
+| 2 | Neon project `ack-nonprod` (Postgres 18) in AWS Frankfurt, branches `staging` and one per developer | Not started |
 | 3 | Migrations applied as the owner; `ack_app` login created in each database | Not started (script ready: `pnpm db:app-login`) |
 | 4 | Local development connects as `ack_app` | Done in the repo (`.env.example`, `wrangler.jsonc`) |
 | 5 | Hyperdrive configs for staging and production, caching disabled; ids in `wrangler.jsonc` | Not started |
@@ -26,16 +26,16 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 
 ## 1. Neon projects
 
-Neon sets the plan per **organisation**, not per project, so production and non-production live in two organisations. That also keeps their member lists and credentials apart. In the Neon console, signed in to the church-owned account:
+Neon lives in the technical lead's personal Neon account (D40). A Neon account has **one plan for all its projects**, so production and non-production share it. The account is on **Launch** (D26): production needs its 7-day restore window and must never be paused by a monthly limit, and `ack-nonprod` sleeps when unused, so it costs cents. Both projects are billed by usage, with no monthly minimum, and the US$20 ceiling covers the whole account.
 
-1. Organisation **ACK Emmanuel — Non-production**, Free plan. Project **`ack-nonprod`**: Postgres 17, region **AWS Europe Central 1 (Frankfurt)**.
-2. Organisation **ACK Emmanuel — Production**, Launch plan (D26; billing card in the church's name). Project **`ack-production`**: Postgres 17, same region. In its settings, set the restore window (history retention) to **7 days**.
+1. Project **`ack-production`**: Postgres **18**, region **AWS Europe Central 1 (Frankfurt)**. In its settings, set the restore window (history retention) to **7 days**.
+2. Project **`ack-nonprod`**: Postgres 18, same region. Keep its restore window short (1 day is plenty) to keep its storage cost near zero.
 3. In `ack-nonprod`, create branch **`staging`** and one branch per developer (for example `dev-<initials>`), each from the project's empty default branch. Never create these from production.
 
 Notes:
 - **The region can't be changed after a project is created.** If a project is in the wrong region, delete it (while it holds no real data) and create it again.
-- A project can be moved to an organisation on the same plan or a higher one (Free → Launch), keeping its connection strings, but not from Launch down to Free.
-- Invite the technical lead to both organisations as an admin. The church email held by the Vicar stays the owner (D40).
+- Two separate projects, never two branches of one project. Branches share their project's credentials and console access, and a branch made from production copies real members' data.
+- So the church doesn't depend on one person's login: share `ack-production` with a second account (a church email held by the Vicar) as a collaborator, and keep a note of who has access in the parish's records.
 
 Use each database's **direct** connection string (the host without `-pooler`) for migrations and for Hyperdrive. Hyperdrive does its own pooling.
 

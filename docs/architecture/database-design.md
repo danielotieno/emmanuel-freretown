@@ -4,7 +4,7 @@
 |---|---|
 | Status | v0.2 — privileges amended 24 Nov 2026 (credentials hidden from `readonly_ops`; Better Auth deletes; audit insert columns) |
 | Date | 24 November 2026 |
-| Database | PostgreSQL 17 on Neon, EU (Frankfurt) region (ADR 0002) |
+| Database | PostgreSQL 18 on Neon, EU (Frankfurt) region (ADR 0002) |
 | Related | `docs/architecture/domain-model.md` §3 |
 
 This document is the source of truth for constraints. The Drizzle schema is written from it. Anything Drizzle cannot express (exclusion constraints, partial unique indexes with `NULLS NOT DISTINCT`, functions, grants) goes into a hand-written migration created with `drizzle-kit generate --custom`.
