@@ -19,13 +19,17 @@ const ADMIN_HOSTNAMES = new Set([
  *    route handler and server action checks the staff session and role itself.
  * 2. Sets a per-request nonce-based Content-Security-Policy. Next.js reads the nonce from the
  *    request header and applies it to its own scripts, so pages must render dynamically.
+ * 3. Sets the request id that every log line for this request carries (NFR-9), and returns it
+ *    as X-Request-Id so a staff member can quote it when reporting a problem.
  */
 export function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const csp = contentSecurityPolicy(nonce);
+  const requestId = requestIdOf(request);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("x-request-id", requestId);
   requestHeaders.set("Content-Security-Policy", csp);
 
   const { pathname } = request.nextUrl;
@@ -42,7 +46,17 @@ export function middleware(request: NextRequest) {
   }
 
   response.headers.set("Content-Security-Policy", csp);
+  response.headers.set("X-Request-Id", requestId);
   return response;
+}
+
+/**
+ * Cloudflare's ray id when present, so our log lines match Cloudflare's own invocation log;
+ * otherwise (local development) a random id. Any x-request-id sent by the client is replaced.
+ */
+function requestIdOf(request: NextRequest): string {
+  const ray = request.headers.get("cf-ray");
+  return ray && /^[0-9a-f]{16}(-[A-Z]{3})?$/.test(ray) ? ray : crypto.randomUUID();
 }
 
 function hostnameOf(request: NextRequest): string {

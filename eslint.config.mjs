@@ -21,12 +21,13 @@ const config = [
     rules: {
       "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
-      // CLAUDE.md rule 2: no personal data in logs. Use a structured logger that strips it.
-      "no-console": ["error", { allow: ["warn", "error"] }],
+      // CLAUDE.md rule 2: no personal data in logs. Log through createLogger from
+      // src/modules/observability, the only path to the console (issue #9).
+      "no-console": "error",
     },
   },
   {
-    files: ["scripts/**", "tests/**", "*.config.*"],
+    files: ["scripts/**", "tests/**", "*.config.*", "**/*.test.ts"],
     rules: { "no-console": "off" },
   },
 ];

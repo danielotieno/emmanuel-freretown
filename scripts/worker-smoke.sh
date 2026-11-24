@@ -40,6 +40,7 @@ check "public page renders" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$BA
 check "Kiswahili by default" '<html lang="sw"' "$(curl -s "$BASE/")"
 check "saved language cookie" '<html lang="en"' "$(curl -s -H 'Cookie: PARAGLIDE_LOCALE=en' "$BASE/")"
 check "CSP header" "script-src 'self' 'nonce-" "$(curl -s -D - -o /dev/null "$BASE/")"
+check "request id header" "x-request-id:" "$(curl -s -D - -o /dev/null "$BASE/" | tr 'A-Z' 'a-z')"
 check "no /admin on public host" "404" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/admin")"
 check "admin host serves staff area" "Staff area" \
   "$(curl -s --resolve "admin.localhost:${PORT}:127.0.0.1" "http://admin.localhost:${PORT}/")"
