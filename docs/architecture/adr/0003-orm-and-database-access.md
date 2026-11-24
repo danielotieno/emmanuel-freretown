@@ -1,10 +1,11 @@
-# ADR 0003: ORM and database access — Drizzle ORM (proposed)
+# ADR 0003: ORM and database access — Drizzle ORM
 
 | | |
 |---|---|
-| Status | **Proposed — awaiting agreement.** No further database feature work until this is accepted |
+| Status | Accepted (24 November 2026). Drizzle ORM, pinned to 0.45.x for Release 1 and the December pilot |
 | Date | 24 November 2026 |
 | Proposed by | Claude (review for Danny, technical lead) |
+| Decided by | Danny (technical lead). The recommendation and its four assumptions were accepted as written |
 | Related | ADR 0001 (framework), ADR 0002 (hosting), `docs/architecture/database-design.md` |
 
 ## Context
@@ -203,14 +204,14 @@ Why it is the better long-term decision for this platform: our correctness depen
 3. **Drizzle 1.0 ships with a supported upgrade path** (`drizzle-kit up`). If the project stalled, the SQL migrations and the schema shape would carry to another tool; the queries would need rewriting.
 4. **Integrity stays in the database** regardless of ORM: every rule in `database-design.md` is enforced by a constraint, grant or function, with integration tests against real Postgres.
 
-## Consequences if accepted
+## Consequences
 
 - The existing Drizzle schema and migrations stay; `database-design.md` remains the source of truth.
-- Add to CI: a catalog drift check against staging (`pg_dump --schema-only` comparison).
-- Production migrations create a Neon restore branch first (deploy pipeline issue).
+- Add a catalog drift check (`pg_dump --schema-only` comparison against a database built from the committed migrations). Tracked in #8.
+- Production migrations create a Neon restore branch first. Tracked in #7.
 - Query logging with parameters is never enabled outside local development.
-- A follow-up issue tracks the Drizzle 1.0 upgrade after January 2027.
+- The Drizzle 1.0 upgrade after January 2027 is tracked in #37.
 
-## If Prisma is chosen instead
+## If this decision is revisited
 
-Keep the SQL migrations as a baseline (`prisma migrate resolve --applied`), introspect to `schema.prisma`, replace `src/db/schema` and the Better Auth adapter, and prove the Prisma 7 client in workerd through OpenNext before any feature work.
+Not chosen; kept for the record. To move to Prisma: keep the SQL migrations as a baseline (`prisma migrate resolve --applied`), introspect to `schema.prisma`, replace `src/db/schema` and the Better Auth adapter, and prove the Prisma 7 client in workerd through OpenNext before any feature work.

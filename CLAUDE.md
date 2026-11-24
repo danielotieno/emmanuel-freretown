@@ -32,7 +32,7 @@ If a requirement is ambiguous, ask. Don't invent rules (for example, there is no
 
 ## Stack
 
-Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui, Zod, Drizzle ORM (proposed in ADR 0003, awaiting agreement), PostgreSQL on Neon (EU/Frankfurt), Cloudflare Workers via `@opennextjs/cloudflare` with Hyperdrive (query caching disabled), Better Auth (staff only), Paraglide JS (English + Kiswahili), Africa's Talking (SMS), Cloudflare Cron Triggers (jobs), Cloudflare Turnstile, Sentry, Vitest, Playwright, pnpm.
+Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui, Zod, Drizzle ORM 0.45.x (ADR 0003), PostgreSQL on Neon (EU/Frankfurt), Cloudflare Workers via `@opennextjs/cloudflare` with Hyperdrive (query caching disabled), Better Auth (staff only), Paraglide JS (English + Kiswahili), Africa's Talking (SMS), Cloudflare Cron Triggers (jobs), Cloudflare Turnstile, Sentry, Vitest, Playwright, pnpm.
 
 ## Routes
 
