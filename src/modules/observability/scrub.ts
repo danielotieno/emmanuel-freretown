@@ -7,12 +7,8 @@
 
 export const REDACTED = "[redacted]";
 
-/** Keys whose values are never written, at any depth. Compared after lowercasing and removing `_` and `-`. */
+/** Whole keys whose values are never written. Compared lowercased, without `_` and `-`. */
 const DENIED_KEYS = new Set([
-  "name",
-  "fullname",
-  "firstname",
-  "lastname",
   "code",
   "message",
   "detail",
@@ -24,10 +20,23 @@ const DENIED_KEYS = new Set([
   "data",
   "headers",
   "authorization",
+  "apikey",
+  // Run-together spellings the word rule below can't split.
+  "fullname",
+  "firstname",
+  "lastname",
+  "phonenumber",
+  "fwonumber",
+  "otpcode",
 ]);
 
-/** Key fragments that mark a value as personal or secret, wherever they appear in the key. */
-const DENIED_KEY_FRAGMENTS = [
+/**
+ * Words that mark a key as personal or secret wherever they appear in it: `fullName`,
+ * `phone_e164`, `otpCode`. Matched as whole words, so `footprint` is not caught by "otp".
+ */
+const DENIED_WORDS = new Set([
+  "name",
+  "surname",
   "phone",
   "msisdn",
   "mobile",
@@ -38,12 +47,15 @@ const DENIED_KEY_FRAGMENTS = [
   "secret",
   "token",
   "cookie",
-  "apikey",
-];
+]);
 
 export function isDeniedKey(key: string): boolean {
-  const k = key.toLowerCase().replace(/[_-]/g, "");
-  return DENIED_KEYS.has(k) || DENIED_KEY_FRAGMENTS.some((fragment) => k.includes(fragment));
+  if (DENIED_KEYS.has(key.toLowerCase().replace(/[_-]/g, ""))) return true;
+  const words = key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[\s_-]+/);
+  return words.some((word) => DENIED_WORDS.has(word));
 }
 
 const TEXT_PATTERNS: RegExp[] = [

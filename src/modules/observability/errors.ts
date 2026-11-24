@@ -5,7 +5,7 @@ import { scrubStackFrame, scrubText } from "./scrub";
  * be logged and reported. Every other error is reduced to its name, codes and stack frames.
  */
 export class SafeError extends Error {
-  /** A stable, machine-readable code, e.g. "unique_violation". */
+  /** A stable, machine-readable code, e.g. "database_error". */
   readonly code: string;
 
   constructor(code: string, message: string) {
@@ -19,20 +19,6 @@ export function isSafeError(error: unknown): error is SafeError {
   return error instanceof SafeError;
 }
 
-/**
- * The JavaScript engine's own errors describe code, not data ("x is not a function"), so their
- * messages are kept, after scrubbing. Library and database errors are not: Drizzle puts query
- * parameters in its message, and Postgres puts the conflicting value in `detail`.
- */
-const ENGINE_ERRORS = new Set([
-  "TypeError",
-  "RangeError",
-  "ReferenceError",
-  "SyntaxError",
-  "URIError",
-  "EvalError",
-]);
-
 export interface SafeErrorFields {
   errorName: string;
   errorCode?: string;
@@ -42,18 +28,24 @@ export interface SafeErrorFields {
   /** Constraint and table names are schema identifiers, never data. */
   constraint?: string;
   table?: string;
+  /** Next.js's error digest: the id shown on the error page. */
+  digest?: string;
   /** Stack frames only; the first line of a stack repeats the message. */
   stack?: string;
 }
 
-const SQLSTATE = /^[0-9A-Z]{5}$/;
+/** Five characters with at least one digit, so Node codes like EPIPE don't pass. */
+const SQLSTATE = /^(?=.*\d)[0-9A-Z]{5}$/;
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/;
+const DIGEST = /^\d{1,20}$/;
 const MAX_CAUSES = 5;
 const MAX_FRAMES = 15;
 
 /**
- * The parts of an error that are safe to log or report. `message`, `detail`, `params`,
- * `query` and `cause` are never read out, except the message of a SafeError or an engine error.
+ * The parts of an error that are safe to log or report. Only a SafeError's message is kept.
+ * Every other message is dropped, including the JavaScript engine's own: they echo input
+ * (`JSON.parse` quotes the text it failed on). `detail`, `params`, `query` and `cause` are
+ * never read out.
  */
 export function safeErrorFields(error: unknown): SafeErrorFields {
   if (!(error instanceof Error)) {
@@ -64,14 +56,15 @@ export function safeErrorFields(error: unknown): SafeErrorFields {
   if (isSafeError(error)) {
     fields.errorCode = error.code;
     fields.errorMessage = scrubText(error.message);
-  } else if (ENGINE_ERRORS.has(error.name)) {
-    fields.errorMessage = scrubText(error.message);
   }
 
   const pg = postgresFields(error);
   if (pg.sqlState) fields.sqlState = pg.sqlState;
   if (pg.constraint) fields.constraint = pg.constraint;
   if (pg.table) fields.table = pg.table;
+
+  const digest = (error as Error & { digest?: unknown }).digest;
+  if (typeof digest === "string" && DIGEST.test(digest)) fields.digest = digest;
 
   const stack = stackFrames(error.stack);
   if (stack) fields.stack = stack;
@@ -82,7 +75,10 @@ function safeName(error: Error): string {
   return IDENTIFIER.test(error.name) ? error.name : "Error";
 }
 
-/** Finds the Postgres error in a chain such as DrizzleQueryError → pg DatabaseError. */
+/**
+ * Finds the Postgres fields in an error chain: a pg error (`code`), one wrapped by Drizzle's
+ * DrizzleQueryError (`cause`), or our own SafeDatabaseError (`sqlState`).
+ */
 export function postgresFields(error: unknown): {
   sqlState?: string;
   constraint?: string;
@@ -90,10 +86,16 @@ export function postgresFields(error: unknown): {
 } {
   let current: unknown = error;
   for (let i = 0; i <= MAX_CAUSES && current instanceof Error; i++) {
-    const candidate = current as Error & { code?: unknown; constraint?: unknown; table?: unknown };
-    if (typeof candidate.code === "string" && SQLSTATE.test(candidate.code)) {
+    const candidate = current as Error & {
+      sqlState?: unknown;
+      code?: unknown;
+      constraint?: unknown;
+      table?: unknown;
+    };
+    const sqlState = candidate.sqlState ?? candidate.code;
+    if (typeof sqlState === "string" && SQLSTATE.test(sqlState)) {
       return {
-        sqlState: candidate.code,
+        sqlState,
         constraint: identifier(candidate.constraint),
         table: identifier(candidate.table),
       };

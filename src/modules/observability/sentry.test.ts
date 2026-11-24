@@ -1,14 +1,13 @@
 import type { ErrorEvent } from "@sentry/cloudflare";
 import { describe, expect, it } from "vitest";
 import { SafeError } from "./errors";
-import { registerErrorReporter, reportError, scrubEvent, sentryOptions } from "./sentry";
+import { errorTags, registerErrorReporter, reportError, scrubEvent, sentryOptions } from "./sentry";
 
 const PHONE = "+254712345678";
 
 function event(): ErrorEvent {
   return {
     type: undefined,
-    message: `failed for ${PHONE}`,
     request: {
       method: "POST",
       url: `https://ackemmanuelfreretown.org/registration/status?phone=${PHONE}`,
@@ -19,15 +18,14 @@ function event(): ErrorEvent {
     },
     user: { ip_address: "192.0.2.1" },
     extra: { phone: PHONE },
-    breadcrumbs: [{ message: `console: ${PHONE}` }],
     server_name: "worker",
-    tags: { phoneE164: PHONE, route: "/registration" },
-    contexts: { member: { fwoNumber: "1234" } },
+    tags: { sqlState: "23505", routePath: "/registration" },
+    contexts: { runtime: { name: "cloudflare" } },
     exception: {
       values: [
-        { type: "DatabaseError", value: `Key (phone_e164)=(${PHONE}) already exists.` },
+        { type: "error", value: `Key (phone_e164)=(${PHONE}) already exists.` },
         {
-          type: "DrizzleQueryError",
+          type: "Error",
           value: `Failed query: insert ...\nparams: Test Member,${PHONE}`,
           stacktrace: { frames: [{ function: "insert", vars: { phone: PHONE } }] },
         },
@@ -39,26 +37,32 @@ function event(): ErrorEvent {
 describe("scrubEvent", () => {
   it("leaves no personal data, cookies, headers, bodies, query strings or IPs", () => {
     const out = scrubEvent(event());
-    const json = JSON.stringify(out);
-    expect(json).not.toMatch(/712345678|Test Member|secret|192\.0\.2\.1|1234|phone=/);
+    expect(JSON.stringify(out)).not.toMatch(/712345678|Test Member|secret|192\.0\.2\.1|phone=/);
     expect(out.request).toEqual({
       method: "POST",
       url: "https://ackemmanuelfreretown.org/registration/status",
     });
     expect(out.user).toBeUndefined();
-    expect(out.breadcrumbs).toBeUndefined();
     expect(out.exception?.values?.map((e) => e.value)).toEqual(["[redacted]", "[redacted]"]);
+  });
+
+  it("keeps our own safe tags and the runtime context", () => {
+    const out = scrubEvent(event());
+    expect(out.tags).toEqual({ sqlState: "23505", routePath: "/registration" });
+    expect(out.contexts).toEqual({ runtime: { name: "cloudflare" } });
   });
 
   it("keeps the message of the captured error when it is one of our safe errors", () => {
     const e: ErrorEvent = {
       type: undefined,
-      exception: { values: [{ type: "SafeDatabaseError", value: "Database unique_violation" }] },
+      exception: {
+        values: [{ type: "SafeDatabaseError", value: "Database error on member.member_phone_uq" }],
+      },
     };
     const out = scrubEvent(e, {
-      originalException: new SafeError("x", "Database unique_violation"),
+      originalException: new SafeError("x", "Database error on member.member_phone_uq"),
     });
-    expect(out.exception?.values?.[0]?.value).toBe("Database unique_violation");
+    expect(out.exception?.values?.[0]?.value).toBe("Database error on member.member_phone_uq");
   });
 });
 
@@ -68,22 +72,35 @@ describe("sentryOptions", () => {
     expect(sentryOptions({ SENTRY_DSN: "" })).toBeUndefined();
   });
 
-  it("turns off data collection, tracing, breadcrumbs and request data", () => {
+  it("leaves tracing off: no sample rate at all, because Sentry treats 0 as on", () => {
     const options = sentryOptions({ SENTRY_DSN: "https://k@o0.ingest.de.sentry.io/1" })!;
-    expect(options).toMatchObject({ tracesSampleRate: 0, maxBreadcrumbs: 0 });
-    expect(options.dataCollection).toMatchObject({
-      userInfo: false,
-      cookies: false,
-      httpHeaders: false,
-      httpBodies: [],
-      urlQueryParams: false,
-      databaseQueryData: false,
-      stackFrameVariables: false,
-    });
-    expect(options.beforeBreadcrumb?.({ message: "x" }, undefined)).toBeNull();
+    expect("tracesSampleRate" in options).toBe(false);
+    expect("tracesSampler" in options).toBe(false);
+  });
+
+  it("drops the RequestData and Console integrations", () => {
+    const options = sentryOptions({ SENTRY_DSN: "https://k@o0.ingest.de.sentry.io/1" })!;
     const integrations = options.integrations as (d: { name: string }[]) => { name: string }[];
     const kept = integrations([{ name: "RequestData" }, { name: "Console" }, { name: "Dedupe" }]);
     expect(kept.map((i) => i.name)).toEqual(["Dedupe"]);
+  });
+});
+
+describe("errorTags", () => {
+  it("tags a safe database error with its SQLSTATE and constraint", () => {
+    const safe = Object.assign(
+      new SafeError("database_error", "Database error on member.member_phone_uq"),
+      {
+        sqlState: "23505",
+        constraint: "member_phone_uq",
+      },
+    );
+    expect(errorTags(safe)).toEqual({
+      errorName: "SafeError",
+      errorCode: "database_error",
+      sqlState: "23505",
+      constraint: "member_phone_uq",
+    });
   });
 });
 

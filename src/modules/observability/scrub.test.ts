@@ -42,12 +42,21 @@ describe("scrubText", () => {
 });
 
 describe("isDeniedKey", () => {
-  it.each(["fullName", "full_name", "phoneE164", "phone_e164", "fwoNumber", "otpCode", "code"])(
-    "denies %s",
-    (key) => expect(isDeniedKey(key)).toBe(true),
-  );
+  it.each([
+    "fullName",
+    "full_name",
+    "surname",
+    "phoneE164",
+    "phone_e164",
+    "phonenumber",
+    "fwoNumber",
+    "otpCode",
+    "code",
+    "apiKey",
+    "sessionToken",
+  ])("denies %s", (key) => expect(isDeniedKey(key)).toBe(true));
 
-  it.each(["requestId", "registrationId", "hbcId", "status", "count", "routePath"])(
+  it.each(["requestId", "registrationId", "hbcId", "status", "count", "routePath", "footprint"])(
     "allows %s",
     (key) => expect(isDeniedKey(key)).toBe(false),
   );
