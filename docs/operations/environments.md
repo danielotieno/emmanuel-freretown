@@ -8,7 +8,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 |---|---|---|
 | 1 | Neon project `ack-production` (Postgres 18, 7-day restore) in AWS Frankfurt, account on Launch; one branch, `production` | In progress: project created |
 | 2 | Neon project `ack-nonprod` (Postgres 18) in AWS Frankfurt, default branch renamed `staging`, one branch per developer | In progress: project created |
-| 3 | Migrations applied as the owner; `ack_app` login created in each database | Not started (script ready: `pnpm db:app-login`) |
+| 3 | Migrations applied as the owner; `ack_app` login created in each database | In progress: `dev-do` done 24 Nov 2026 (Postgres 18.7; `ack_app` verified; integration tests pass). Staging and production to do |
 | 4 | Local development connects as `ack_app` | Done in the repo (`.env.example`, `wrangler.jsonc`) |
 | 5 | Hyperdrive configs for staging and production, caching disabled; ids in `wrangler.jsonc` | Not started |
 | 6 | Custom domains: apex, `admin.`, `staging.`, `admin-staging.` | Not started (routes already in `wrangler.jsonc`) |
@@ -37,7 +37,7 @@ Notes:
 - Two separate projects, never two branches of one project. Branches share their project's credentials and console access, and a branch made from production copies real members' data.
 - So the church doesn't depend on one person's login: share `ack-production` with a second account (a church email held by the Vicar) as a collaborator, and keep a note of who has access in the parish's records.
 
-Use each database's **direct** connection string (the host without `-pooler`) for migrations and for Hyperdrive. Hyperdrive does its own pooling.
+Use each database's **direct** connection string (the host without `-pooler`) for migrations and for Hyperdrive. Hyperdrive does its own pooling. Change `sslmode=require` in the copied string to **`sslmode=verify-full`**: the `pg` driver treats them the same today, but its next major version weakens `require` to encrypt without checking the server's certificate.
 
 ## 2. Migrate and create the app login
 
