@@ -34,7 +34,7 @@
       "placement": { "mode": "smart" },
       "observability": { "enabled": true },
       // Neon project ack-nonprod, branch staging. Created with caching disabled.
-      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_STAGING_HYPERDRIVE_ID" }],
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "e2d8d2f3543e4e968faaf9bb5e2955a3" }],
     },
     "production": {
       "routes": [

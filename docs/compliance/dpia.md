@@ -74,7 +74,7 @@ The parish is replacing an unreliable paper list (D5) with a verified register o
 | Notifying data subjects | Privacy notice linked from every form (NFR-10); SMS confirmation of submission and approval (FR-8) |
 | Exercising data subject rights | Requests go to the church office; staff act through the admin portal, and every action is audited (BR-12) |
 | Parties and roles | Controller: the parish (D23). Processors: Neon (database), Cloudflare (hosting, Turnstile, Access, R2 backups), Africa's Talking (SMS), Sentry (error reports, personal data stripped), GitHub (code, CI and the backup job runner) |
-| Measures to ensure processor compliance | Data processing agreements accepted in church-owned accounts (go/no-go item 9); the church owns the vendor accounts and the technical lead is an invited administrator, except Neon, which is in the technical lead's account and shared with a church email (D40) |
+| Measures to ensure processor compliance | Data processing agreements accepted in church-owned accounts (go/no-go item 9); the church owns the vendor accounts and the technical lead is an invited administrator, except Neon and Cloudflare, which are in the technical lead's accounts and shared with a church email (D40) |
 | Processing safeguards | See Part 3 |
 | Safeguards before cross-border transfer | EU region chosen for its comparable law (GDPR); explicit consent (BR-15); data processing agreements; ODPC confirmation of safeguards sought (go/no-go item 10) |
 

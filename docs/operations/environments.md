@@ -1,6 +1,6 @@
 # Environments: Neon, Hyperdrive and Cloudflare
 
-How to set up and maintain staging and production (issue #6, ADR 0002 and its amendment). These steps run in the Neon account (the technical lead's) and the church-owned Cloudflare account (D40), so they need the account owner or an invited administrator. Nothing on this page should ever contain a password or connection string.
+How to set up and maintain staging and production (issue #6, ADR 0002 and its amendment). These steps run in the technical lead's Neon and Cloudflare accounts (D40), so they need the account owner or an invited administrator. Nothing on this page should ever contain a password or connection string.
 
 ## Status
 
@@ -10,7 +10,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 | 2 | Neon project `ack-nonprod` (Postgres 18) in AWS Frankfurt, default branch renamed `staging`, one branch per developer | In progress: project created |
 | 3 | Migrations applied as the owner; `ack_app` login created in each database | In progress: `dev-do` and `staging` done 24 Nov 2026 (Postgres 18.7; `ack_app` verified on both; integration tests pass on `dev-do`). Production to do |
 | 4 | Local development connects as `ack_app` | Done in the repo (`.env.example`, `wrangler.jsonc`) |
-| 5 | Hyperdrive configs for staging and production, caching disabled; ids in `wrangler.jsonc` | Not started |
+| 5 | Hyperdrive configs for staging and production, caching disabled; ids in `wrangler.jsonc` | In progress: `ack-staging` created 24 Nov 2026 (connects as `ack_app`, caching disabled). Production to do |
 | 6 | Custom domains: apex, `admin.`, `staging.`, `admin-staging.` | Not started (routes already in `wrangler.jsonc`) |
 | 7 | Cloudflare Access in front of `admin.` and `admin-staging.` | Not started |
 | 8 | Secrets in Cloudflare; local ones documented in `.dev.vars.example` | Example done; secrets added as each feature lands |

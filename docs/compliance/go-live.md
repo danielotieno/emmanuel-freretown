@@ -11,9 +11,9 @@ Status: `Not started` · `In progress` · `Done` · `Waived` (with the decision 
 | 3 | DPIA completed, signed by the Vicar and submitted to the ODPC | Vicar, drafted by the technical lead | In progress | Draft in `docs/compliance/dpia.md` (D41). **s. 31(5): submit sixty days before processing; see Q28** |
 | 4 | Decision on the sixty-day DPIA rule and the registration date (Q28) | Vicar, on legal advice | Not started | Needed before registration opens |
 | 5 | ODPC confirmation of safeguards for storage outside Kenya, or the Vicar's documented decision to proceed while it is pending | Vicar | Not started | ADR 0002, go/no-go item 10 |
-| 6 | Church-owned accounts created with a church email held by the Vicar; technical lead invited as administrator | Vicar, technical lead | Not started | D40: Cloudflare, GitHub, Africa's Talking, Sentry. Neon is in the technical lead's personal account, with production shared with the church email |
+| 6 | Church-owned accounts created with a church email held by the Vicar; technical lead invited as administrator | Vicar, technical lead | Not started | D40: GitHub, Africa's Talking, Sentry. Neon and Cloudflare are in the technical lead's personal accounts, shared with the church email |
 | 7 | Data processing agreement accepted: Neon | Technical lead (account owner), on the parish's behalf | Not started | Go/no-go item 9 |
-| 8 | Data processing agreement accepted: Cloudflare | Vicar (account owner) | Not started | Go/no-go item 9 |
+| 8 | Data processing agreement accepted: Cloudflare | Technical lead (account owner), on the parish's behalf | Not started | Go/no-go item 9 |
 | 9 | Data processing agreement accepted: Africa's Talking | Vicar (account owner) | Not started | Go/no-go item 9 |
 | 10 | Data processing agreement accepted: Sentry | Vicar (account owner) | Not started | Go/no-go item 9; confirm the data region |
 | 11 | Data processing agreement accepted: GitHub | Vicar (account owner) | Not started | Go/no-go item 9; backups run on its runners (#8) |
