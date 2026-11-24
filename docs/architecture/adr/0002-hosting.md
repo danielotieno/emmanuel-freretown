@@ -65,7 +65,7 @@ Confirms the hosting decision (Neon in the EU; no Kenyan hosting providers) and 
 
 Neon's Free plan keeps only **6 hours** of restore history (capped at 1 GB of changes). A mistake noticed the next morning could not be undone from history, only from the previous night's `pg_dump`, losing up to a day of registrations. The Launch plan keeps up to **7 days**, is usage-based with no monthly minimum (compute about $0.106 per CU-hour, storage about $0.35 per GB-month, instant-restore history about $0.20 per GB-month), and scales to zero when idle.
 
-Decision: **production on Launch with a 7-day restore window; non-production on Free.** For about 600 members with idle periods, expect a few dollars a month for the database (an estimate; confirm on the Neon usage page after the first month). NFR-7 asks for point-in-time recovery, which the Free plan provides only for 6 hours.
+Decision: **production on Launch with a 7-day restore window; non-production on Free.** Budget ceiling: US$20 a month for the database. For about 600 members with idle periods, expect a few dollars a month for the database (an estimate; confirm on the Neon usage page after the first month). NFR-7 asks for point-in-time recovery, which the Free plan provides only for 6 hours.
 
 ### Vendor risk
 
