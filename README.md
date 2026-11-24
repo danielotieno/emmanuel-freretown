@@ -13,6 +13,7 @@ The parish website and membership registry at ackemmanuelfreretown.org. Start wi
 pnpm install          # also compiles messages and Cloudflare types (pnpm gen)
 cp .env.example .env  # then point the URLs at your Postgres
 pnpm db:migrate       # applies src/db/migrations to DATABASE_URL
+pnpm db:app-login     # creates the app's login (ack_app); paste the printed string into .env
 pnpm dev              # http://localhost:3000, staff portal at http://admin.localhost:3000
 ```
 
@@ -33,6 +34,7 @@ Run `pnpm i18n:watch` in a second terminal while editing `messages/*.json`.
 | `pnpm db:generate`             | Generate a migration from `src/db/schema`                                                    |
 | `pnpm db:custom --name=<name>` | Create an empty SQL migration for what Drizzle cannot express                                |
 | `pnpm db:migrate`              | Apply migrations to `DATABASE_URL` (owner role). Never `drizzle-kit push`                    |
+| `pnpm db:app-login`            | Create the app's database login, or rotate its password; prints its connection string once   |
 | `pnpm auth:schema`             | Regenerate `src/db/schema/auth.ts` from the Better Auth config                               |
 | `pnpm gen`                     | Compile Paraglide messages and generate `cloudflare-env.d.ts`                                |
 
@@ -63,4 +65,4 @@ See "How we work" in [`CLAUDE.md`](CLAUDE.md): one issue, one branch (`<number>-
 
 ## Environments
 
-See the amendment in [ADR 0002](docs/architecture/adr/0002-hosting.md): production and non-production are separate Neon projects; staging and development never hold real members' data. Setting up the environments, Hyperdrive and deployment is tracked in the GitHub issues.
+See the amendment in [ADR 0002](docs/architecture/adr/0002-hosting.md): production and non-production are separate Neon projects; staging and development never hold real members' data. Setting up the environments is in [docs/operations/environments.md](docs/operations/environments.md); deployment is tracked in the GitHub issues.

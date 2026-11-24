@@ -287,6 +287,7 @@ OTP codes are never stored, only `code_hash` (HMAC-SHA256 with a server secret).
 | Role | Used by | Privileges |
 |---|---|---|
 | `app_owner` | Migrations only (CI deploy step) | Owns all objects |
+| `ack_app` (login) | The application, through Hyperdrive, and local development | Member of `app_runtime` only; owns nothing; not superuser, no `CREATEROLE` or `CREATEDB`. Created or rotated with `pnpm db:app-login` (`docs/operations/environments.md`) |
 | `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only; no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `passkey` (expired sessions and second-factor resets); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`) |
 | `readonly_ops` | Super Administrators for investigations | `SELECT` only, except staff credentials (`account`, `session`, `verification`, `two_factor`, `passkey`); every session is logged by the provider |
 

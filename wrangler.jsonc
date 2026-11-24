@@ -18,8 +18,10 @@
     {
       "binding": "HYPERDRIVE",
       "id": "00000000000000000000000000000000",
-      // Override with CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE (see .env.example).
-      "localConnectionString": "postgres://postgres:postgres@localhost:5432/ack_dev",
+      // The app's login (member of app_runtime), never the owner. Set the real string, with
+      // the password from `pnpm db:app-login`, in CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE
+      // (see .env.example).
+      "localConnectionString": "postgres://ack_app@localhost:5432/ack_dev",
     },
   ],
   "env": {
