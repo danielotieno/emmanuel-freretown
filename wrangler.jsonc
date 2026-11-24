@@ -45,7 +45,7 @@
       "placement": { "mode": "smart" },
       "observability": { "enabled": true },
       // Neon project ack-production. Created with caching disabled.
-      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_PRODUCTION_HYPERDRIVE_ID" }],
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "ff0f73900bc64771991e69f036276465" }],
     },
   },
 }
