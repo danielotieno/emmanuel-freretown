@@ -1,0 +1,6 @@
+# Changes to integrity and security rules need the technical lead's review.
+*                                   @danielotieno
+/src/db/                            @danielotieno
+/src/middleware.ts                  @danielotieno
+/src/modules/access/                @danielotieno
+/docs/architecture/                 @danielotieno

@@ -1,0 +1,48 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Top level = local development and `pnpm preview`. Deploys always name an environment:
+  // `pnpm deploy:staging` or `pnpm deploy:production` (ADR 0002 amendment).
+  "name": "ack-emmanuel-freretown",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  // Reachable only through the church's own domains; no *.workers.dev or preview URLs.
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "00000000000000000000000000000000",
+      // Override with CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE (see .env.example).
+      "localConnectionString": "postgres://postgres:postgres@localhost:5432/ack_dev",
+    },
+  ],
+  "env": {
+    "staging": {
+      "routes": [
+        { "pattern": "staging.ackemmanuelfreretown.org", "custom_domain": true },
+        { "pattern": "admin-staging.ackemmanuelfreretown.org", "custom_domain": true },
+      ],
+      "placement": { "mode": "smart" },
+      "observability": { "enabled": true },
+      // Neon project ack-nonprod, branch staging. Created with caching disabled.
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_STAGING_HYPERDRIVE_ID" }],
+    },
+    "production": {
+      "routes": [
+        { "pattern": "ackemmanuelfreretown.org", "custom_domain": true },
+        { "pattern": "admin.ackemmanuelfreretown.org", "custom_domain": true },
+      ],
+      // Run near the database in Frankfurt rather than near the visitor (ADR 0002).
+      "placement": { "mode": "smart" },
+      "observability": { "enabled": true },
+      // Neon project ack-production. Created with caching disabled.
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_PRODUCTION_HYPERDRIVE_ID" }],
+    },
+  },
+}

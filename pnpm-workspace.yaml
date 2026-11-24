@@ -1,0 +1,9 @@
+# Supply-chain hygiene. pnpm refuses package versions published less than 24 hours ago, the
+# window in which most hijacked releases are caught. Short enough to apply Next.js and React
+# security releases within 48 hours (ADR 0001); for an urgent fix, add the package to
+# minimumReleaseAgeExclude in the same pull request and remove it afterwards.
+minimumReleaseAge: 1440
+
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
