@@ -7,14 +7,14 @@ How code reaches staging and production, how to undo a bad deploy, and how the d
 | # | Item | Status |
 |---|---|---|
 | 1 | GitHub environments `staging` and `production`, deployments from `main` only | Done 24 Nov 2026. Required reviewers aren't available on this repository's plan, so production deploys only when started by hand |
-| 2 | Deploy workflow (`.github/workflows/deploy.yml`) | Written; needs the secrets below |
-| 3 | Cloudflare API token for deploys | Not started |
-| 4 | Neon API key and project id for restore branches | Not started |
-| 5 | R2 enabled; bucket `ack-backups` in the EU jurisdiction with a 35-day lifecycle rule | Not started: R2 must be enabled in the dashboard first |
-| 6 | Backup login `ack_backup` on staging and production | Not started (script ready: `pnpm db:backup-login`) |
-| 7 | age key pair; private key held offline | Not started |
-| 8 | Nightly backup (`backup.yml`) running | Not started |
-| 9 | Weekly drift check (`drift.yml`) running | Not started |
+| 2 | Deploy workflow (`.github/workflows/deploy.yml`) | Configured 24 Nov 2026; first run when this merges |
+| 3 | Cloudflare API token for deploys | Done 24 Nov 2026: `github-deploy-ack-emmanuel`, this account and zone only, expires Nov 2027. Remove its R2 permission if the R2 token list still shows it |
+| 4 | Neon API key and project id for restore branches | Done 24 Nov 2026 (`NEON_PROJECT_ID` = `ack-production`'s id) |
+| 5 | R2 enabled; bucket `ack-backups` in the EU jurisdiction with a 35-day lifecycle rule | Done 24 Nov 2026 (location EEUR; rule `expire-35-days`). R2 token scoped to `ack-backups`, expires Nov 2027 |
+| 6 | Backup login `ack_backup` on staging and production | Done 24 Nov 2026; verified read-only on both |
+| 7 | age key pair; private key held offline | Done 24 Nov 2026: public key set; round trip tested. Private key: technical lead's password manager and a sealed copy with the Vicar |
+| 8 | Nightly backup (`backup.yml`) running | First manual run after this merges |
+| 9 | Weekly drift check (`drift.yml`) running | First manual run after this merges |
 | 10 | Restore drill performed before go-live, then monthly | Not started |
 
 ## How deploys work
