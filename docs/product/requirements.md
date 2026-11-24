@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| Status | Draft v0.4 — open questions blocking Release 1 decided (D23–D35) |
+| Status | Draft v0.5 — voting pilot scope decided (D37, D38) |
 | Date | 24 November 2026 |
 | Mandate | Approved by the Vicar and PCC (record minute/resolution reference here) |
 | Target | Build complete Thursday 26 November 2026; announced at services Sunday 29 November; registration open about 30 November – 1 December |
 | Go/no-go review | Before registration opens to the public (criteria in §10) |
-| Elections | Release 2: non-binding pilot at Jerusalem and Zion Freretown on 13 December 2026, paper official; official use from the January 2027 elections if the pilot passes. See `docs/architecture/domain-model.md` §4. |
+| Elections | Release 2: non-binding pilot at Jerusalem and Zion Freretown on 13 December 2026 with online voting alongside paper, subject to a go/no-go on 4 December (D37); paper official; official use from the January 2027 elections if the pilot passes. See `docs/architecture/domain-model.md` §4. |
 
 ## 1. Purpose
 
@@ -53,6 +53,8 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 | D34 | Staff must not approve their own registration or that of a close relative (spouse, parent, child or sibling); a Super Administrator approves it instead (D36). In Release 1 this is a policy, checked through the audit trail, not enforced by the system (BR-17, Q24) | Danny (technical lead), 24 Nov 2026 |
 | D35 | A staff correction carries the member's consent (BR-15) over from the previous revision when the privacy-notice version has not changed. If it has changed, the member must give consent again (Q26) | Danny (technical lead), 24 Nov 2026 |
 | D36 | Release 1 has one Membership Administrator who approves registrations. When BR-10 or BR-17 stops them approving one, a Super Administrator approves it (Q24) | Danny (technical lead), 24 Nov 2026 |
+| D37 | The 13 December pilot runs full online voting alongside paper at Jerusalem and Zion Freretown. Go/no-go on 4 December 2026: online voting runs only if, by then, the elections ADR (ballot secrecy) is accepted, the election features are built, and a full rehearsal on staging has passed. Otherwise the pilot falls back to electronic check-in only, with no online ballots. The pilot electorate follows D22: only members approved before the pilot's nominations open can vote online; everyone can vote on paper | Danny (technical lead), 24 Nov 2026 |
+| D38 | At a pilot, paper is official (D19), so an online vote never stops a member voting on paper. The officer's check-in shows that the member already voted online and records it, but always lets them have a paper ballot. Electronic results stay sealed until the paper result is declared | Danny (technical lead), 24 Nov 2026 |
 
 ## 3. Roles in Release 1
 
@@ -252,7 +254,8 @@ Resolved: Q1 → D11, Q2 → D12, Q3 → D13 / BR-14, Q4 → D14, Q5 → D23, Q6
 | Q13 | How long are approved members' records kept after they are marked deceased or transferred out? BR-14 covers only rejected and withdrawn registrations. | Vicar |
 | Q15 | Who is the named contact for a personal-data breach, responsible for notifying the ODPC within 72 hours (s. 43)? | Vicar |
 | Q17 | Members who decline storage outside Kenya (BR-15) stay on paper. How do they get into an election's electorate (D18)? | Committee |
-| Q25 | D22 says eligible if approved before nominations *open*, but the electorate is frozen when nominations *close*. Which date decides the member's HBC for voting? | Committee |
+| Q25 | D22 says eligible if approved before nominations *open*, but the electorate is frozen when nominations *close*. Which date decides the member's HBC for voting? Needed before the pilot's nominations open (D37). | Committee |
+| Q27 | What must the pilot show for online voting to be used officially in January: for example, electronic and paper results agree, no member voted twice, and OTP worked for most voters? Needed before 13 December. | Committee |
 
 ## 12. Sizing notes
 

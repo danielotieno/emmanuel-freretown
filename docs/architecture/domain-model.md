@@ -77,7 +77,8 @@ SUBMITTED | CORRECTION_REQUESTED ──withdraw──► WITHDRAWN
 - Each eligible voter casts at most one vote per position (D16).
 - Candidates are nominated beforehand or from the floor (D17).
 - Every approved, active member of the HBC is eligible, whether or not they attend (D18).
-- 13 December 2026 is a non-binding pilot; paper results are official (D19).
+- 13 December 2026 is a non-binding pilot; paper results are official (D19). It runs online voting alongside paper if the 4 December go/no-go passes, and otherwise electronic check-in only (D37).
+- At a pilot, an online vote never stops a member voting on paper: the check-in shows and records the online vote but always allows a paper ballot (D38).
 - A person may stand for only one position per election (E3).
 - A position with a single accepted candidate when nominations close is filled unopposed; no vote is held for it (E3).
 - Voting is open for a window of a few hours on the election day (E2).
@@ -91,7 +92,7 @@ SUBMITTED | CORRECTION_REQUESTED ──withdraw──► WITHDRAWN
 | Position | election, name, seats (1), order | Seeded from a template (the five HBC positions) |
 | Candidate | position, member, source (PRE/FLOOR), nominated_by, seconded_by, status | Must be in the electorate |
 | ElectorateEntry | election, member, remote_allowed | Frozen snapshot taken when nominations close; `remote_allowed` is true when the member has a personal phone on record (E1) |
-| VoterParticipation | election, member, channel (ONLINE/MANUAL), recorded_by (officer, for MANUAL), voted_at | "Who voted" — unique per member per election, across both channels. A manual check-in is refused if the member already voted online, and an online vote is refused after a manual check-in |
+| VoterParticipation | election, member, channel (ONLINE/MANUAL), recorded_by (officer, for MANUAL), voted_at | "Who voted" — unique per member per election, across both channels. A manual check-in is refused if the member already voted online, and an online vote is refused after a manual check-in. At a pilot, a check-in after an online vote is recorded separately and never refuses the paper ballot (D38); how it is stored is for the elections data model (#32) |
 | PaperTally | election, position, candidate (or ABSTAIN), votes, entered_by, confirmed_by | Manual ballot totals; requires two different officers. Final results = online tally + paper tally |
 | Ballot | random id, election, sealed payload | "What was voted" — no member reference, no timestamp |
 | PositionResult | election, position, candidate, votes; declared_by, declared_at | Written only after voting closes |
