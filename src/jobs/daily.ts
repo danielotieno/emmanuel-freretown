@@ -1,10 +1,13 @@
 import { redactExpiredRegistrations } from "../modules/audit";
-import type { Logger } from "../modules/observability";
+import { SafeError, type Logger } from "../modules/observability";
 import { purgeExpiredChallenges } from "../modules/verification";
 import type { Database, DbHandle } from "../db";
 
-/** Counts a job reports, e.g. `{ deleted: 3 }`. A non-zero `failed` marks the job as failed. */
-export type JobResult = Record<string, number>;
+/**
+ * What a job reports: counts such as `{ deleted: 3 }`, plus safe codes such as a SQLSTATE.
+ * A non-zero `failed` marks the job as partly failed. Never personal data.
+ */
+export type JobResult = Record<string, number | string>;
 
 export interface DailyJob {
   /** The job's name in database-design.md §6, e.g. "otp.purge". */
@@ -19,7 +22,13 @@ export interface DailyJob {
  */
 export const DAILY_JOBS: DailyJob[] = [
   { name: "otp.purge", run: async (db) => ({ deleted: await purgeExpiredChallenges(db) }) },
-  { name: "retention.redact", run: async (db) => ({ ...(await redactExpiredRegistrations(db)) }) },
+  {
+    name: "retention.redact",
+    run: async (db): Promise<JobResult> => {
+      const { redacted, failed, firstFailure } = await redactExpiredRegistrations(db);
+      return firstFailure ? { redacted, failed, firstFailure } : { redacted, failed };
+    },
+  },
 ];
 
 export interface RunDeps {
@@ -31,8 +40,8 @@ export interface RunDeps {
 }
 
 /**
- * Runs every job in turn. A failing job is logged and reported, and the rest still run.
- * Returns the names of the jobs that failed.
+ * Runs every job in turn. A job that fails, or partly fails, is logged and reported to Sentry,
+ * and the rest still run. Returns the names of the jobs that failed.
  */
 export async function runDailyJobs(jobs: DailyJob[], deps: RunDeps): Promise<string[]> {
   const failed: string[] = [];
@@ -43,9 +52,14 @@ export async function runDailyJobs(jobs: DailyJob[], deps: RunDeps): Promise<str
       handle = deps.openDb();
       const result = await job.run(handle.db);
       const ms = Date.now() - started;
-      if ((result.failed ?? 0) > 0) {
+      if (typeof result.failed === "number" && result.failed > 0) {
         failed.push(job.name);
         deps.log.warn("job.partly_failed", { job: job.name, ms, ...result });
+        // A retention duty that fails every night must not live only in short-lived logs.
+        deps.report(new SafeError("job_partly_failed", "A daily job partly failed"), {
+          job: job.name,
+          ...(typeof result.firstFailure === "string" ? { firstFailure: result.firstFailure } : {}),
+        });
       } else {
         deps.log.info("job.completed", { job: job.name, ms, ...result });
       }

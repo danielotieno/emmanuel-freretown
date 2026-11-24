@@ -33,7 +33,7 @@
   // names its own queue; create them once with `wrangler queues create` (environments.md §7).
   "queues": {
     "producers": [{ "binding": "JOBS", "queue": "ack-jobs-local" }],
-    "consumers": [{ "queue": "ack-jobs-local", "max_batch_size": 10, "max_retries": 5 }],
+    "consumers": [{ "queue": "ack-jobs-local", "max_batch_size": 10, "max_retries": 4 }],
   },
   "hyperdrive": [
     {
@@ -57,7 +57,7 @@
       "vars": { "SENTRY_ENVIRONMENT": "staging" },
       "queues": {
         "producers": [{ "binding": "JOBS", "queue": "ack-jobs-staging" }],
-        "consumers": [{ "queue": "ack-jobs-staging", "max_batch_size": 10, "max_retries": 5 }],
+        "consumers": [{ "queue": "ack-jobs-staging", "max_batch_size": 10, "max_retries": 4 }],
       },
       // Neon project ack-nonprod, branch staging. Created with caching disabled.
       "hyperdrive": [
@@ -81,7 +81,7 @@
       "vars": { "SENTRY_ENVIRONMENT": "production" },
       "queues": {
         "producers": [{ "binding": "JOBS", "queue": "ack-jobs-production" }],
-        "consumers": [{ "queue": "ack-jobs-production", "max_batch_size": 10, "max_retries": 5 }],
+        "consumers": [{ "queue": "ack-jobs-production", "max_batch_size": 10, "max_retries": 4 }],
       },
       // Neon project ack-production. Created with caching disabled.
       "hyperdrive": [

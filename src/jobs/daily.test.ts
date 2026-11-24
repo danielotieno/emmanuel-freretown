@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Database, DbHandle } from "../db";
 import { createLogger, type LogRecord } from "../modules/observability";
-import { runDailyJobs, type DailyJob, type JobResult } from "./daily";
+import { runDailyJobs, type DailyJob, type JobResult, type RunDeps } from "./daily";
 
 function harness() {
   const lines: LogRecord[] = [];
@@ -17,7 +17,7 @@ function harness() {
       },
     };
   };
-  const deps = {
+  const deps: RunDeps = {
     openDb,
     log: createLogger({ sink: (r) => lines.push(r) }),
     report: (error: unknown) => void reported.push(error),
@@ -59,11 +59,21 @@ describe("runDailyJobs", () => {
     expect(JSON.stringify(lines)).not.toMatch(/Wanjiku|712345678/);
   });
 
-  it("counts a job that reports failures as failed", async () => {
-    const { deps, lines } = harness();
-    const failed = await runDailyJobs([ok("r.redact", { redacted: 3, failed: 1 })], deps);
+  it("counts a job that reports failures as failed, and reports it to Sentry", async () => {
+    const { deps, lines, reported } = harness();
+    const tags: Record<string, string>[] = [];
+    deps.report = (_error, t) => void tags.push(t);
+    const result = { redacted: 3, failed: 1, firstFailure: "P0001" };
+    const failed = await runDailyJobs([ok("r.redact", result)], deps);
     expect(failed).toEqual(["r.redact"]);
-    expect(lines[0]).toMatchObject({ level: "warn", event: "job.partly_failed", failed: 1 });
+    expect(lines[0]).toMatchObject({
+      level: "warn",
+      event: "job.partly_failed",
+      failed: 1,
+      firstFailure: "P0001",
+    });
+    expect(tags).toEqual([{ job: "r.redact", firstFailure: "P0001" }]);
+    expect(reported).toHaveLength(0);
   });
 
   it("treats a database that can't be opened as that job's failure", async () => {

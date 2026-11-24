@@ -12,8 +12,22 @@ export const jobMessage = z.object({
 });
 export type JobMessage = z.infer<typeof jobMessage>;
 
-/** Does the work for one message. Throw to have the message retried later. */
-export type QueueHandler = (id: string, db: Database) => Promise<void>;
+/**
+ * Deliveries per message: the first plus `max_retries` in wrangler.jsonc (keep the two in step).
+ * After the last, Cloudflare drops the message.
+ */
+export const MAX_ATTEMPTS = 5;
+
+/**
+ * Does the work for one message. Throw to have the message retried later. On the last attempt
+ * a handler should record the failure itself (e.g. mark an SMS FAILED), because the message
+ * won't come back.
+ */
+export type QueueHandler = (
+  id: string,
+  db: Database,
+  attempt: { number: number; isLast: boolean },
+) => Promise<void>;
 
 /**
  * Handlers by message type. `sms.dispatch` arrives with #14 (send a PENDING outbox row; mark it
@@ -21,9 +35,9 @@ export type QueueHandler = (id: string, db: Database) => Promise<void>;
  */
 export const QUEUE_HANDLERS: Record<string, QueueHandler> = {};
 
-/** Seconds before retry number `attempts`: 30 s, 1, 2, 4 and 8 minutes. */
+/** Seconds to wait after failed attempt number `attempts`: 30 s, then 1, 2 and 4 minutes. */
 export function retryDelaySeconds(attempts: number): number {
-  return Math.min(30 * 2 ** Math.max(attempts - 1, 0), 15 * 60);
+  return 30 * 2 ** Math.max(attempts - 1, 0);
 }
 
 /** The parts of a Cloudflare Queues message this consumer uses. */
@@ -64,12 +78,16 @@ export async function handleQueueBatch(
       const { type, id } = parsed.data;
       const handler = Object.hasOwn(handlers, type) ? handlers[type] : undefined;
       if (!handler) {
-        deps.log.error("queue.unknown_job", undefined, { job: type, messageId: message.id });
+        // Not the type itself: an unknown type is arbitrary text.
+        deps.log.error("queue.unknown_job", undefined, { messageId: message.id });
         message.ack();
         continue;
       }
       try {
-        await handler(id, handle.db);
+        await handler(id, handle.db, {
+          number: message.attempts,
+          isLast: message.attempts >= MAX_ATTEMPTS,
+        });
         message.ack();
         deps.log.info("queue.job_completed", { job: type, attempts: message.attempts });
       } catch (error) {

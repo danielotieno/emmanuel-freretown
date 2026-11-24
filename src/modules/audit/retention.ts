@@ -1,9 +1,11 @@
 import { sql } from "drizzle-orm";
-import { safeQuery, type DbOrTx } from "../../db";
+import { safeQuery, SafeDatabaseError, type DbOrTx } from "../../db";
 
 export interface RedactionResult {
   redacted: number;
   failed: number;
+  /** The SQLSTATE of the first failure, to diagnose it without any personal data. */
+  firstFailure?: string;
 }
 
 /**
@@ -37,8 +39,10 @@ export async function redactExpiredRegistrations(db: DbOrTx): Promise<RedactionR
     try {
       await safeQuery(() => db.execute(sql`SELECT public.redact_expired_registration(${id})`));
       result.redacted += 1;
-    } catch {
+    } catch (error) {
       result.failed += 1;
+      result.firstFailure ??=
+        (error instanceof SafeDatabaseError ? error.sqlState : undefined) ?? "unknown";
     }
   }
   return result;

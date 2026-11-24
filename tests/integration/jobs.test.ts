@@ -75,6 +75,30 @@ async function decided(reference: string, age: string, action = "REJECT"): Promi
   return id;
 }
 
+/** A registration approved 13 months ago (so linked to a member), with one revision. */
+async function approvedLongAgo(reference: string): Promise<string> {
+  const member = await client.query<{ id: string }>(
+    "INSERT INTO member (fwo_number, full_name) VALUES ('8101', 'Test Person') RETURNING id",
+  );
+  await client.query("ALTER TABLE registration DISABLE TRIGGER registration_guard");
+  const { rows } = await client.query<{ id: string }>(
+    `INSERT INTO registration (reference, channel, language, status, decided_at, member_id)
+     VALUES ($1, 'SELF', 'sw', 'APPROVED', now() - interval '13 months', $2) RETURNING id`,
+    [reference, member.rows[0]!.id],
+  );
+  await client.query("ALTER TABLE registration ENABLE TRIGGER registration_guard");
+  const id = rows[0]!.id;
+  const hbc = await client.query<{ id: string }>("SELECT id FROM hbc WHERE name = 'Jordan'");
+  await client.query(
+    `INSERT INTO registration_revision
+       (registration_id, revision_no, full_name, fwo_number, phone_e164, hbc_id,
+        adult_declared, transfer_consent, privacy_notice_version)
+     VALUES ($1, 1, 'Test Person', '8101', '+254700000011', $2, true, true, 'v1')`,
+    [id, hbc.rows[0]!.id],
+  );
+  return id;
+}
+
 async function redactedAt(id: string) {
   const { rows } = await client.query<{ at: Date | null; name: string | null }>(
     `SELECT r.personal_data_redacted_at AS at, v.full_name AS name
@@ -90,6 +114,8 @@ describe("retention.redact", () => {
     const rejected = await decided("REG-JKBA2", "13 months");
     const withdrawn = await decided("REG-JKBA3", "13 months", "WITHDRAW");
     const recent = await decided("REG-JKBA4", "11 months");
+    // Approved long ago: never selected (the status filter), so no nightly "failed: 1".
+    const approved = await approvedLongAgo("REG-JKBA6");
 
     expect(await asApp(() => redactExpiredRegistrations(db))).toEqual({ redacted: 2, failed: 0 });
     expect(await asApp(() => redactExpiredRegistrations(db))).toEqual({ redacted: 0, failed: 0 });
@@ -100,6 +126,7 @@ describe("retention.redact", () => {
       expect(row.name).toBeNull();
     }
     expect(await redactedAt(recent)).toEqual({ at: null, name: "Test Person" });
+    expect(await redactedAt(approved)).toEqual({ at: null, name: "Test Person" });
 
     const audit = await client.query<{ n: string }>(
       `SELECT count(*) AS n FROM audit_entry
