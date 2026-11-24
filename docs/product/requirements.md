@@ -28,7 +28,7 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 | D9 | ~~Personal data is hosted in Kenya~~ **Superseded:** the database is Neon Postgres in the EU (Frankfurt) and the application runs on Cloudflare Workers, with each member's explicit consent to storage outside Kenya (BR-15) | ADR 0002, 24 Nov 2026 |
 | D10 | Members can check their own status from their phone, after OTP verification | Requested 24 Nov 2026 |
 | D11 | The interface is bilingual (English and Kiswahili) at launch | Committee review, 24 Nov 2026 |
-| D12 | Membership Administrators and Registration Officers are the Church Secretary and the Wardens | Committee review, 24 Nov 2026 |
+| D12 | Membership Administrators and Registration Officers are the Church Secretary and the Wardens. Approvals are made by one Membership Administrator (D36) | Committee review, 24 Nov 2026 |
 | D13 | Personal details in rejected and withdrawn registrations are redacted (removed) 12 months after the final decision | Committee review, 24 Nov 2026 |
 | D14 | The status check shows the member's HBC so members can spot a wrong HBC before their AGM | Committee review, 24 Nov 2026 |
 | D15 | Expected size: about 600 adult members | Committee review, 24 Nov 2026 |
@@ -50,8 +50,9 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 | D31 | "Access to personal data" (BR-12) means: opening a registration or member record, running a search (logged with the number of results, never the search terms), and exporting. Viewing queue and list pages is not logged (Q21) | Danny (technical lead), 24 Nov 2026 |
 | D32 | A staff user who holds the Membership Administrator or Super Administrator role has the 30-minute idle timeout, even if they also hold Registration Officer. The 4-hour timeout applies only to staff who are Registration Officers alone (Q22) | Danny (technical lead), 24 Nov 2026 |
 | D33 | Release 1 does not link a registration to an existing member. An FWO collision is resolved by rejecting the duplicate registration with a reason; if the member's details have changed, the administrator edits the member record (FR-6) (Q23) | Danny (technical lead), 24 Nov 2026 |
-| D34 | Staff must not approve their own registration or that of a close relative (spouse, parent, child or sibling); they leave it for another administrator. In Release 1 this is a policy, checked through the audit trail, not enforced by the system (BR-17, Q24) | Danny (technical lead), 24 Nov 2026 |
+| D34 | Staff must not approve their own registration or that of a close relative (spouse, parent, child or sibling); a Super Administrator approves it instead (D36). In Release 1 this is a policy, checked through the audit trail, not enforced by the system (BR-17, Q24) | Danny (technical lead), 24 Nov 2026 |
 | D35 | A staff correction carries the member's consent (BR-15) over from the previous revision when the privacy-notice version has not changed. If it has changed, the member must give consent again (Q26) | Danny (technical lead), 24 Nov 2026 |
+| D36 | Release 1 has one Membership Administrator who approves registrations. When BR-10 or BR-17 stops them approving one, a Super Administrator approves it (Q24) | Danny (technical lead), 24 Nov 2026 |
 
 ## 3. Roles in Release 1
 
@@ -64,7 +65,7 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 
 HBC Coordinator and Department Coordinator roles are deferred to Release 2.
 
-**Release 1 assignments:** the Church Secretary and the Wardens hold both the Membership Administrator and Registration Officer roles. BR-10 still applies: none of them can approve a registration they captured themselves. Super Administrators and additional desk officers for busy AGM days are still to be named (Q8, Q9).
+**Release 1 assignments:** the Church Secretary and the Wardens hold both the Membership Administrator and Registration Officer roles, but only one Membership Administrator approves registrations (D36). When that administrator captured a registration (BR-10), or it is their own or a close relative's (BR-17), a Super Administrator approves it. Super Administrators and additional desk officers for busy AGM days are still to be named (Q8, Q9).
 
 ## 4. Reference data (seeded, then admin-managed)
 
@@ -87,14 +88,14 @@ HBCs and departments can be added, renamed and deactivated by administrators. Th
 | BR-07 | Registrants must declare they are 18 or older and acknowledge the privacy notice. No date of birth is collected. |
 | BR-08 | No registration becomes a member record without approval by a Membership Administrator. |
 | BR-09 | A registration is never edited in place; each submission or correction creates a new immutable revision. |
-| BR-10 | The officer who captured an assisted registration cannot approve that registration. |
+| BR-10 | The officer who captured an assisted registration cannot approve that registration. A Super Administrator approves it instead (D36). |
 | BR-11 | Phone verification proves control of a phone at a point in time. It is not proof of identity or membership. Verification evidence is recorded separately from status. |
 | BR-12 | Every state change and every access to personal data by staff is written to the audit log with actor, timestamp, action and before/after values. Access means opening a registration or member record, running a search (number of results only, never the terms) and exporting; queue and list pages are not logged (D31). |
 | BR-13 | The status check reveals information only after OTP verification, and only for a record matching both the verified phone and the given FWO number or registration reference (D24). All non-matches return the same response. |
 | BR-14 | 12 months after a registration is rejected or withdrawn, its personal details (name, FWO, phone, HBC, departments) are redacted (removed) from every revision. The reference, channel, dates, status and reasons are kept. Audit entries for that registration are redacted of personal values at the same time, so the audit log cannot become a back door around retention. Redaction runs automatically and is itself audited. |
 | BR-15 | Every registration requires the member's explicit consent to their details being stored on servers outside Kenya (EU). The consent is a separate checkbox, not ticked by default, recorded with the privacy-notice version. For assisted registrations the officer confirms the member gave this consent verbally. Without it, the registration cannot be submitted online. A staff correction carries the consent over from the previous revision unless the privacy-notice version has changed, in which case the member consents again (D35). |
 | BR-16 | A person without an FWO number registers as a new member by choosing "I am new / I don't have an FWO number yet". The registration is submitted without an FWO and flagged NEW_MEMBER. The member is told by SMS to see the Church Secretary, who meets them, issues an FWO number as today, and enters it in the system. The system suggests the next number above the highest ever issued (D30). Approval is impossible until an FWO number is entered. From then on, the platform is where newly issued FWO numbers are recorded. |
-| BR-17 | A staff member must not approve their own registration or a close relative's (spouse, parent, child or sibling); another administrator approves it. Release 1 relies on policy and the audit trail, not a system check (D34). |
+| BR-17 | A staff member must not approve their own registration or a close relative's (spouse, parent, child or sibling); a Super Administrator approves it instead (D36). Release 1 relies on policy and the audit trail, not a system check (D34). |
 
 ## 6. Status model
 
@@ -240,7 +241,7 @@ If any criterion fails, registration does not open; members continue on paper fo
 
 ## 11. Open questions
 
-Resolved: Q1 → D11, Q2 → D12, Q3 → D13 / BR-14, Q4 → D14, Q5 → D23, Q6 → D15, Q10 → D24, Q12 → D25, Q14 → D26, Q16 → D27, Q18 → D28, Q19 → D29, Q20 → D30, Q21 → D31, Q22 → D32, Q23 → D33, Q24 → D34 / BR-17, Q26 → D35.
+Resolved: Q1 → D11, Q2 → D12, Q3 → D13 / BR-14, Q4 → D14, Q5 → D23, Q6 → D15, Q10 → D24, Q12 → D25, Q14 → D26, Q16 → D27, Q18 → D28, Q19 → D29, Q20 → D30, Q21 → D31, Q22 → D32, Q23 → D33, Q24 → D34 / BR-17 / D36, Q26 → D35.
 
 | # | Question | Owner |
 |---|---|---|
