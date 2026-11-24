@@ -1,0 +1,10 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "site_name": "ACK Emmanuel Kengeleni-Freretown",
+  "skip_to_content": "Skip to main content",
+  "language_switch_label": "Language",
+  "language_en": "English",
+  "language_sw": "Kiswahili",
+  "landing_welcome": "Welcome to our church family.",
+  "landing_preparing": "Our new website is being prepared. Member registration will open soon."
+}

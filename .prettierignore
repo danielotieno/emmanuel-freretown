@@ -1,0 +1,13 @@
+pnpm-lock.yaml
+src/paraglide/
+src/db/migrations/meta/
+.next/
+.open-next/
+.wrangler/
+docs/design/references/
+# Hand-written project documents: keep their formatting as authored
+docs/
+CLAUDE.md
+CONTEXT.md
+DESIGN.md
+PRODUCT.md

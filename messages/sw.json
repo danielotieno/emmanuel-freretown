@@ -1,0 +1,10 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "site_name": "ACK Emmanuel Kengeleni-Freretown",
+  "skip_to_content": "Ruka hadi maudhui makuu",
+  "language_switch_label": "Lugha",
+  "language_en": "English",
+  "language_sw": "Kiswahili",
+  "landing_welcome": "Karibu katika familia ya kanisa letu.",
+  "landing_preparing": "Tovuti yetu mpya inaandaliwa. Usajili wa washiriki utafunguliwa hivi karibuni."
+}
