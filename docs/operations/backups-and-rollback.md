@@ -7,7 +7,7 @@ How code reaches staging and production, how to undo a bad deploy, and how the d
 | # | Item | Status |
 |---|---|---|
 | 1 | GitHub environments `staging` and `production`, deployments from `main` only | Done 24 Nov 2026. Required reviewers aren't available on this repository's plan, so production deploys only when started by hand |
-| 2 | Deploy workflow (`.github/workflows/deploy.yml`) | Configured 24 Nov 2026. The first two staging runs failed at the Worker upload after migrating (#49: missing local Hyperdrive placeholder); fixed, and the Worker is now built before migrations run |
+| 2 | Deploy workflow (`.github/workflows/deploy.yml`) | Configured 24 Nov 2026. The first two staging runs failed at the Worker upload after migrating (#49: no local Hyperdrive string for the environment's proxy). Fix in #53, which also builds the Worker before migrating; confirmed once the first staging run after merge passes |
 | 3 | Cloudflare API token for deploys | Done 24 Nov 2026: `github-deploy-ack-emmanuel`, this account and zone only, expires Nov 2027. Remove its R2 permission if the R2 token list still shows it |
 | 4 | Neon API key and project id for restore branches | Done 24 Nov 2026 (`NEON_PROJECT_ID` = `ack-production`'s id) |
 | 5 | R2 enabled; bucket `ack-backups` in the EU jurisdiction with a 35-day lifecycle rule | Done 24 Nov 2026 (location EEUR; rule `expire-35-days`). R2 token scoped to `ack-backups`, expires Nov 2027 |

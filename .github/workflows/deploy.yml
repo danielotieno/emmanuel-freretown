@@ -123,11 +123,6 @@ jobs:
         run: pnpm db:migrate
 
       - name: Deploy the Worker
-        env:
-          # OpenNext's deploy starts wrangler's local platform proxy for the named environment,
-          # which refuses a Hyperdrive binding without a local connection string. This
-          # placeholder is never connected to; the deployed Worker uses the real Hyperdrive.
-          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: postgres://unused:unused@localhost:5432/unused
         run: pnpm exec opennextjs-cloudflare deploy --env "$TARGET"
 
       - name: Smoke-test the live site
