@@ -56,6 +56,7 @@ src/
     access/           staff users, roles, scopes
     audit/            append-only log, retention redaction
     notifications/    SMS outbox, templates (en/sw)
+    observability/    logger, safe errors, console guard, Sentry options (no personal data)
     elections/        Release 2
   app/                Next.js routes: thin adapters only
   db/                 Drizzle schema, migrations, seeds
@@ -111,4 +112,6 @@ Conventions set up with the scaffold:
 - Non-production environments never contain real members' data (ADR 0002 amendment).
 - Server code calls messages with an explicit locale: `m.key({}, { locale })`, with `locale` from `getLocale()` in `src/app/_lib/i18n.ts`.
 - Routes get the request's database handle from `getDb()` in `src/app/_lib/db.ts` and pass it to module functions.
+- Log only through `createLogger` (`src/modules/observability`); routes get the request's logger from `getLogger()` in `src/app/_lib/log.ts`. Log ids, counts and outcomes, never personal data. Module functions wrap queries in `safeQuery` (`src/db`) so a raw Drizzle or Postgres error never leaves a module. See `docs/operations/observability.md`.
+- The Worker entry is `worker.ts` (Sentry around OpenNext's handler). Only it imports `@sentry/cloudflare` at runtime: the SDK needs `cloudflare:workers`, which Node doesn't have.
 - New tables need `app_runtime` (and, unless they hold credentials, `readonly_ops`) grants in the same migration (see `0002_privileges_and_redaction.sql`).

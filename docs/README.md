@@ -10,6 +10,7 @@
 | [compliance/breach-response.md](compliance/breach-response.md) | What to do, and by when, if personal data is breached |
 | [compliance/go-live.md](compliance/go-live.md) | Tracker for the go-live paperwork: registrations, agreements, accounts, owners |
 | [operations/environments.md](operations/environments.md) | Setting up Neon, Hyperdrive, domains, Cloudflare Access and secrets; the app's database login |
+| [operations/observability.md](operations/observability.md) | Logging, request ids, safe database errors, Sentry and Workers Logs, with personal data kept out |
 | [operations/backups-and-rollback.md](operations/backups-and-rollback.md) | Deploy pipeline, rollback, nightly encrypted backups, drift check and restore drill |
 | [design/references/](design/references/) | Diocese crest scan (placeholder) and brand palette |
 
