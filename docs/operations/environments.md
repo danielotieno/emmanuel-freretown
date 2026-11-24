@@ -6,8 +6,8 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 
 | # | Item | Status |
 |---|---|---|
-| 1 | Neon project `ack-production` (Launch, 7-day restore) in AWS Frankfurt | Not started |
-| 2 | Neon project `ack-nonprod` (Free) in AWS Frankfurt, branches `staging` and one per developer | Not started |
+| 1 | Neon project `ack-production` (Launch organisation, 7-day restore) in AWS Frankfurt | Not started |
+| 2 | Neon project `ack-nonprod` (Free organisation) in AWS Frankfurt, branches `staging` and one per developer | Not started |
 | 3 | Migrations applied as the owner; `ack_app` login created in each database | Not started (script ready: `pnpm db:app-login`) |
 | 4 | Local development connects as `ack_app` | Done in the repo (`.env.example`, `wrangler.jsonc`) |
 | 5 | Hyperdrive configs for staging and production, caching disabled; ids in `wrangler.jsonc` | Not started |
@@ -26,13 +26,16 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 
 ## 1. Neon projects
 
-In the Neon console, signed in to the church-owned account:
+Neon sets the plan per **organisation**, not per project, so production and non-production live in two organisations. That also keeps their member lists and credentials apart. In the Neon console, signed in to the church-owned account:
 
-1. Create project **`ack-production`**: Postgres 17, region **AWS Europe Central 1 (Frankfurt)**. Launch plan (D26). Set the restore window (history retention) to **7 days**.
-2. Create project **`ack-nonprod`**: Postgres 17, same region. Free plan.
+1. Organisation **ACK Emmanuel — Non-production**, Free plan. Project **`ack-nonprod`**: Postgres 17, region **AWS Europe Central 1 (Frankfurt)**.
+2. Organisation **ACK Emmanuel — Production**, Launch plan (D26; billing card in the church's name). Project **`ack-production`**: Postgres 17, same region. In its settings, set the restore window (history retention) to **7 days**.
 3. In `ack-nonprod`, create branch **`staging`** and one branch per developer (for example `dev-<initials>`), each from the project's empty default branch. Never create these from production.
 
-> **Check when creating them:** Neon sets the plan per organisation, not per project. If that's still the case, keep `ack-production` in a Launch organisation and `ack-nonprod` in a separate free organisation. That also keeps their member lists apart. If a second free organisation isn't possible, put `ack-nonprod` in the Launch organisation: at this size it costs cents a month, well inside the US$20 ceiling (D26). Record what was done here.
+Notes:
+- **The region can't be changed after a project is created.** If a project is in the wrong region, delete it (while it holds no real data) and create it again.
+- A project can be moved to an organisation on the same plan or a higher one (Free → Launch), keeping its connection strings, but not from Launch down to Free.
+- Invite the technical lead to both organisations as an admin. The church email held by the Vicar stays the owner (D40).
 
 Use each database's **direct** connection string (the host without `-pooler`) for migrations and for Hyperdrive. Hyperdrive does its own pooling.
 
