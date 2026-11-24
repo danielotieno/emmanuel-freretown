@@ -1,11 +1,11 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { isUniqueViolation, safeQuery, schema } from "../../src/db";
 import {
   createLogger,
   installConsoleGuard,
+  errorTags,
   scrubEvent,
-  uninstallConsoleGuard,
   type LogRecord,
 } from "../../src/modules/observability";
 import { connectTestDb } from "./db";
@@ -39,8 +39,6 @@ async function phoneConflict(): Promise<unknown> {
   throw new Error("expected a unique violation");
 }
 
-afterEach(() => uninstallConsoleGuard());
-
 describe("a phone number unique violation", () => {
   it("really does carry the phone number in the raw error (so the checks below mean something)", async () => {
     const raw = (await phoneConflict()) as Error & { cause?: { detail?: string } };
@@ -62,6 +60,13 @@ describe("a phone number unique violation", () => {
     expect(isUniqueViolation(error, "member_phone_uq")).toBe(true);
     const e = error as Error;
     expect(`${e.message}\n${e.stack}\n${JSON.stringify(e)}`).not.toMatch(LEAKS);
+
+    // The path a module takes: safeQuery, then a log line and a Sentry report. Both keep the
+    // SQLSTATE and constraint that make the failure diagnosable.
+    const lines: LogRecord[] = [];
+    createLogger({ sink: (r) => lines.push(r) }).error("registration.failed", error);
+    expect(lines[0]).toMatchObject({ sqlState: "23505", constraint: "member_phone_uq" });
+    expect(errorTags(error)).toMatchObject({ sqlState: "23505", constraint: "member_phone_uq" });
   });
 
   it("writes no log line containing the phone number, the name or the FWO number", async () => {
@@ -94,23 +99,19 @@ describe("a phone number unique violation", () => {
     (fake as unknown as Console).error(String(raw));
 
     expect(JSON.stringify(printed)).not.toMatch(LEAKS);
-    uninstallConsoleGuard(fake as unknown as Console);
   });
 
   it("is stripped from a Sentry event", async () => {
     const raw = (await phoneConflict()) as Error & { cause: Error & { detail: string } };
-    const event = scrubEvent(
-      {
-        type: undefined,
-        exception: {
-          values: [
-            { type: raw.cause.name, value: `${raw.cause.message} ${raw.cause.detail}` },
-            { type: raw.name, value: raw.message },
-          ],
-        },
+    const event = scrubEvent({
+      type: undefined,
+      exception: {
+        values: [
+          { type: raw.cause.name, value: `${raw.cause.message} ${raw.cause.detail}` },
+          { type: raw.name, value: raw.message },
+        ],
       },
-      { originalException: raw },
-    );
+    });
     expect(JSON.stringify(event)).not.toMatch(LEAKS);
   });
 });

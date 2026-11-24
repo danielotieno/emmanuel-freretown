@@ -7,12 +7,8 @@
 
 export const REDACTED = "[redacted]";
 
-/** Keys whose values are never written, at any depth. Compared after lowercasing and removing `_` and `-`. */
+/** Whole keys whose values are never written. Compared lowercased, without `_` and `-`. */
 const DENIED_KEYS = new Set([
-  "name",
-  "fullname",
-  "firstname",
-  "lastname",
   "code",
   "message",
   "detail",
@@ -24,15 +20,21 @@ const DENIED_KEYS = new Set([
   "data",
   "headers",
   "authorization",
+  "fullname",
+  "firstname",
+  "lastname",
 ]);
 
-/** Key fragments that mark a value as personal or secret, wherever they appear in the key. */
-const DENIED_KEY_FRAGMENTS = [
+/**
+ * Fragments that mark a key as personal or secret wherever they appear in it, so plurals and
+ * compounds are caught too: `phones`, `cellphone`, `sessiontoken`, `x-api-key`, `FWOId`.
+ * None of these occurs inside an ordinary word.
+ */
+const DENIED_FRAGMENTS = [
   "phone",
   "msisdn",
   "mobile",
   "fwo",
-  "otp",
   "email",
   "password",
   "secret",
@@ -41,9 +43,23 @@ const DENIED_KEY_FRAGMENTS = [
   "apikey",
 ];
 
+/**
+ * Words matched whole, because as fragments they occur inside ordinary words ("footprint",
+ * "hostname"): `otpCode`, `OTPExpiry`, `fullName`, `member_surname`.
+ */
+const DENIED_WORDS = new Set(["otp", "otps", "name", "names", "surname", "surnames"]);
+
 export function isDeniedKey(key: string): boolean {
-  const k = key.toLowerCase().replace(/[_-]/g, "");
-  return DENIED_KEYS.has(k) || DENIED_KEY_FRAGMENTS.some((fragment) => k.includes(fragment));
+  const flat = key.toLowerCase().replace(/[_-]/g, "");
+  if (DENIED_KEYS.has(flat) || DENIED_FRAGMENTS.some((fragment) => flat.includes(fragment))) {
+    return true;
+  }
+  const words = key
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2") // OTPExpiry → OTP Expiry
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2") // otpCode → otp Code
+    .toLowerCase()
+    .split(/[\s_-]+/);
+  return words.some((word) => DENIED_WORDS.has(word));
 }
 
 const TEXT_PATTERNS: RegExp[] = [

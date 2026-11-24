@@ -42,15 +42,43 @@ describe("scrubText", () => {
 });
 
 describe("isDeniedKey", () => {
-  it.each(["fullName", "full_name", "phoneE164", "phone_e164", "fwoNumber", "otpCode", "code"])(
-    "denies %s",
-    (key) => expect(isDeniedKey(key)).toBe(true),
-  );
+  it.each([
+    "fullName",
+    "full_name",
+    "surname",
+    "member_surname",
+    "phoneE164",
+    "phone_e164",
+    "phonenumber",
+    "phones",
+    "cellphone",
+    "fwoNumber",
+    "FWOId",
+    "memberFWONumber",
+    "otpCode",
+    "OTPExpiry",
+    "otps",
+    "code",
+    "emails",
+    "e_mail",
+    "apiKey",
+    "x-api-key",
+    "sessionToken",
+    "csrftoken",
+    "cookies",
+    "passwords",
+  ])("denies %s", (key) => expect(isDeniedKey(key)).toBe(true));
 
-  it.each(["requestId", "registrationId", "hbcId", "status", "count", "routePath"])(
-    "allows %s",
-    (key) => expect(isDeniedKey(key)).toBe(false),
-  );
+  it.each([
+    "requestId",
+    "registrationId",
+    "hbcId",
+    "status",
+    "count",
+    "routePath",
+    "footprint",
+    "hostname",
+  ])("allows %s", (key) => expect(isDeniedKey(key)).toBe(false));
 });
 
 describe("scrubValue", () => {

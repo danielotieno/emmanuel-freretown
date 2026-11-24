@@ -17,7 +17,7 @@
   "preview_urls": false,
   // Workers Logs (docs/operations/observability.md): every request logged (low traffic), query
   // strings removed, no automatic traces (they record subrequest URLs we haven't reviewed).
-  // Retention is fixed by the plan: 7 days on Workers Paid.
+  // Retention is fixed by the plan: 7 days on Workers Paid. Environments inherit this block.
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
@@ -44,14 +44,7 @@
         { "pattern": "admin-staging.ackemmanuelfreretown.org", "custom_domain": true },
       ],
       "placement": { "mode": "smart" },
-      "observability": {
-        "enabled": true,
-        "head_sampling_rate": 1,
-        "redact_query_string": true,
-        "logs": { "enabled": true, "invocation_logs": true },
-        "traces": { "enabled": false },
-      },
-      // Not inherited from the top level. SENTRY_DSN is a secret (wrangler secret put).
+      // observability is inherited from the top level; vars are not. SENTRY_DSN is a secret.
       "vars": { "SENTRY_ENVIRONMENT": "staging" },
       // Neon project ack-nonprod, branch staging. Created with caching disabled.
       "hyperdrive": [
@@ -71,14 +64,7 @@
       ],
       // Run near the database in Frankfurt rather than near the visitor (ADR 0002).
       "placement": { "mode": "smart" },
-      "observability": {
-        "enabled": true,
-        "head_sampling_rate": 1,
-        "redact_query_string": true,
-        "logs": { "enabled": true, "invocation_logs": true },
-        "traces": { "enabled": false },
-      },
-      // Not inherited from the top level. SENTRY_DSN is a secret (wrangler secret put).
+      // observability is inherited from the top level; vars are not. SENTRY_DSN is a secret.
       "vars": { "SENTRY_ENVIRONMENT": "production" },
       // Neon project ack-production. Created with caching disabled.
       "hyperdrive": [

@@ -28,10 +28,4 @@ export function createDb(connectionString: string): DbHandle {
 }
 
 export { schema };
-export {
-  isUniqueViolation,
-  safeQuery,
-  SafeDatabaseError,
-  toSafeDatabaseError,
-  type DatabaseErrorKind,
-} from "./errors";
+export { isUniqueViolation, safeQuery, SafeDatabaseError } from "./errors";

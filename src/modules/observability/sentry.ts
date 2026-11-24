@@ -1,58 +1,54 @@
 // Types only. The SDK imports `cloudflare:workers`, so it can't load in Node (next dev, Vitest,
 // Playwright): only worker.ts imports it at runtime, and registers a reporter (below).
-import type { CloudflareOptions, ErrorEvent, EventHint, Exception } from "@sentry/cloudflare";
-import { isSafeError, safeErrorFields } from "./errors";
-import { REDACTED, scrubText, scrubValue } from "./scrub";
+import type { CloudflareOptions, ErrorEvent } from "@sentry/cloudflare";
+import { safeErrorFields } from "./errors";
+import { REDACTED } from "./scrub";
 
 /** The Worker's variables and secrets that Sentry reads. */
 export interface SentryEnv {
-  /** Secret. Empty or unset: Sentry sends nothing (local development). */
+  /** Secret. Empty or unset: Sentry sends nothing (local development, CI). */
   SENTRY_DSN?: string;
-  /** "staging" or "production", from wrangler.jsonc. */
+  /** "staging" or "production", from wrangler.jsonc. The SDK reads it itself. */
   SENTRY_ENVIRONMENT?: string;
 }
 
 /**
- * Integrations we never load: RequestData attaches headers, cookies, query strings, bodies and
- * the client IP; Console turns every console line into a breadcrumb.
+ * Integrations we never load: RequestData attaches request details, and Console wraps the
+ * console to make breadcrumbs.
  */
 const EXCLUDED_INTEGRATIONS = new Set(["RequestData", "Console"]);
 
 /**
  * Sentry options for withSentry in worker.ts (ADR 0002: "Sentry (Cloudflare SDK) with personal
- * data stripped"). Error events only: no tracing, no breadcrumbs, no request data, no user.
- * beforeSend scrubs what is left. Returns undefined when no DSN is set, so nothing is sent.
+ * data stripped"). Error events only. Returns undefined when no DSN is set, so nothing is sent.
+ *
+ * No `tracesSampleRate`, not even 0, and never the SENTRY_TRACES_SAMPLE_RATE variable: Sentry
+ * counts 0 as "tracing on", and then a request carrying a sampled `sentry-trace` header sends
+ * spans that bypass beforeSend (beforeSendTransaction is ignored in Sentry 11's default
+ * streaming mode, so it can't be a fallback).
  */
 export function sentryOptions(env: SentryEnv): CloudflareOptions | undefined {
   if (!env.SENTRY_DSN) return undefined;
   return {
     dsn: env.SENTRY_DSN,
-    environment: env.SENTRY_ENVIRONMENT ?? "local",
-    // Sentry 11 collects most of this by default. Turn every part off; beforeSend still scrubs.
+    // Sentry 11 collects all of this by default.
     dataCollection: {
       userInfo: false,
       cookies: false,
       httpHeaders: false,
       httpBodies: [],
       urlQueryParams: false,
-      graphQL: { document: false, variables: false },
-      genAI: { inputs: false, outputs: false },
-      mcp: { inputs: false, outputs: false },
       databaseQueryData: false,
-      queues: false,
       stackFrameVariables: false,
-      frameContextLines: 0,
     },
-    tracesSampleRate: 0,
     maxBreadcrumbs: 0,
-    beforeBreadcrumb: () => null,
     integrations: (defaults) =>
       defaults.filter((integration) => !EXCLUDED_INTEGRATIONS.has(integration.name)),
     beforeSend: scrubEvent,
   };
 }
 
-export type ErrorReporter = (error: unknown, tags: Record<string, string>) => void;
+type ErrorReporter = (error: unknown, tags: Record<string, string>) => void;
 
 const REPORTER = Symbol.for("ack.errorReporter");
 type WithReporter = typeof globalThis & { [REPORTER]?: ErrorReporter };
@@ -71,24 +67,16 @@ export function reportError(error: unknown, tags: Record<string, string> = {}): 
 }
 
 /**
- * Exception types whose message we keep, after scrubbing (see errors.ts). Matched by name, so
- * library errors are never here: pg's error class is also called DatabaseError.
- */
-const ENGINE_ERRORS = new Set([
-  "TypeError",
-  "RangeError",
-  "ReferenceError",
-  "SyntaxError",
-  "URIError",
-  "EvalError",
-]);
-
-/**
  * Removes personal data from a Sentry event before it leaves the Worker: request data other
- * than method and path, user, extra data, breadcrumbs, and exception messages except those of
- * our own safe errors and engine errors. Exported for tests.
+ * than method and path, the user, extra data, and every exception message. What an error is
+ * travels as tags from errorTags (errorName, errorCode, sqlState, constraint, digest). Tags and
+ * contexts are left alone: tags come only from errorTags and route patterns, contexts from the
+ * runtime. Exported for tests.
+ *
+ * Every message is redacted, even a SafeError's: `instanceof SafeError` can't work here,
+ * because worker.ts and the Next.js server bundle each have their own copy of the class.
  */
-export function scrubEvent(event: ErrorEvent, hint?: EventHint): ErrorEvent {
+export function scrubEvent(event: ErrorEvent): ErrorEvent {
   if (event.request) {
     event.request = {
       method: event.request.method,
@@ -97,28 +85,12 @@ export function scrubEvent(event: ErrorEvent, hint?: EventHint): ErrorEvent {
   }
   delete event.user;
   delete event.extra;
-  delete event.breadcrumbs;
   delete event.server_name;
-  if (event.message) event.message = scrubText(event.message);
-  if (event.logentry) {
-    event.logentry = { message: event.logentry.message ? scrubText(event.logentry.message) : "" };
+  for (const exception of event.exception?.values ?? []) {
+    if (exception.value) exception.value = REDACTED;
+    for (const frame of exception.stacktrace?.frames ?? []) delete frame.vars;
   }
-  if (event.contexts) event.contexts = scrubValue(event.contexts) as ErrorEvent["contexts"];
-  if (event.tags) event.tags = scrubValue(event.tags) as ErrorEvent["tags"];
-  // Sentry lists linked causes first and the captured error last.
-  const values = event.exception?.values ?? [];
-  const capturedIsSafe = isSafeError(hint?.originalException);
-  values.forEach((exception, i) =>
-    scrubException(exception, capturedIsSafe && i === values.length - 1),
-  );
   return event;
-}
-
-function scrubException(exception: Exception, safe: boolean): void {
-  const keep = safe || ENGINE_ERRORS.has(exception.type ?? "");
-  exception.value = exception.value && keep ? scrubText(exception.value) : REDACTED;
-  for (const frame of exception.stacktrace?.frames ?? []) delete frame.vars;
-  if (exception.mechanism?.data) delete exception.mechanism.data;
 }
 
 function pathOnly(url: string): string {
@@ -130,12 +102,13 @@ function pathOnly(url: string): string {
   }
 }
 
-/** Safe fields for a Sentry tag set, for callers that also log. */
+/** Safe fields of an error as Sentry tags. */
 export function errorTags(error: unknown): Record<string, string> {
-  const { errorName, errorCode, sqlState, constraint } = safeErrorFields(error);
+  const { errorName, errorCode, sqlState, constraint, digest } = safeErrorFields(error);
   const tags: Record<string, string> = { errorName };
   if (errorCode) tags.errorCode = errorCode;
   if (sqlState) tags.sqlState = sqlState;
   if (constraint) tags.constraint = constraint;
+  if (digest) tags.digest = digest;
   return tags;
 }

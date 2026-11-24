@@ -1,9 +1,13 @@
 import type { Instrumentation } from "next";
 import { createLogger, errorTags, installConsoleGuard, reportError } from "@/modules/observability";
 
-/** Runs once per server instance, before any request (Node, Edge and the Worker). */
+/**
+ * Runs once per server instance, before any request (Node, Edge and the Worker). The console
+ * guard is for production builds only (the Worker, `next start`): `next dev` keeps full error
+ * messages, since non-production never holds real members' data (ADR 0002 amendment).
+ */
 export function register() {
-  installConsoleGuard();
+  if (process.env.NODE_ENV === "production") installConsoleGuard();
 }
 
 /**

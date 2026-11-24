@@ -4,9 +4,10 @@ import { isUniqueViolation, safeQuery, SafeDatabaseError, toSafeDatabaseError } 
 
 const PHONE = "+254712345678";
 
+/** Shaped like a pg DatabaseError: pg names it "error"; the value is in `detail`. */
 function pgError(code: string, constraint?: string) {
   return Object.assign(new Error("duplicate key value violates unique constraint"), {
-    name: "DatabaseError",
+    name: "error",
     code,
     constraint,
     table: "member",
@@ -14,48 +15,42 @@ function pgError(code: string, constraint?: string) {
   });
 }
 
-function drizzleError(code: string, constraint?: string) {
+/** A real DrizzleQueryError, as Drizzle 0.45 throws it (its name stays "Error"). */
+function drizzleError(cause: Error) {
   return new DrizzleQueryError(
     'insert into "member" ("full_name", "phone_e164") values ($1, $2)',
     ["Test Member", PHONE],
-    pgError(code, constraint),
+    cause,
   );
+}
+
+function everything(error: unknown) {
+  const e = error as Error;
+  return `${e.message}\n${e.stack}\n${JSON.stringify(e)}`;
 }
 
 describe("toSafeDatabaseError", () => {
   it("maps a unique violation to a safe error with no cause, message or params", () => {
-    const safe = toSafeDatabaseError(drizzleError("23505", "member_phone_uq"));
+    const safe = toSafeDatabaseError(drizzleError(pgError("23505", "member_phone_uq")));
     expect(safe).toBeInstanceOf(SafeDatabaseError);
     expect(safe).toMatchObject({
-      kind: "unique_violation",
       sqlState: "23505",
       constraint: "member_phone_uq",
       table: "member",
-      message: "Database unique_violation on member.member_phone_uq",
+      message: "Database error on member.member_phone_uq",
     });
-    const error = safe as SafeDatabaseError;
-    expect(error.cause).toBeUndefined();
-    const everything = JSON.stringify({ ...error, message: error.message, stack: error.stack });
-    expect(everything).not.toMatch(/712345678|Test Member/);
+    expect((safe as Error).cause).toBeUndefined();
+    expect(everything(safe)).not.toMatch(/712345678|Test Member/);
   });
 
-  it.each([
-    ["23514", "check_violation"],
-    ["23503", "foreign_key_violation"],
-    ["23P01", "exclusion_violation"],
-    ["P0001", "raise_exception"],
-    ["40001", "serialization_failure"],
-    ["08006", "unavailable"],
-    ["22P02", "unknown"],
-  ])("maps SQLSTATE %s to %s", (code, kind) => {
-    expect(toSafeDatabaseError(drizzleError(code))).toMatchObject({ kind, sqlState: code });
+  it("maps a Drizzle error with no SQLSTATE, such as a dropped connection", () => {
+    const safe = toSafeDatabaseError(drizzleError(new Error("Connection terminated unexpectedly")));
+    expect(safe).toBeInstanceOf(SafeDatabaseError);
+    expect(everything(safe)).not.toMatch(/712345678|Test Member/);
   });
 
-  it("maps connection failures to unavailable", () => {
-    const refused = Object.assign(new Error("connect ECONNREFUSED 10.0.0.1:5432"), {
-      code: "ECONNREFUSED",
-    });
-    expect(toSafeDatabaseError(refused)).toMatchObject({ kind: "unavailable" });
+  it("maps a bare pg error", () => {
+    expect(toSafeDatabaseError(pgError("23514"))).toMatchObject({ sqlState: "23514" });
   });
 
   it("leaves other errors alone", () => {
@@ -66,9 +61,10 @@ describe("toSafeDatabaseError", () => {
 
 describe("safeQuery", () => {
   it("rethrows database failures as safe errors", async () => {
-    const failure = safeQuery(() => Promise.reject(drizzleError("23505", "member_phone_uq")));
-    await expect(failure).rejects.toBeInstanceOf(SafeDatabaseError);
-    const error = await failure.catch((e: unknown) => e);
+    const error = await safeQuery(() =>
+      Promise.reject(drizzleError(pgError("23505", "member_phone_uq"))),
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(SafeDatabaseError);
     expect(isUniqueViolation(error, "member_phone_uq")).toBe(true);
     expect(isUniqueViolation(error, "member_fwo_uq")).toBe(false);
   });

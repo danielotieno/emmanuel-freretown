@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createLogger, type LogRecord } from "./logger";
+import { createLogger, isLoggerRecord, type LogRecord } from "./logger";
 
-function capture(minLevel?: "debug" | "info") {
+function capture() {
   const lines: LogRecord[] = [];
-  const log = createLogger({ requestId: "req-1", sink: (r) => lines.push(r), minLevel });
+  const log = createLogger({ requestId: "req-1", sink: (r) => lines.push(r) });
   return { log, lines };
 }
 
@@ -20,6 +20,7 @@ describe("createLogger", () => {
         count: 1,
       },
     ]);
+    expect(isLoggerRecord(lines[0])).toBe(true);
   });
 
   it("redacts fields named like personal data and scrubs strings", () => {
@@ -29,6 +30,7 @@ describe("createLogger", () => {
       fullName: "Test Member",
       fwoNumber: "1234",
       code: "482913",
+      otpCode: 482913,
       note: "sent to 0712345678",
     });
     expect(lines[0]).toMatchObject({
@@ -36,8 +38,15 @@ describe("createLogger", () => {
       fullName: "[redacted]",
       fwoNumber: "[redacted]",
       code: "[redacted]",
+      otpCode: "[redacted]",
       note: "sent to [redacted]",
     });
+  });
+
+  it("keeps flags and keys that only contain a denied word inside another word", () => {
+    const { log, lines } = capture();
+    log.info("otp.verified", { phoneVerified: true, footprint: "small", attempts: 3 });
+    expect(lines[0]).toMatchObject({ phoneVerified: true, footprint: "small", attempts: 3 });
   });
 
   it("logs errors by their safe fields only", () => {
@@ -59,11 +68,9 @@ describe("createLogger", () => {
     expect(lines[0]?.event).toBe("invalid_event_name");
   });
 
-  it("adds child fields and drops lines below the minimum level", () => {
+  it("adds child fields", () => {
     const { log, lines } = capture();
-    const child = log.child({ module: "registration" });
-    child.debug("ignored");
-    child.warn("registration.slow", { ms: 1200 });
+    log.child({ module: "registration" }).warn("registration.slow", { ms: 1200 });
     expect(lines).toEqual([
       {
         level: "warn",
