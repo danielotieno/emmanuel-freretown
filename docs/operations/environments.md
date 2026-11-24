@@ -14,7 +14,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 | 6 | Custom domains: apex, `admin.`, `staging.`, `admin-staging.` | Created by the first deploy (`backups-and-rollback.md`). Also turn on **Always Use HTTPS** for the zone (SSL/TLS → Edge Certificates); the live smoke test checks it |
 | 7 | Cloudflare Access in front of `admin.` and `admin-staging.` | Done 24 Nov 2026: team `ack-emmanuel`; apps `ACK staff portal (production)` and `(staging)` with reusable policies `ACK staff (production)` and `(staging)`; One-time PIN only, instant auth, 24-hour sessions |
 | 8 | Secrets in Cloudflare; local ones documented in `.dev.vars.example` | Example done; secrets added as each feature lands |
-| 9 | Job queues `ack-jobs-staging` and `ack-jobs-production` (#10) | Not started. Create both **before** merging #10: deploying a Worker bound to a missing queue fails |
+| 9 | Job queues `ack-jobs-staging` and `ack-jobs-production` (#10) | Done 24 Nov 2026: both created with `wrangler queues create`. A Worker bound to a missing queue fails to deploy, so a new environment needs its queue first |
 
 ## The rules
 
