@@ -15,7 +15,7 @@ export class SafeError extends Error {
   }
 }
 
-export function isSafeError(error: unknown): error is SafeError {
+function isSafeError(error: unknown): error is SafeError {
   return error instanceof SafeError;
 }
 

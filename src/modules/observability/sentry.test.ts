@@ -51,19 +51,6 @@ describe("scrubEvent", () => {
     expect(out.tags).toEqual({ sqlState: "23505", routePath: "/registration" });
     expect(out.contexts).toEqual({ runtime: { name: "cloudflare" } });
   });
-
-  it("keeps the message of the captured error when it is one of our safe errors", () => {
-    const e: ErrorEvent = {
-      type: undefined,
-      exception: {
-        values: [{ type: "SafeDatabaseError", value: "Database error on member.member_phone_uq" }],
-      },
-    };
-    const out = scrubEvent(e, {
-      originalException: new SafeError("x", "Database error on member.member_phone_uq"),
-    });
-    expect(out.exception?.values?.[0]?.value).toBe("Database error on member.member_phone_uq");
-  });
 });
 
 describe("sentryOptions", () => {
@@ -76,6 +63,20 @@ describe("sentryOptions", () => {
     const options = sentryOptions({ SENTRY_DSN: "https://k@o0.ingest.de.sentry.io/1" })!;
     expect("tracesSampleRate" in options).toBe(false);
     expect("tracesSampler" in options).toBe(false);
+  });
+
+  it("turns off every kind of data collection and all breadcrumbs (Sentry 11 defaults are on)", () => {
+    const options = sentryOptions({ SENTRY_DSN: "https://k@o0.ingest.de.sentry.io/1" })!;
+    expect(options.maxBreadcrumbs).toBe(0);
+    expect(options.dataCollection).toEqual({
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      databaseQueryData: false,
+      stackFrameVariables: false,
+    });
   });
 
   it("drops the RequestData and Console integrations", () => {

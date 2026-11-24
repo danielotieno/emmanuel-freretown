@@ -20,39 +20,43 @@ const DENIED_KEYS = new Set([
   "data",
   "headers",
   "authorization",
-  "apikey",
-  // Run-together spellings the word rule below can't split.
   "fullname",
   "firstname",
   "lastname",
-  "phonenumber",
-  "fwonumber",
-  "otpcode",
 ]);
 
 /**
- * Words that mark a key as personal or secret wherever they appear in it: `fullName`,
- * `phone_e164`, `otpCode`. Matched as whole words, so `footprint` is not caught by "otp".
+ * Fragments that mark a key as personal or secret wherever they appear in it, so plurals and
+ * compounds are caught too: `phones`, `cellphone`, `sessiontoken`, `x-api-key`, `FWOId`.
+ * None of these occurs inside an ordinary word.
  */
-const DENIED_WORDS = new Set([
-  "name",
-  "surname",
+const DENIED_FRAGMENTS = [
   "phone",
   "msisdn",
   "mobile",
   "fwo",
-  "otp",
   "email",
   "password",
   "secret",
   "token",
   "cookie",
-]);
+  "apikey",
+];
+
+/**
+ * Words matched whole, because as fragments they occur inside ordinary words ("footprint",
+ * "hostname"): `otpCode`, `OTPExpiry`, `fullName`, `member_surname`.
+ */
+const DENIED_WORDS = new Set(["otp", "otps", "name", "names", "surname", "surnames"]);
 
 export function isDeniedKey(key: string): boolean {
-  if (DENIED_KEYS.has(key.toLowerCase().replace(/[_-]/g, ""))) return true;
+  const flat = key.toLowerCase().replace(/[_-]/g, "");
+  if (DENIED_KEYS.has(flat) || DENIED_FRAGMENTS.some((fragment) => flat.includes(fragment))) {
+    return true;
+  }
   const words = key
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2") // OTPExpiry → OTP Expiry
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2") // otpCode → otp Code
     .toLowerCase()
     .split(/[\s_-]+/);
   return words.some((word) => DENIED_WORDS.has(word));

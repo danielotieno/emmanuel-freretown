@@ -1,8 +1,8 @@
 // Types only. The SDK imports `cloudflare:workers`, so it can't load in Node (next dev, Vitest,
 // Playwright): only worker.ts imports it at runtime, and registers a reporter (below).
-import type { CloudflareOptions, ErrorEvent, EventHint } from "@sentry/cloudflare";
-import { isSafeError, safeErrorFields } from "./errors";
-import { REDACTED, scrubText } from "./scrub";
+import type { CloudflareOptions, ErrorEvent } from "@sentry/cloudflare";
+import { safeErrorFields } from "./errors";
+import { REDACTED } from "./scrub";
 
 /** The Worker's variables and secrets that Sentry reads. */
 export interface SentryEnv {
@@ -68,11 +68,15 @@ export function reportError(error: unknown, tags: Record<string, string> = {}): 
 
 /**
  * Removes personal data from a Sentry event before it leaves the Worker: request data other
- * than method and path, the user, extra data, and every exception message except that of the
- * captured error when it is one of our SafeErrors. Tags and contexts are left alone: tags come
- * only from errorTags and route patterns, contexts from the runtime. Exported for tests.
+ * than method and path, the user, extra data, and every exception message. What an error is
+ * travels as tags from errorTags (errorName, errorCode, sqlState, constraint, digest). Tags and
+ * contexts are left alone: tags come only from errorTags and route patterns, contexts from the
+ * runtime. Exported for tests.
+ *
+ * Every message is redacted, even a SafeError's: `instanceof SafeError` can't work here,
+ * because worker.ts and the Next.js server bundle each have their own copy of the class.
  */
-export function scrubEvent(event: ErrorEvent, hint?: EventHint): ErrorEvent {
+export function scrubEvent(event: ErrorEvent): ErrorEvent {
   if (event.request) {
     event.request = {
       method: event.request.method,
@@ -82,14 +86,10 @@ export function scrubEvent(event: ErrorEvent, hint?: EventHint): ErrorEvent {
   delete event.user;
   delete event.extra;
   delete event.server_name;
-  // Sentry lists linked causes first and the captured error last.
-  const values = event.exception?.values ?? [];
-  const capturedIsSafe = isSafeError(hint?.originalException);
-  values.forEach((exception, i) => {
-    const keep = capturedIsSafe && i === values.length - 1;
-    exception.value = exception.value && keep ? scrubText(exception.value) : REDACTED;
+  for (const exception of event.exception?.values ?? []) {
+    if (exception.value) exception.value = REDACTED;
     for (const frame of exception.stacktrace?.frames ?? []) delete frame.vars;
-  });
+  }
   return event;
 }
 

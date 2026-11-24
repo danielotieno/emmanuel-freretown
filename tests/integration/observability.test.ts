@@ -103,18 +103,15 @@ describe("a phone number unique violation", () => {
 
   it("is stripped from a Sentry event", async () => {
     const raw = (await phoneConflict()) as Error & { cause: Error & { detail: string } };
-    const event = scrubEvent(
-      {
-        type: undefined,
-        exception: {
-          values: [
-            { type: raw.cause.name, value: `${raw.cause.message} ${raw.cause.detail}` },
-            { type: raw.name, value: raw.message },
-          ],
-        },
+    const event = scrubEvent({
+      type: undefined,
+      exception: {
+        values: [
+          { type: raw.cause.name, value: `${raw.cause.message} ${raw.cause.detail}` },
+          { type: raw.name, value: raw.message },
+        ],
       },
-      { originalException: raw },
-    );
+    });
     expect(JSON.stringify(event)).not.toMatch(LEAKS);
   });
 });
