@@ -8,7 +8,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 |---|---|---|
 | 1 | Neon project `ack-production` (Postgres 18, 7-day restore) in AWS Frankfurt, account on Launch; one branch, `production` | In progress: project created |
 | 2 | Neon project `ack-nonprod` (Postgres 18) in AWS Frankfurt, default branch renamed `staging`, one branch per developer | In progress: project created |
-| 3 | Migrations applied as the owner; `ack_app` login created in each database | In progress: `dev-do` done 24 Nov 2026 (Postgres 18.7; `ack_app` verified; integration tests pass). Staging and production to do |
+| 3 | Migrations applied as the owner; `ack_app` login created in each database | In progress: `dev-do` and `staging` done 24 Nov 2026 (Postgres 18.7; `ack_app` verified on both; integration tests pass on `dev-do`). Production to do |
 | 4 | Local development connects as `ack_app` | Done in the repo (`.env.example`, `wrangler.jsonc`) |
 | 5 | Hyperdrive configs for staging and production, caching disabled; ids in `wrangler.jsonc` | Not started |
 | 6 | Custom domains: apex, `admin.`, `staging.`, `admin-staging.` | Not started (routes already in `wrangler.jsonc`) |
