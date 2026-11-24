@@ -21,7 +21,8 @@
       // The app's login (member of app_runtime), never the owner. Set the real string, with
       // the password from `pnpm db:app-login`, in CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE
       // (see .env.example).
-      "localConnectionString": "postgres://ack_app@localhost:5432/ack_dev",
+      // Wrangler requires a password here, so this one is a placeholder that never connects.
+      "localConnectionString": "postgres://ack_app:set-in-dotenv@localhost:5432/ack_dev",
     },
   ],
   "env": {

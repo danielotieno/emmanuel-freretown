@@ -13,10 +13,17 @@ pnpm exec wrangler dev --port "$PORT" --ip 127.0.0.1 >"$LOG" 2>&1 &
 WRANGLER_PID=$!
 trap 'kill "$WRANGLER_PID" 2>/dev/null || true; rm -f "$LOG"' EXIT
 
+started=0
 for _ in $(seq 1 60); do
-  curl -s -o /dev/null "$BASE/" && break
+  curl -s -o /dev/null "$BASE/" && { started=1; break; }
   sleep 1
 done
+
+if [[ "$started" -ne 1 ]]; then
+  echo "FAIL the Worker did not start within 60 seconds. wrangler said:"
+  cat "$LOG"
+  exit 1
+fi
 
 fail=0
 check() {
