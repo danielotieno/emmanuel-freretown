@@ -1,0 +1,60 @@
+name: Nightly backup
+
+# Issue #8 (NFR-7, ADR 0002). An encrypted logical backup of production, in addition to Neon's
+# 7-day restore window. The dump is streamed: pg_dump | age | upload. No unencrypted copy is
+# ever written to the runner's disk (DPIA risk R8). The bucket is in Cloudflare's EU
+# jurisdiction and deletes objects after 35 days, so data redacted under BR-14 does not live
+# on in old dumps. Decrypting needs the age private key, which is held offline, never here.
+
+on:
+  schedule:
+    - cron: "0 1 * * *" # 04:00 in Nairobi
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Encrypted pg_dump of production to R2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      # R2 does not support the AWS CLI's newer default checksums on streamed uploads.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: https://${{ vars.CLOUDFLARE_ACCOUNT_ID }}.eu.r2.cloudflarestorage.com
+      R2_BUCKET: ${{ vars.R2_BACKUP_BUCKET }}
+    steps:
+      - name: Install pg_dump 18 and age
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -q postgresql-client-18 age
+
+      - name: Dump, encrypt and upload
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          AGE_RECIPIENT: ${{ vars.AGE_RECIPIENT }}
+        run: |
+          set -o pipefail
+          key="production/$(date -u +%Y-%m-%dT%H%MZ).dump.age"
+          /usr/lib/postgresql/18/bin/pg_dump --format=custom --no-password "$BACKUP_DATABASE_URL" \
+            | age --recipient "$AGE_RECIPIENT" \
+            | aws s3 cp - "s3://${R2_BUCKET}/${key}" --endpoint-url "$R2_ENDPOINT" --no-progress
+          size="$(aws s3api head-object --bucket "$R2_BUCKET" --key "$key" \
+            --endpoint-url "$R2_ENDPOINT" --query ContentLength --output text)"
+          if (( size < 1024 )); then
+            echo "Backup $key is only $size bytes; something is wrong."
+            exit 1
+          fi
+          echo "### Backup \`${key}\`: ${size} bytes, encrypted" >> "$GITHUB_STEP_SUMMARY"

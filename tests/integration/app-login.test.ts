@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ensureAppLogin } from "../../scripts/db-app-login";
+import { ensureAppLogin, ensureLogin } from "../../scripts/db-login";
 import { connectTestDb } from "./db";
 
 // The app's database login (issue #6). Each test runs in a transaction that is rolled back,
@@ -61,5 +61,20 @@ describe("ensureAppLogin", () => {
       /Invalid role name/,
     );
     await expect(ensureAppLogin(db, NAME, "short")).rejects.toThrow(/at least 32/);
+  });
+});
+
+describe("ensureLogin for backups", () => {
+  it("creates a login that can read everything and write nothing", async () => {
+    const result = await ensureLogin(db, "ack_backup_itest", PASSWORD, "pg_read_all_data");
+    expect(result.created).toBe(true);
+    const { rows } = await db.query<{ member: boolean; session: boolean; write: boolean }>(
+      `SELECT has_table_privilege($1, 'member', 'SELECT') AS member,
+              has_table_privilege($1, 'session', 'SELECT') AS session,
+              has_table_privilege($1, 'member', 'INSERT') AS write`,
+      ["ack_backup_itest"],
+    );
+    // A backup must include staff accounts and sessions so a restore is complete.
+    expect(rows[0]).toEqual({ member: true, session: true, write: false });
   });
 });

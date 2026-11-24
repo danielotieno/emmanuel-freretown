@@ -35,6 +35,8 @@ Run `pnpm i18n:watch` in a second terminal while editing `messages/*.json`.
 | `pnpm db:custom --name=<name>` | Create an empty SQL migration for what Drizzle cannot express                                |
 | `pnpm db:migrate`              | Apply migrations to `DATABASE_URL` (owner role). Never `drizzle-kit push`                    |
 | `pnpm db:app-login`            | Create the app's database login, or rotate its password; prints its connection string once   |
+| `pnpm db:backup-login`         | Create the read-only backup login (`ack_backup`), or rotate its password                     |
+| `pnpm db:drift`                | Compare a live database's schema with one built from the migrations                          |
 | `pnpm auth:schema`             | Regenerate `src/db/schema/auth.ts` from the Better Auth config                               |
 | `pnpm gen`                     | Compile Paraglide messages and generate `cloudflare-env.d.ts`                                |
 
