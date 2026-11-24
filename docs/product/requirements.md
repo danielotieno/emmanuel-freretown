@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Draft v0.3 — accelerated timeline; elections added as Release 2 |
+| Status | Draft v0.4 — open questions blocking Release 1 decided (D23–D35) |
 | Date | 24 November 2026 |
 | Mandate | Approved by the Vicar and PCC (record minute/resolution reference here) |
 | Target | Build complete Thursday 26 November 2026; announced at services Sunday 29 November; registration open about 30 November – 1 December |
@@ -28,7 +28,7 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 | D9 | ~~Personal data is hosted in Kenya~~ **Superseded:** the database is Neon Postgres in the EU (Frankfurt) and the application runs on Cloudflare Workers, with each member's explicit consent to storage outside Kenya (BR-15) | ADR 0002, 24 Nov 2026 |
 | D10 | Members can check their own status from their phone, after OTP verification | Requested 24 Nov 2026 |
 | D11 | The interface is bilingual (English and Kiswahili) at launch | Committee review, 24 Nov 2026 |
-| D12 | Membership Administrators and Registration Officers are the Church Secretary and the Wardens | Committee review, 24 Nov 2026 |
+| D12 | Membership Administrators and Registration Officers are the Church Secretary and the Wardens. Approvals are made by one Membership Administrator (D36) | Committee review, 24 Nov 2026 |
 | D13 | Personal details in rejected and withdrawn registrations are redacted (removed) 12 months after the final decision | Committee review, 24 Nov 2026 |
 | D14 | The status check shows the member's HBC so members can spot a wrong HBC before their AGM | Committee review, 24 Nov 2026 |
 | D15 | Expected size: about 600 adult members | Committee review, 24 Nov 2026 |
@@ -39,6 +39,20 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 | D20 | No two members share a phone number; each phone number belongs to one member | Committee, 24 Nov 2026 |
 | D21 | Members with their own phone vote online (FWO + phone OTP). Members without one vote manually on election day, after an officer checks in the system that they have not already voted | Committee, 24 Nov 2026 |
 | D22 | A member is eligible to vote only if approved before nominations open | Committee, 24 Nov 2026 |
+| D23 | The parish (ACK Emmanuel Kengeleni-Freretown) is the data controller and registers with the ODPC, not the Diocese of Mombasa (Q5) | Danny (technical lead), 24 Nov 2026 |
+| D24 | The status check accepts the FWO number **or** the registration reference (REG-…), after phone OTP. A new member (BR-16) uses their reference until an FWO number is issued (Q10) | Danny (technical lead), 24 Nov 2026 |
+| D25 | The daily SMS cap is 1,000 messages (Africa/Nairobi day), kept as a setting administrators can change. Every SMS counts towards it. Staff are warned at 80%. At the cap, OTP sending pauses and other messages wait in the outbox until the next day; staff are alerted (Q12) | Danny (technical lead), 24 Nov 2026 |
+| D26 | Production runs on Neon's Launch plan with a 7-day restore window; staging and development stay on the Free plan. Ceiling: US$20 a month for the database (a few dollars expected). If the monthly bill approaches the ceiling, the technical lead tells the committee before it is exceeded (Q14, ADR 0002 amendment) | Danny (technical lead), 24 Nov 2026 |
+| D27 | Approved members vote online from anywhere with FWO + phone OTP. No in-person evidence is required to approve a registration or to vote online; elections are not tied to AGMs (D18). Each member votes at most once per election, online or manually, enforced by the database. The voting link opens the ballot page only; it is never a credential. Accepted risk: someone could register with another member's FWO and their own phone. This is detected, not prevented: the real member's registration is flagged (BR-03), and a member told they have already voted is directed to the election officer (Q16) | Danny (technical lead), 24 Nov 2026 |
+| D28 | The Membership Administrator resolves phone conflicts (BR-06) by calling both people, using the script in FR-4. No SMS mentions a conflict or another person; members receive only the normal messages (FR-8). Members recorded with no personal phone vote in person only (D21); that limit on D18 is accepted (Q18) | Danny (technical lead), 24 Nov 2026 |
+| D29 | Leading zeros in FWO numbers are significant: "0042" and "42" are different numbers. The number is stored and compared exactly as entered (Q19) | Danny (technical lead), 24 Nov 2026 |
+| D30 | The Church Secretary records once, as a setting, the highest FWO number ever issued. When issuing a number (BR-16), the system suggests the next number above both that setting and every FWO number in the registry; the Secretary may enter another number if it is not in use (Q20) | Danny (technical lead), 24 Nov 2026 |
+| D31 | "Access to personal data" (BR-12) means: opening a registration or member record, running a search (logged with the number of results, never the search terms), and exporting. Viewing queue and list pages is not logged (Q21) | Danny (technical lead), 24 Nov 2026 |
+| D32 | A staff user who holds the Membership Administrator or Super Administrator role has the 30-minute idle timeout, even if they also hold Registration Officer. The 4-hour timeout applies only to staff who are Registration Officers alone (Q22) | Danny (technical lead), 24 Nov 2026 |
+| D33 | Release 1 does not link a registration to an existing member. An FWO collision is resolved by rejecting the duplicate registration with a reason; if the member's details have changed, the administrator edits the member record (FR-6) (Q23) | Danny (technical lead), 24 Nov 2026 |
+| D34 | Staff must not approve their own registration or that of a close relative (spouse, parent, child or sibling); a Super Administrator approves it instead (D36). In Release 1 this is a policy, checked through the audit trail, not enforced by the system (BR-17, Q24) | Danny (technical lead), 24 Nov 2026 |
+| D35 | A staff correction carries the member's consent (BR-15) over from the previous revision when the privacy-notice version has not changed. If it has changed, the member must give consent again (Q26) | Danny (technical lead), 24 Nov 2026 |
+| D36 | Release 1 has one Membership Administrator who approves registrations. When BR-10 or BR-17 stops them approving one, a Super Administrator approves it (Q24) | Danny (technical lead), 24 Nov 2026 |
 
 ## 3. Roles in Release 1
 
@@ -51,7 +65,7 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 
 HBC Coordinator and Department Coordinator roles are deferred to Release 2.
 
-**Release 1 assignments:** the Church Secretary and the Wardens hold both the Membership Administrator and Registration Officer roles. BR-10 still applies: none of them can approve a registration they captured themselves. Super Administrators and additional desk officers for busy AGM days are still to be named (Q8, Q9).
+**Release 1 assignments:** the Church Secretary and the Wardens hold both the Membership Administrator and Registration Officer roles, but only one Membership Administrator approves registrations (D36). When that administrator captured a registration (BR-10), or it is their own or a close relative's (BR-17), a Super Administrator approves it. Super Administrators and additional desk officers for busy AGM days are still to be named (Q8, Q9).
 
 ## 4. Reference data (seeded, then admin-managed)
 
@@ -65,7 +79,7 @@ HBCs and departments can be added, renamed and deactivated by administrators. Th
 
 | ID | Rule |
 |---|---|
-| BR-01 | FWO number is required for existing members, digits only, stored as text (to preserve any leading zeros). No length rule until real numbers are reviewed. New members without one follow BR-16. |
+| BR-01 | FWO number is required for existing members, digits only, stored as text exactly as entered. Leading zeros are significant: "0042" and "42" are different numbers (D29). No length rule until real numbers are reviewed. New members without one follow BR-16. |
 | BR-02 | An FWO number can belong to at most one member record, ever, including deceased and transferred members. Enforced by a database constraint. |
 | BR-03 | A submitted registration whose FWO matches an existing member or another open registration is accepted and flagged for the administrator. The public user is never told the FWO is already in use. |
 | BR-04 | Every member has exactly one current HBC, which must be active. HBC history is effective-dated. |
@@ -74,13 +88,14 @@ HBCs and departments can be added, renamed and deactivated by administrators. Th
 | BR-07 | Registrants must declare they are 18 or older and acknowledge the privacy notice. No date of birth is collected. |
 | BR-08 | No registration becomes a member record without approval by a Membership Administrator. |
 | BR-09 | A registration is never edited in place; each submission or correction creates a new immutable revision. |
-| BR-10 | The officer who captured an assisted registration cannot approve that registration. |
+| BR-10 | The officer who captured an assisted registration cannot approve that registration. A Super Administrator approves it instead (D36). |
 | BR-11 | Phone verification proves control of a phone at a point in time. It is not proof of identity or membership. Verification evidence is recorded separately from status. |
-| BR-12 | Every state change and every access to personal data by staff is written to the audit log with actor, timestamp, action and before/after values. |
-| BR-13 | The status check reveals information only after OTP verification, and only for a record matching both the verified phone and the given FWO. All non-matches return the same response. |
+| BR-12 | Every state change and every access to personal data by staff is written to the audit log with actor, timestamp, action and before/after values. Access means opening a registration or member record, running a search (number of results only, never the terms) and exporting; queue and list pages are not logged (D31). |
+| BR-13 | The status check reveals information only after OTP verification, and only for a record matching both the verified phone and the given FWO number or registration reference (D24). All non-matches return the same response. |
 | BR-14 | 12 months after a registration is rejected or withdrawn, its personal details (name, FWO, phone, HBC, departments) are redacted (removed) from every revision. The reference, channel, dates, status and reasons are kept. Audit entries for that registration are redacted of personal values at the same time, so the audit log cannot become a back door around retention. Redaction runs automatically and is itself audited. |
-| BR-15 | Every registration requires the member's explicit consent to their details being stored on servers outside Kenya (EU). The consent is a separate checkbox, not ticked by default, recorded with the privacy-notice version. For assisted registrations the officer confirms the member gave this consent verbally. Without it, the registration cannot be submitted online. |
-| BR-16 | A person without an FWO number registers as a new member by choosing "I am new / I don't have an FWO number yet". The registration is submitted without an FWO and flagged NEW_MEMBER. The member is told by SMS to see the Church Secretary, who meets them, issues an FWO number as today, and enters it in the system. Approval is impossible until an FWO number is entered. From then on, the platform is where newly issued FWO numbers are recorded. |
+| BR-15 | Every registration requires the member's explicit consent to their details being stored on servers outside Kenya (EU). The consent is a separate checkbox, not ticked by default, recorded with the privacy-notice version. For assisted registrations the officer confirms the member gave this consent verbally. Without it, the registration cannot be submitted online. A staff correction carries the consent over from the previous revision unless the privacy-notice version has changed, in which case the member consents again (D35). |
+| BR-16 | A person without an FWO number registers as a new member by choosing "I am new / I don't have an FWO number yet". The registration is submitted without an FWO and flagged NEW_MEMBER. The member is told by SMS to see the Church Secretary, who meets them, issues an FWO number as today, and enters it in the system. The system suggests the next number above the highest ever issued (D30). Approval is impossible until an FWO number is entered. From then on, the platform is where newly issued FWO numbers are recorded. |
+| BR-17 | A staff member must not approve their own registration or a close relative's (spouse, parent, child or sibling); a Super Administrator approves it instead (D36). Release 1 relies on policy and the audit trail, not a system check (D34). |
 
 ## 6. Status model
 
@@ -117,6 +132,7 @@ The public registration page collects full name, FWO number, phone number, HBC (
 ### FR-2 Phone OTP
 
 - A 6-digit code, valid for 5 minutes, maximum 5 attempts, resend allowed after 60 seconds, maximum 3 sends per phone per hour.
+- A daily SMS cap (D25, default 1,000) stops OTP sending when reached and alerts staff; staff are warned at 80%.
 - Codes are stored hashed and never logged.
 - Only Kenyan mobile numbers can receive codes.
 
@@ -137,7 +153,8 @@ The Membership Administrator sees submitted registrations, oldest first, filtera
 
 - The administrator can approve, reject (reason required), or request correction (reason required, visible to staff).
 - Approving creates the member record, with HBC and declared departments, in a single transaction.
-- Given an FWO collision, approval is blocked until the administrator resolves it by rejecting the registration or by linking it as an update to the existing member.
+- Given an FWO collision, approval is blocked until the administrator resolves it by rejecting the registration with a reason. If the existing member's details have changed, the administrator edits the member record (FR-6). There is no linking in Release 1 (D33).
+- Given a phone conflict (BR-06), approval is blocked until the administrator resolves it (D28). Script: call the existing member and the registrant; confirm who uses the phone day to day; explain that each member needs a number of their own to vote online; agree who keeps the number; the other gives a number of their own or is recorded with no personal phone and votes in person. The administrator then records the correction and approves.
 - Given another reviewer acted on the same registration first, the action fails with a clear message and the latest state is shown.
 
 ### FR-5 Corrections (staff-assisted in Release 1)
@@ -153,7 +170,7 @@ The Membership Administrator sees submitted registrations, oldest first, filtera
 
 ### FR-7 Membership status check
 
-A public page where a person enters a phone number and FWO number and verifies an OTP.
+A public page where a person enters a phone number and their FWO number or registration reference (D24) and verifies an OTP.
 
 - Given a match on both, the page shows one of: "Received — waiting for approval", "Please contact the church office about your registration" (correction requested or rejected), "Registered member" (approved and active).
 - For "Received" and "Registered member", the page also shows the HBC on record, with the message: "If this HBC is wrong, please tell the church office or the desk at your AGM."
@@ -175,7 +192,7 @@ A public page where a person enters a phone number and FWO number and verifies a
 
 - Staff accounts are created by a Super Administrator only; no self sign-up.
 - Staff sign in with email and password plus a second factor (passkey or authenticator app). SMS is not accepted as a second factor for administrators.
-- Sessions are server-side and revocable; idle timeout 30 minutes for administrators, 4 hours for officers on desk days.
+- Sessions are server-side and revocable; idle timeout 30 minutes for anyone holding the Membership Administrator or Super Administrator role, 4 hours for staff who are Registration Officers only (D32).
 - The admin interface is served from its own subdomain with host-only cookies.
 
 ### FR-11 Audit log
@@ -224,31 +241,18 @@ If any criterion fails, registration does not open; members continue on paper fo
 
 ## 11. Open questions
 
-Resolved: Q1 → D11, Q2 → D12, Q3 → D13 / BR-14, Q4 → D14, Q6 → D15.
+Resolved: Q1 → D11, Q2 → D12, Q3 → D13 / BR-14, Q4 → D14, Q5 → D23, Q6 → D15, Q10 → D24, Q12 → D25, Q14 → D26, Q16 → D27, Q18 → D28, Q19 → D29, Q20 → D30, Q21 → D31, Q22 → D32, Q23 → D33, Q24 → D34 / BR-17 / D36, Q26 → D35.
 
 | # | Question | Owner |
 |---|---|---|
-| Q5 | Which body registers with the ODPC as data controller: the parish (ACK Emmanuel Kengeleni-Freretown) or the Diocese of Mombasa? | Vicar |
 | Q7 | Who owns the Kiswahili translation and its review? | Committee |
 | Q8 | Who staffs the desks on 17 January, when five HBC AGMs run on the same day? | Committee |
 | Q9 | Who are the two Super Administrators? Proposal: Danny plus one committee member who is not the Secretary or a Warden. | Committee |
-| Q10 | A new member (BR-16) has no FWO number until the Secretary issues one, but the status check (FR-7) needs phone + FWO. How does a new member check their status? Option: phone + registration reference (REG-…) instead of FWO. | Committee |
 | Q11 | Should a Data Protection Impact Assessment be completed before registration opens? Processing religious affiliation at scale is likely "high risk" under the Data Protection Act, 2019, s. 31. Proposed as a go/no-go item. | Vicar (data controller) |
-| Q12 | What is the daily SMS spending cap? A cap stops OTP abuse ("SMS pumping") from running up the bill; when reached, OTP sending pauses and staff are alerted. | Committee |
 | Q13 | How long are approved members' records kept after they are marked deceased or transferred out? BR-14 covers only rejected and withdrawn registrations. | Vicar |
-| Q14 | Neon plan for production: Free (6-hour restore window) or Launch (7 days, usage-based, a few dollars a month). See ADR 0002 amendment. | Committee (budget) |
 | Q15 | Who is the named contact for a personal-data breach, responsible for notifying the ODPC within 72 hours (s. 43)? | Vicar |
-| Q16 | FWO numbers are visible on envelopes (D3), so someone could self-register with another member's name and FWO and their own phone. If the real member never registers, nothing is flagged, and that phone could later vote for them. Should approval (or remote voting) require `IN_PERSON` or `FWO_CONFIRMED_BY_SECRETARY` evidence as well as `PHONE_OTP`? | Committee |
 | Q17 | Members who decline storage outside Kenya (BR-15) stay on paper. How do they get into an election's electorate (D18)? | Committee |
-| Q18 | Many older members share a family phone (PRODUCT.md), so phone conflicts (BR-06) will be common. Who resolves them, with what script, and what SMS do members receive? Members recorded with no personal phone vote in person only (D21), which limits D18 "whether or not they attend": is that trade-off accepted? | Committee |
-| Q19 | Are FWO numbers "0042" and "42" the same number? BR-01 keeps leading zeros, so today both could exist as different members. | Church Secretary |
-| Q20 | When the Secretary issues new FWO numbers (BR-16), how do we avoid reusing a number already on an envelope held by someone not yet registered (the old list is not imported, D5)? Option: record the highest number issued so far and allocate above it. | Church Secretary |
-| Q21 | What exactly does "every access to personal data by staff" (BR-12) log: each record opened, each list page, searches, exports? | Committee |
-| Q22 | The Secretary and Wardens hold both roles (D12), but sessions time out after 30 minutes for administrators and 4 hours for officers (FR-10). Which applies to them? | Committee |
-| Q23 | FR-4 "link as an update to the existing member": which fields change, how HBC history is recorded, and what evidence is needed? | Committee |
-| Q24 | Can a staff member approve a registration for themselves or a close relative? BR-10 only covers the capturing officer. | Committee |
 | Q25 | D22 says eligible if approved before nominations *open*, but the electorate is frozen when nominations *close*. Which date decides the member's HBC for voting? | Committee |
-| Q26 | Every revision requires `transfer_consent` (BR-15), including a staff correction made without the member present. Should the consent carry over from the previous revision instead? | Committee |
 
 ## 12. Sizing notes
 

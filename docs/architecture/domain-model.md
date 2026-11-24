@@ -130,7 +130,7 @@ The design above does not yet give secret ballots. These must be resolved in an 
 2. **Database history.** Neon's restore history and branching show the database as it was at any moment during voting. Anyone with Neon console access can replay the order of writes. Restore history covering the voting window must be shortened or reset after the tally, and console access limited.
 3. **Key handling.** If the committee's private key is entered into server code, the people who deploy that code can read every ballot. Decryption and tally should happen offline or in the committee's browser; the server should never see the private key or individual plaintext ballots.
 4. **Who holds which role.** The technical lead and the Neon owner must not also be keyholders or election officers.
-5. **Remote-vote credential.** A self-registration using someone else's FWO with the registrant's own phone could become a remote-voting credential (requirements Q16).
+5. **Remote-vote credential.** A self-registration using someone else's FWO with the registrant's own phone could become a remote-voting credential. **Accepted risk (requirements D27):** online voting needs only FWO + phone OTP, from anywhere. It is detected, not prevented: the real member's registration is flagged (BR-03), and a member told they have already voted is directed to the election officer.
 
 ### Open decisions
 
