@@ -15,6 +15,7 @@ const config = [
       "cloudflare-env.d.ts",
       "playwright-report/**",
       "test-results/**",
+      ".claude/worktrees/**",
     ],
   },
   {

@@ -8,6 +8,13 @@ This system holds sensitive personal data: church membership reveals religious a
 
 - **One issue, one branch, one pull request.** Work comes from the GitHub issues, in order. Branch as `<issue-number>-<short-name>` (e.g. `12-phone-otp`) and open the PR with `Closes #<issue-number>`. Don't mix unrelated changes into a PR; open an issue for them instead.
 - Every PR fills in the template checklist (`.github/pull_request_template.md`) and passes CI before merge.
+- **Every PR is reviewed before merge, twice:**
+  1. The author reviews their own diff against the rules below.
+  2. An independent reviewer reviews it. In Claude Code, ask: "independent review of PR #N with the code-reviewer agent". The agent (`.claude/agents/code-reviewer.md`) starts fresh in its own worktree with only the PR number, never the author's conclusions.
+  - Compare the two reviews in the PR's Review section.
+  - Fix every in-scope blocker and should-fix in the same PR, and re-run the checks. If a blocker fix changed more than a few lines, run the reviewer again.
+  - Only findings outside the issue's scope become new issues.
+  - Nobody merges with an open blocker. Branch protection isn't available on our plan, so this is on us.
 - A decision that changes an ADR or a business rule is its own issue and PR, agreed before the code that depends on it.
 - Never put real members' details in issues, PRs, commits, test fixtures or screenshots. Use synthetic data.
 
