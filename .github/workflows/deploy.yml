@@ -90,6 +90,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # Build before touching the database, so a build failure never leaves migrations applied
+      # without the Worker that expects them (#49).
+      - name: Build the Worker
+        run: pnpm gen:i18n && pnpm exec opennextjs-cloudflare build
+
       - name: Create a Neon restore branch (production only)
         if: env.TARGET == 'production'
         env:
@@ -117,8 +122,8 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: pnpm db:migrate
 
-      - name: Build and deploy the Worker
-        run: pnpm deploy:${TARGET}
+      - name: Deploy the Worker
+        run: pnpm exec opennextjs-cloudflare deploy --env "$TARGET"
 
       - name: Smoke-test the live site
         run: |

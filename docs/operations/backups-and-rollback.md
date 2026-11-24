@@ -7,7 +7,7 @@ How code reaches staging and production, how to undo a bad deploy, and how the d
 | # | Item | Status |
 |---|---|---|
 | 1 | GitHub environments `staging` and `production`, deployments from `main` only | Done 24 Nov 2026. Required reviewers aren't available on this repository's plan, so production deploys only when started by hand |
-| 2 | Deploy workflow (`.github/workflows/deploy.yml`) | Configured 24 Nov 2026; first run when this merges |
+| 2 | Deploy workflow (`.github/workflows/deploy.yml`) | Configured 24 Nov 2026. The first two staging runs failed at the Worker upload after migrating (#49: no local Hyperdrive string for the environment's proxy). Fix in #53, which also builds the Worker before migrating; confirmed once the first staging run after merge passes |
 | 3 | Cloudflare API token for deploys | Done 24 Nov 2026: `github-deploy-ack-emmanuel`, this account and zone only, expires Nov 2027. Remove its R2 permission if the R2 token list still shows it |
 | 4 | Neon API key and project id for restore branches | Done 24 Nov 2026 (`NEON_PROJECT_ID` = `ack-production`'s id) |
 | 5 | R2 enabled; bucket `ack-backups` in the EU jurisdiction with a 35-day lifecycle rule | Done 24 Nov 2026 (location EEUR; rule `expire-35-days`). R2 token scoped to `ack-backups`, expires Nov 2027 |
@@ -24,7 +24,7 @@ How code reaches staging and production, how to undo a bad deploy, and how the d
 | When | Automatically, after CI passes on a push to `main` | When a maintainer runs **Actions → Deploy → Run workflow → production** on `main` |
 | Guard | CI must pass | The commit's CI on `main` must have passed (checked by the workflow) |
 | Before migrating | — | A Neon **restore branch** `pre-deploy-<sha>-<run>` is created (no compute; deleted after 7 days). Its name is in the run summary |
-| Steps | `pnpm db:migrate` as owner, `pnpm deploy:staging`, live smoke test | Same, with `--env production` |
+| Steps | Build the Worker, `pnpm db:migrate` as owner, `opennextjs-cloudflare deploy --env staging`, live smoke test. Building first means a build failure stops the run before the database changes | Same, with `--env production` |
 | Smoke test | `scripts/live-smoke.sh`: the page renders in Kiswahili, the CSP is sent, http redirects to https, there's no `/admin` on the public host, and the staff host redirects to Cloudflare Access ||
 
 Migrations are **forward-only**, in expand/contract steps: add the new thing, move the data, and remove the old thing in a later release. That way the previous Worker version still works if the Worker has to be rolled back.

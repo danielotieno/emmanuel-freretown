@@ -102,7 +102,7 @@ A change is done when:
 | `pnpm db:app-login` | Create or rotate the app's login (`ack_app`, member of `app_runtime`); the app never connects as the owner |
 | `pnpm db:backup-login` / `pnpm db:drift` | Read-only backup login (`ack_backup`) / compare a live schema with the migrations (`DRIFT_EXPECTED_URL`, `DRIFT_ACTUAL_URL`) |
 | `pnpm preview` / `pnpm smoke:worker` | Run the built Worker locally in workerd / smoke-test it (after an OpenNext build) |
-| `pnpm deploy:staging` / `pnpm deploy:production` | Deploy to a named Cloudflare environment (CI does this; see ADR 0002 amendment) |
+| `pnpm deploy:staging` / `pnpm deploy:production` | Build and deploy to a named Cloudflare environment by hand. Normally the Deploy workflow does it, building first and migrating before the upload (see ADR 0002 amendment) |
 
 Conventions set up with the scaffold:
 
