@@ -38,5 +38,9 @@ playwright/.cache/
 .idea/
 *.tsbuildinfo
 
+# Claude Code: local settings and reviewer worktrees (the agents in .claude/agents are shared)
+.claude/settings.local.json
+.claude/worktrees/
+
 # inlang SDK cache
 project.inlang/cache/
