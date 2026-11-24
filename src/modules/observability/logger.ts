@@ -34,7 +34,7 @@ export interface LoggerOptions {
 
 /**
  * Marks records built here, which are already safe, so the console guard passes them through
- * unchanged. A global symbol rather than a module-local set: worker.ts, the middleware and the
+ * unchanged. A global symbol rather than a module-local set: src/jobs/worker.ts, the middleware and the
  * Next.js server each bundle their own copy of this module.
  */
 const LOGGER_RECORD = Symbol.for("ack.loggerRecord");

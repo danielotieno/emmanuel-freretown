@@ -382,3 +382,5 @@ Neon suspends compute after 5 idle minutes and bills by the hour awake. A job th
 | `ratelimit.purge` | Daily | Delete expired buckets |
 | `sms.purge` | Daily | Delete outbox rows older than 90 days |
 | `retention.redact` | Daily | Call `redact_expired_registration` for each eligible registration |
+
+The Worker entry is `src/jobs/worker.ts` (#10). The daily Cron Trigger (`0 1 * * *`, 04:00 in Mombasa) runs the jobs in `src/jobs/daily.ts` in turn, each with its own database handle. A failing job is logged and reported to Sentry, and the rest still run. `otp.purge` and `retention.redact` are implemented; `ratelimit.purge` arrives with the rate limiter (#13) and the SMS jobs with the outbox sender (#14). Queue messages carry `{ type, id }` only; the consumer acknowledges malformed or unknown messages and retries failed ones after 30 s, 1, 2, 4 and 8 minutes, up to `max_retries: 5`.

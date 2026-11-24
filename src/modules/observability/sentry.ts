@@ -1,5 +1,5 @@
 // Types only. The SDK imports `cloudflare:workers`, so it can't load in Node (next dev, Vitest,
-// Playwright): only worker.ts imports it at runtime, and registers a reporter (below).
+// Playwright): only src/jobs/worker.ts imports it at runtime, and registers a reporter (below).
 import type { CloudflareOptions, ErrorEvent } from "@sentry/cloudflare";
 import { safeErrorFields } from "./errors";
 import { REDACTED } from "./scrub";
@@ -19,7 +19,7 @@ export interface SentryEnv {
 const EXCLUDED_INTEGRATIONS = new Set(["RequestData", "Console"]);
 
 /**
- * Sentry options for withSentry in worker.ts (ADR 0002: "Sentry (Cloudflare SDK) with personal
+ * Sentry options for withSentry in src/jobs/worker.ts (ADR 0002: "Sentry (Cloudflare SDK) with personal
  * data stripped"). Error events only. Returns undefined when no DSN is set, so nothing is sent.
  *
  * No `tracesSampleRate`, not even 0, and never the SENTRY_TRACES_SAMPLE_RATE variable: Sentry
@@ -53,7 +53,7 @@ type ErrorReporter = (error: unknown, tags: Record<string, string>) => void;
 const REPORTER = Symbol.for("ack.errorReporter");
 type WithReporter = typeof globalThis & { [REPORTER]?: ErrorReporter };
 
-/** Called once by worker.ts with Sentry's captureException. */
+/** Called once by src/jobs/worker.ts with Sentry's captureException. */
 export function registerErrorReporter(reporter: ErrorReporter | undefined): void {
   (globalThis as WithReporter)[REPORTER] = reporter;
 }
@@ -74,7 +74,7 @@ export function reportError(error: unknown, tags: Record<string, string> = {}): 
  * runtime. Exported for tests.
  *
  * Every message is redacted, even a SafeError's: `instanceof SafeError` can't work here,
- * because worker.ts and the Next.js server bundle each have their own copy of the class.
+ * because src/jobs/worker.ts and the Next.js server bundle each have their own copy of the class.
  */
 export function scrubEvent(event: ErrorEvent): ErrorEvent {
   if (event.request) {
