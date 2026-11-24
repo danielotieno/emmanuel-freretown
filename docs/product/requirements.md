@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Draft v0.5 — voting pilot scope decided (D37, D38) |
+| Status | Draft v0.6 — go-live owners decided (D39–D42); DPIA timing open (Q28) |
 | Date | 24 November 2026 |
 | Mandate | Approved by the Vicar and PCC (record minute/resolution reference here) |
 | Target | Build complete Thursday 26 November 2026; announced at services Sunday 29 November; registration open about 30 November – 1 December |
@@ -55,6 +55,10 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 | D36 | Release 1 has one Membership Administrator who approves registrations. When BR-10 or BR-17 stops them approving one, a Super Administrator approves it (Q24) | Danny (technical lead), 24 Nov 2026 |
 | D37 | The 13 December pilot runs full online voting alongside paper at Jerusalem and Zion Freretown. Go/no-go on 4 December 2026: online voting runs only if, by then, the elections ADR (ballot secrecy) is accepted, the election features are built, and a full rehearsal on staging has passed. Otherwise the pilot falls back to electronic check-in only, with no online ballots. The pilot electorate follows D22: only members approved before the pilot's nominations open can vote online; everyone can vote on paper | Danny (technical lead), 24 Nov 2026 |
 | D38 | At a pilot, paper is official (D19), so an online vote never stops a member voting on paper. The officer's check-in shows that the member already voted online and records it, but always lets them have a paper ballot. Electronic results stay sealed until the paper result is declared | Danny (technical lead), 24 Nov 2026 |
+| D39 | The Vicar owns and approves the privacy notice, as the data controller's representative. The committee names one fluent Kiswahili-speaking member to review all member-facing text (NFR-5) (Q7) | Danny (technical lead), 24 Nov 2026 |
+| D40 | The two Super Administrators are the technical lead and one committee member who is neither the Church Secretary nor a Warden. The Neon, Cloudflare, GitHub, Africa's Talking and Sentry accounts are owned by a church email address held by the Vicar; the technical lead is an invited administrator, not the owner (Q9) | Danny (technical lead), 24 Nov 2026 |
+| D41 | A Data Protection Impact Assessment is completed before processing, as reg. 49(1)(e) of the Data Protection (General) Regulations, 2021 requires for sensitive personal data. It uses the Third Schedule template, is signed by the Vicar and is submitted to the Data Commissioner (s. 31(3), (5)). Draft: `docs/compliance/dpia.md` (Q11) | Danny (technical lead), 24 Nov 2026 |
+| D42 | The Vicar is the breach contact and notifies the Data Commissioner within 72 hours (s. 43). The technical lead responds first: contains the breach and briefs the Vicar within 24 hours. Procedure: `docs/compliance/breach-response.md` (Q15) | Danny (technical lead), 24 Nov 2026 |
 
 ## 3. Roles in Release 1
 
@@ -67,7 +71,7 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 
 HBC Coordinator and Department Coordinator roles are deferred to Release 2.
 
-**Release 1 assignments:** the Church Secretary and the Wardens hold both the Membership Administrator and Registration Officer roles, but only one Membership Administrator approves registrations (D36). When that administrator captured a registration (BR-10), or it is their own or a close relative's (BR-17), a Super Administrator approves it. Super Administrators and additional desk officers for busy AGM days are still to be named (Q8, Q9).
+**Release 1 assignments:** the Church Secretary and the Wardens hold both the Membership Administrator and Registration Officer roles, but only one Membership Administrator approves registrations (D36). When that administrator captured a registration (BR-10), or it is their own or a close relative's (BR-17), a Super Administrator approves it. The Super Administrators are set by D40. Additional desk officers for busy AGM days are still to be named (Q8).
 
 ## 4. Reference data (seeded, then admin-managed)
 
@@ -211,7 +215,7 @@ A public page where a person enters a phone number and their FWO number or regis
 
 | ID | Requirement |
 |---|---|
-| NFR-1 Data location | Database in Neon's EU (Frankfurt) region; application on Cloudflare Workers (ADR 0002). Every registration records the member's explicit consent to storage outside Kenya (BR-15). Data processing agreements with Neon and Cloudflare are on file. |
+| NFR-1 Data location | Database in Neon's EU (Frankfurt) region; application on Cloudflare Workers (ADR 0002). Every registration records the member's explicit consent to storage outside Kenya (BR-15). Data processing agreements with Neon, Cloudflare, Africa's Talking, Sentry and GitHub are on file. |
 | NFR-2 Low bandwidth | The public registration and status-check pages load under 200 KB on first visit and are usable on a throttled 3G connection. |
 | NFR-3 Devices | Works on current Chrome for Android and Safari for iOS on low-end phones; no app install required. |
 | NFR-4 Accessibility | WCAG 2.2 AA; minimum 16px body text; large tap targets; errors described in words, not colour alone. |
@@ -236,23 +240,24 @@ Member login and portal; HBC and Department Coordinator roles and views; coordin
 6. A backup restored successfully.
 7. At least two trained officers assigned to each January AGM.
 8. Paper fallback forms printed.
-9. Data processing agreements with Neon and Cloudflare accepted in church-owned accounts.
+9. Data processing agreements with Neon, Cloudflare, Africa's Talking, Sentry and GitHub accepted in church-owned accounts (D40).
 10. ODPC confirmation of safeguards for storing data outside Kenya obtained, or the Vicar has decided, on advice, to open registration while it is pending.
+11. DPIA signed by the Vicar and submitted to the Data Commissioner, and the sixty-day rule in s. 31(5) resolved (D41, Q28).
+12. Breach procedure adopted and the Vicar's deputy named (D42).
+
+Progress on these items is tracked in `docs/compliance/go-live.md`.
 
 If any criterion fails, registration does not open; members continue on paper forms with identical fields and the launch moves.
 
 ## 11. Open questions
 
-Resolved: Q1 → D11, Q2 → D12, Q3 → D13 / BR-14, Q4 → D14, Q5 → D23, Q6 → D15, Q10 → D24, Q12 → D25, Q14 → D26, Q16 → D27, Q18 → D28, Q19 → D29, Q20 → D30, Q21 → D31, Q22 → D32, Q23 → D33, Q24 → D34 / BR-17 / D36, Q26 → D35.
+Resolved: Q1 → D11, Q2 → D12, Q3 → D13 / BR-14, Q4 → D14, Q5 → D23, Q6 → D15, Q10 → D24, Q12 → D25, Q14 → D26, Q16 → D27, Q18 → D28, Q19 → D29, Q20 → D30, Q21 → D31, Q22 → D32, Q23 → D33, Q24 → D34 / BR-17 / D36, Q26 → D35, Q7 → D39, Q9 → D40, Q11 → D41, Q15 → D42.
 
 | # | Question | Owner |
 |---|---|---|
-| Q7 | Who owns the Kiswahili translation and its review? | Committee |
+| Q28 | **Urgent.** The Data Protection Act s. 31(5) says DPIA reports "shall be submitted sixty days prior to the processing of data"; under reg. 52(3), processing may start if the Data Commissioner has not responded within sixty days. Registration is planned to open about 30 November 2026 and the voting pilot is on 13 December. How does the parish proceed: submit now and ask the ODPC for an early review (reg. 52(1)), move the dates, or another course on legal advice? Elections (Release 2) also need an updated DPIA (reg. 49(1)(d)). | Vicar, on legal advice |
 | Q8 | Who staffs the desks on 17 January, when five HBC AGMs run on the same day? | Committee |
-| Q9 | Who are the two Super Administrators? Proposal: Danny plus one committee member who is not the Secretary or a Warden. | Committee |
-| Q11 | Should a Data Protection Impact Assessment be completed before registration opens? Processing religious affiliation at scale is likely "high risk" under the Data Protection Act, 2019, s. 31. Proposed as a go/no-go item. | Vicar (data controller) |
 | Q13 | How long are approved members' records kept after they are marked deceased or transferred out? BR-14 covers only rejected and withdrawn registrations. | Vicar |
-| Q15 | Who is the named contact for a personal-data breach, responsible for notifying the ODPC within 72 hours (s. 43)? | Vicar |
 | Q17 | Members who decline storage outside Kenya (BR-15) stay on paper. How do they get into an election's electorate (D18)? | Committee |
 | Q25 | D22 says eligible if approved before nominations *open*, but the electorate is frozen when nominations *close*. Which date decides the member's HBC for voting? Needed before the pilot's nominations open (D37). | Committee |
 | Q27 | What must the pilot show for online voting to be used officially in January: for example, electronic and paper results agree, no member voted twice, and OTP worked for most voters? Needed before 13 December. | Committee |
