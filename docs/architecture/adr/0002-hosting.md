@@ -54,7 +54,7 @@ Confirms the hosting decision (Neon in the EU; no Kenyan hosting providers) and 
 | Production | Neon project `ack-production`, AWS Frankfurt; Worker env `production` on `ackemmanuelfreretown.org` and `admin.ackemmanuelfreretown.org` | Real members |
 | Staging | Separate Neon project `ack-nonprod`, branch `staging`; Worker env `staging` on `staging.ackemmanuelfreretown.org` and `admin-staging.ackemmanuelfreretown.org` (one level deep, so Cloudflare's free certificate covers them) | Synthetic only |
 | Development | `ack-nonprod`, one branch per developer, or any local Postgres | Synthetic only |
-| CI | A disposable Postgres 17 service container on the GitHub runner | Created and destroyed per run |
+| CI | A disposable Postgres 18 service container on the GitHub runner | Created and destroyed per run |
 
 - **Never branch production into staging or development.** A Neon branch copies all data, so a staging branch made from production would put real members' religious affiliation in a less protected place. Non-production lives in a separate Neon project with separate credentials and only synthetic data.
 - **Docker is not needed on anyone's machine.** Developers use their Neon development branch (or an existing local Postgres). CI's Postgres runs inside GitHub's runner.
@@ -69,4 +69,4 @@ Decision: **production on Launch with a 7-day restore window; non-production on 
 
 ### Vendor risk
 
-Databricks announced it would acquire Neon in May 2025. The exit path is unchanged: Neon is standard PostgreSQL 17, the nightly encrypted `pg_dump` in R2 can be restored to any Postgres provider, and the application only needs a new connection string in Hyperdrive.
+Databricks announced it would acquire Neon in May 2025. The exit path is unchanged: Neon is standard PostgreSQL 18, the nightly encrypted `pg_dump` in R2 can be restored to any Postgres provider, and the application only needs a new connection string in Hyperdrive.

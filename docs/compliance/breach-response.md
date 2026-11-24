@@ -41,7 +41,7 @@ The clock starts when anyone at the parish, or any of our vendors, **becomes awa
 | As soon as reasonably practical | **Tell affected members in writing** (s. 43(1)(b)), in English and Kiswahili: by SMS to their own phone where the content allows, otherwise through the church office. This may be delayed only if the police ask, for an investigation (s. 43(4)). It is not required if the data was protected, for example encrypted, so the breach exposes nothing (s. 43(6)). If members are not told, the notice to the Data Commissioner must say why (reg. 38(2)) |
 | Within 2 weeks | Review: what failed, what changes, who does what. Record it in the parish's breach register. Update the DPIA if the risk picture changed |
 
-Vendors (data processors) must tell us within 48 hours where reasonably practicable (s. 43(3)). Check each data processing agreement says so; Neon, Cloudflare, Africa's Talking, Sentry and GitHub each notify the email address on the church-owned account (D40), so that inbox must be watched.
+Vendors (data processors) must tell us within 48 hours where reasonably practicable (s. 43(3)). Check each data processing agreement says so; Africa's Talking, Sentry and GitHub notify the email address on the church-owned account; Neon and Cloudflare notify the technical lead's account (D40). Both inboxes must be watched.
 
 ## What the notification to the Data Commissioner contains (reg. 38(1))
 

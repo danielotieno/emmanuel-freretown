@@ -21,7 +21,7 @@ jobs:
     services:
       postgres:
         # Same major version as Neon (database-design.md). Runs on the GitHub runner only.
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: ack_test

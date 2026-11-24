@@ -1,0 +1,22 @@
+# Copy to .dev.vars for `pnpm preview` (the Worker running locally in workerd).
+# Never commit .dev.vars. Staging and production secrets are set in Cloudflare with
+# `pnpm exec wrangler secret put <NAME> --env staging|production` (docs/operations/environments.md).
+#
+# The database connection is not here: it comes from the HYPERDRIVE binding, overridden locally by
+# CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE in .env.
+#
+# Secrets the app will read, each added by the issue that first uses it. Local values are
+# throwaway test values only.
+
+# Better Auth session signing (#17). Any random string of 32+ characters locally.
+BETTER_AUTH_SECRET=
+
+# Africa's Talking SMS (#14). Use the sandbox username and key locally.
+AFRICASTALKING_USERNAME=sandbox
+AFRICASTALKING_API_KEY=
+
+# Cloudflare Turnstile (#13). Cloudflare publishes test keys that always pass.
+TURNSTILE_SECRET_KEY=
+
+# Sentry (#9). Leave empty locally to send nothing.
+SENTRY_DSN=

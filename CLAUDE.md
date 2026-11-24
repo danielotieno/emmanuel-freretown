@@ -98,6 +98,7 @@ A change is done when:
 | `pnpm e2e` | Playwright on the four viewports, with axe and the 200 KB budget (port 3100) |
 | `pnpm db:generate` / `pnpm db:custom --name=x` | Generate a migration / create an empty SQL migration |
 | `pnpm db:migrate` | Apply migrations to `DATABASE_URL` |
+| `pnpm db:app-login` | Create or rotate the app's login (`ack_app`, member of `app_runtime`); the app never connects as the owner |
 | `pnpm preview` / `pnpm smoke:worker` | Run the built Worker locally in workerd / smoke-test it (after an OpenNext build) |
 | `pnpm deploy:staging` / `pnpm deploy:production` | Deploy to a named Cloudflare environment (CI does this; see ADR 0002 amendment) |
 
