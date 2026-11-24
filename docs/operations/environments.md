@@ -12,7 +12,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 | 4 | Local development connects as `ack_app` | Done in the repo (`.env.example`, `wrangler.jsonc`) |
 | 5 | Hyperdrive configs for staging and production, caching disabled; ids in `wrangler.jsonc` | Done 24 Nov 2026: `ack-staging` and `ack-production`, both connecting as `ack_app` with caching disabled; ids in `wrangler.jsonc` |
 | 6 | Custom domains: apex, `admin.`, `staging.`, `admin-staging.` | Not started (routes already in `wrangler.jsonc`) |
-| 7 | Cloudflare Access in front of `admin.` and `admin-staging.` | Not started |
+| 7 | Cloudflare Access in front of `admin.` and `admin-staging.` | Done 24 Nov 2026: team `ack-emmanuel`; apps `ACK staff portal (production)` and `(staging)` with reusable policies `ACK staff (production)` and `(staging)`; One-time PIN only, instant auth, 24-hour sessions |
 | 8 | Secrets in Cloudflare; local ones documented in `.dev.vars.example` | Example done; secrets added as each feature lands |
 
 ## The rules
@@ -84,7 +84,8 @@ The first deploy to each environment (#7) creates the DNS records and certificat
 In Cloudflare Zero Trust → Access → Applications, add a **self-hosted** application for `admin.ackemmanuelfreretown.org` and another for `admin-staging.ackemmanuelfreretown.org`:
 
 - Policy: **Allow**, with an explicit list of staff email addresses. Super Administrators keep the list current when staff change.
-- Login method: one-time PIN by email (no extra identity provider needed).
+- Login method: one-time PIN by email, added under Zero Trust → Integrations → Identity providers. Don't select the built-in "Cloudflare" provider on the apps; staff don't have Cloudflare accounts.
+- Keep the allow-lists as reusable policies (Access controls → Policies), one per environment, so a staff change is one edit. When someone leaves, also revoke their session under Team & Resources → Users.
 - Session duration: 24 hours.
 
 Access is a gate in front of the staff portal, not its security boundary. Staff still sign in to the app with a password and a second factor, and authorisation stays in the modules and server actions (CLAUDE.md rule 1).
