@@ -11,7 +11,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 | 3 | Migrations applied as the owner; `ack_app` login created in each database | Done 24 Nov 2026: `dev-do`, `staging` and `production` (Postgres 18.7; `ack_app` verified on each; integration tests pass on `dev-do`) |
 | 4 | Local development connects as `ack_app` | Done in the repo (`.env.example`, `wrangler.jsonc`) |
 | 5 | Hyperdrive configs for staging and production, caching disabled; ids in `wrangler.jsonc` | Done 24 Nov 2026: `ack-staging` and `ack-production`, both connecting as `ack_app` with caching disabled; ids in `wrangler.jsonc` |
-| 6 | Custom domains: apex, `admin.`, `staging.`, `admin-staging.` | Not started (routes already in `wrangler.jsonc`) |
+| 6 | Custom domains: apex, `admin.`, `staging.`, `admin-staging.` | Created by the first deploy (`backups-and-rollback.md`). Also turn on **Always Use HTTPS** for the zone (SSL/TLS → Edge Certificates); the live smoke test checks it |
 | 7 | Cloudflare Access in front of `admin.` and `admin-staging.` | Done 24 Nov 2026: team `ack-emmanuel`; apps `ACK staff portal (production)` and `(staging)` with reusable policies `ACK staff (production)` and `(staging)`; One-time PIN only, instant auth, 24-hour sessions |
 | 8 | Secrets in Cloudflare; local ones documented in `.dev.vars.example` | Example done; secrets added as each feature lands |
 

@@ -99,6 +99,7 @@ A change is done when:
 | `pnpm db:generate` / `pnpm db:custom --name=x` | Generate a migration / create an empty SQL migration |
 | `pnpm db:migrate` | Apply migrations to `DATABASE_URL` |
 | `pnpm db:app-login` | Create or rotate the app's login (`ack_app`, member of `app_runtime`); the app never connects as the owner |
+| `pnpm db:backup-login` / `pnpm db:drift` | Read-only backup login (`ack_backup`) / compare a live schema with the migrations (`DRIFT_EXPECTED_URL`, `DRIFT_ACTUAL_URL`) |
 | `pnpm preview` / `pnpm smoke:worker` | Run the built Worker locally in workerd / smoke-test it (after an OpenNext build) |
 | `pnpm deploy:staging` / `pnpm deploy:production` | Deploy to a named Cloudflare environment (CI does this; see ADR 0002 amendment) |
 

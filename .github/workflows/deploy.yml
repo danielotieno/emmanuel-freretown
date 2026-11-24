@@ -1,0 +1,129 @@
+name: Deploy
+
+# Issue #7 (ADR 0002 amendment).
+# - Staging: deploys automatically after CI passes on a push to main.
+# - Production: deploys only when a maintainer runs this workflow by hand ("Run workflow",
+#   environment "production"), and only for a commit on main whose CI passed. Required reviewers
+#   are not available on this repository's plan, so the manual run is the approval.
+# Both GitHub environments accept deployments from main only.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Where to deploy
+        type: choice
+        options: [production, staging]
+        default: production
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  # One deploy per environment at a time; never cancel one halfway through a migration.
+  group: deploy-${{ inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment || 'staging' }}
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.environment || 'staging' }}
+      url: ${{ (inputs.environment || 'staging') == 'production' && 'https://ackemmanuelfreretown.org' || 'https://staging.ackemmanuelfreretown.org' }}
+    env:
+      TARGET: ${{ inputs.environment || 'staging' }}
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check the environment is configured
+        env:
+          HAS_DATABASE_URL: ${{ secrets.DATABASE_URL != '' }}
+          HAS_NEON_API_KEY: ${{ secrets.NEON_API_KEY != '' }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+        run: |
+          missing=()
+          [[ -n "$CLOUDFLARE_API_TOKEN" ]] || missing+=("secret CLOUDFLARE_API_TOKEN")
+          [[ -n "$CLOUDFLARE_ACCOUNT_ID" ]] || missing+=("variable CLOUDFLARE_ACCOUNT_ID")
+          [[ "$HAS_DATABASE_URL" == "true" ]] || missing+=("secret DATABASE_URL")
+          if [[ "$TARGET" == "production" ]]; then
+            [[ "$HAS_NEON_API_KEY" == "true" ]] || missing+=("secret NEON_API_KEY")
+            [[ -n "$NEON_PROJECT_ID" ]] || missing+=("variable NEON_PROJECT_ID")
+          fi
+          if (( ${#missing[@]} > 0 )); then
+            echo "The ${TARGET} environment is missing: ${missing[*]}."
+            echo "See docs/operations/backups-and-rollback.md. Nothing was changed."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SHA }}
+
+      - name: Require a green CI run for this commit
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          conclusion="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$SHA" \
+            --event push --json conclusion --jq '.[0].conclusion')"
+          if [[ "$conclusion" != "success" ]]; then
+            echo "CI for $SHA is '${conclusion:-not run}'. Deploy only commits whose CI passed."
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Create a Neon restore branch (production only)
+        if: env.TARGET == 'production'
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+        run: |
+          # A copy of production as it is right now, with no compute (storage only), deleted
+          # automatically after 7 days. Restoring it undoes a bad migration (rollback runbook).
+          name="pre-deploy-${SHA:0:7}-${GITHUB_RUN_ID}"
+          expires="$(date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ)"
+          status="$(curl -s -o /tmp/neon-branch.json -w '%{http_code}' -X POST \
+            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches" \
+            -H "Authorization: Bearer ${NEON_API_KEY}" -H "Content-Type: application/json" \
+            -d "{\"branch\": {\"name\": \"${name}\", \"expires_at\": \"${expires}\"}}")"
+          if [[ "$status" != 2* ]]; then
+            echo "Neon refused the restore branch (HTTP $status). Not migrating or deploying."
+            jq -r '.message // empty' /tmp/neon-branch.json || true
+            exit 1
+          fi
+          echo "Restore branch: ${name} (expires ${expires})"
+          echo "### Restore branch: \`${name}\` (expires ${expires})" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply migrations as the owner
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm db:migrate
+
+      - name: Build and deploy the Worker
+        run: pnpm deploy:${TARGET}
+
+      - name: Smoke-test the live site
+        run: |
+          if [[ "$TARGET" == "production" ]]; then
+            scripts/live-smoke.sh https://ackemmanuelfreretown.org https://admin.ackemmanuelfreretown.org
+          else
+            scripts/live-smoke.sh https://staging.ackemmanuelfreretown.org https://admin-staging.ackemmanuelfreretown.org
+          fi
