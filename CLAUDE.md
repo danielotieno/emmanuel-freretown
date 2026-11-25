@@ -1,4 +1,4 @@
-# ACK Emmanuel Kengeleni-Freretown Platform
+# ACK Emmanuel Freretown - Kengeleni Platform
 
 The church's digital platform at ackemmanuelfreretown.org. Release 1 is the membership registry (self and assisted registration, admin review, status check). Release 2 is elections and online voting.
 

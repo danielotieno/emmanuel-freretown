@@ -5,7 +5,7 @@ Visual rules for ackemmanuelfreretown.org. Read with `PRODUCT.md`. Reference fil
 ## 1. Identity
 
 - **Crest.** The Diocese of Mombasa coat of arms: bishop's mitre with gold lappets above a shield with the red cross of St George on silver, over a blue sea bearing a gold anchor and crozier. The scan in `references/diocese-crest-scan.jpg` is a placeholder only: its colours are faded and the edges are soft. Obtain the official vector (SVG or high-resolution PNG) from the Diocese office and confirm the parish may use it. Do not trace, redraw or recolour the crest.
-- **Parish lockup.** Crest at small size beside "ACK Emmanuel Kengeleni-Freretown" set in the display face. If the parish has its own emblem, it takes this place and the crest moves to the footer.
+- **Parish lockup.** Crest at small size beside "ACK Emmanuel Freretown - Kengeleni" set in the display face. If the parish has its own emblem, it takes this place and the crest moves to the footer.
 - **Motifs drawn from the crest**, used sparingly as lightweight SVG: a single wave line (the sea) as a section divider; the anchor as a small mark for "hope" and for the Freretown coast. Never use the cross or mitre as decoration.
 
 ## 2. Colour

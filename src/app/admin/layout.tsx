@@ -6,7 +6,7 @@ import "../globals.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Staff · ACK Emmanuel Kengeleni-Freretown",
+  title: "Staff · ACK Emmanuel Freretown - Kengeleni",
   robots: { index: false, follow: false },
 };
 
