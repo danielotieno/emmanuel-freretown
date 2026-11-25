@@ -4,13 +4,13 @@ Visual rules for ackemmanuelfreretown.org. Read with `PRODUCT.md`. Reference fil
 
 ## 1. Identity
 
-- **Crest.** The Diocese of Mombasa coat of arms: bishop's mitre with gold lappets above a shield with the red cross of St George on silver, over a blue sea bearing a gold anchor and crozier. The scan in `references/diocese-crest-scan.jpg` is a placeholder only: its colours are faded and the edges are soft. Obtain the official vector (SVG or high-resolution PNG) from the Diocese office and confirm the parish may use it. Do not trace, redraw or recolour the crest. The one exception is the placeholder below, whose faded colour was lifted slightly until the official file replaces it (#87).
+- **Crest.** The Diocese of Mombasa coat of arms: bishop's mitre with gold lappets above a shield with the red cross of St George on silver, over a blue sea bearing a gold anchor and crozier. The scan in `docs/design/references/diocese-crest-scan.jpg` is a placeholder only: its colours are faded and the edges are soft. Obtain the official vector (SVG or high-resolution PNG) from the Diocese office and confirm the parish may use it. Do not trace, redraw or recolour the crest. The one exception is the placeholder below, whose faded colour was lifted slightly until the official file replaces it (#87).
 - **Parish lockup.** Crest at small size beside "ACK Emmanuel" in the display face, with "Freretown - Kengeleni" beneath in small muted text (`src/components/site-header.tsx`). Until the official file arrives, the site uses `src/components/crest.webp`, cut from the scan with its colour lifted slightly (#80). If the parish has its own emblem, it takes this place and the crest moves to the footer.
 - **Motifs drawn from the crest**, used sparingly as lightweight SVG: a single wave line (the sea) as a section divider; the anchor as a small mark for "hope" and for the Freretown coast. Never use the cross or mitre as decoration.
 
 ## 2. Colour
 
-Clean white pages, Ocean Blue for action, and two calm panel tints: the coast at Mombasa. Agreed with the technical lead on 25 Nov 2026 (#80). It replaces the first palette (Persian Blue, Vista Blue, Cornsilk; `references/palette.jpeg`), which no longer appears in the interface.
+Clean white pages, Ocean Blue for action, and two calm panel tints: the coast at Mombasa. Agreed with the technical lead on 25 Nov 2026 (#80). It replaces the first palette (Persian Blue, Vista Blue, Cornsilk; `docs/design/references/palette.jpeg`), which no longer appears in the interface.
 
 | Token | Hex | Name | Role |
 |---|---|---|---|
@@ -65,7 +65,7 @@ Mobile first: design at **360 × 800** before anything else.
 |---|---|---|
 | Base | 0–599px | Single column; full-width buttons; sticky primary action on long forms |
 | `sm` | 600px | Larger phones and small tablets; more generous spacing |
-| `md` | 900px | Landing page may use two columns; navigation expands from a menu to inline links |
+| `md` | 900px | Landing page may use two columns; the navigation row under the lockup moves inline beside it |
 | `lg` | 1200px | Content max width about 1120px, centred |
 
 - **Forms stay single column at every size**, max width about 34rem, even on desktop.
@@ -96,8 +96,34 @@ Mobile first: design at **360 × 800** before anything else.
 ## 7. Inspiration and what we take from it
 
 - **tihada.com.** Kenyan identity through a local skyline silhouette; "how it works" as short numbered steps; plain promises such as "no account needed"; FAQ in everyday language. *Take:* a Mombasa coastline or Freretown silhouette, "Register in 3 steps", plain reassurances.
-- **ardia.dev.** Warm paper-toned background; one painterly illustration that gives the site a personality; an honest FAQ ("Fair questions") and plainly written privacy notes. *Take:* the warmth of its sand-toned panels, one hand-made illustration, and a "Fair questions" section on registration: why we need your phone number, where your details are stored, who can see them.
+- **ardia.dev.** Warm paper-toned background; one painterly illustration that gives the site a personality; an honest FAQ ("Fair questions") and plainly written privacy notes. *Take:* the warmth of its sand-toned panels and a "Fair questions" section on registration: why we need your phone number, where your details are stored, who can see them. Not its illustration: the homepage photo is our one large image (D46, §5).
 - **kurax.vercel.app** (the main reference, #80). Clean white space, editorial serif headings over a plain sans, pill buttons, hairline borders, calm tinted panels, numbered steps (01, 02, 03). *Take:* that restraint and rhythm, with Ocean Blue in place of its purple. Not its fintech imagery, mock-ups or copy.
 - **siteinspire.com.** A gallery to browse. When a site is used as a reference, add it here with one line on what specifically to take from it.
 
 Take ideas, not assets: no copying another site's illustrations, layouts or copy.
+
+## 8. Components
+
+The shared controls are classes in `src/app/globals.css` (`@layer components`). Use them; don't restyle a control locally. The rules they follow are in §2 (one primary action per screen) and §4 (shapes and target sizes); this section records what each looks like and its states.
+
+| Class | What it is | States |
+|---|---|---|
+| `btn-primary` | Solid Ocean Blue pill with a paper label: the action the page exists for | Hover: Brand Deep. Disabled: 60% opacity, not-allowed cursor. Focus: the 3px brand outline |
+| `btn-secondary` | Paper pill with a `line-strong` border and an ink label | Hover: ink border. Disabled and focus as primary |
+| `btn-text` | Label only, 48px tall, for "Back" and low-stakes actions | Hover: Ocean Blue |
+| `field` | Text input: 52px tall, `line-strong` border, ink text, muted placeholder | Hover: ink border. Focus: brand border plus the outline. `aria-invalid="true"`: error border, with the message below in error red |
+| `option` | Radio or checkbox card: the whole card is the target | Hover: ink border. Checked: brand border on lagoon |
+
+- **Buttons on Brand Deep or over the photo** swap to a paper fill with a Brand Deep label (primary) and a paper outline (secondary), as on the homepage welcome. Contrast stays at least 4.5:1.
+- **Language switch** (`src/components/language-switch.tsx`): a small two-part pill that looks 32px tall, while each button's tap area reaches 44 × 44px (§4). The current language is an ink fill with paper text. The visible codes "EN"/"SW" stay in each button's accessible name with the full name ("SW Kiswahili"), so voice control can say what it sees.
+- **Notices:** lagoon panels with ink text. A field's error is a message in error red under the field; an error for the whole form is a lightly red-tinted panel with a red border and `role="alert"`. The words always say what went wrong, never colour alone.
+- **Panels:** sand or lagoon, no shadow, rounded as in §4 (notices inside a form 12px). Lists inside a section use hairlines (`line`), not nested cards.
+- **Header navigation** (`src/components/site-header.tsx`): plain links with no JavaScript. On phones they sit in a row under the lockup rather than behind a menu button. Links to `/registration` are plain `<a>`, never `<Link>` (Turnstile's CSP, see CLAUDE.md).
+
+## 9. Design tools
+
+Impeccable (`.claude/skills/impeccable/`, #85) is the design skill for this site. It can send work to its own online service, so:
+
+- **Point it only at public pages showing synthetic data:** the homepage, registration, status and vote with test data. Never at the staff portal (`admin.`), the officer desk, or any page or screenshot that could show a member's name, phone number or FWO number (CLAUDE.md rule 2).
+- **Saved reports and telemetry stay off.** `.impeccable/config.json` (committed) sets `reports.enabled: false`, so critiques and audits are never uploaded with their screenshots, and `telemetry: false`. Don't change them: the service has no data processing agreement with the church.
+- Image generation (`generate-image --ref`) takes a screenshot as a reference: the same rule applies to what that screenshot shows.

@@ -16,6 +16,9 @@ const config = [
       "playwright-report/**",
       "test-results/**",
       ".claude/worktrees/**",
+      // Vendored Impeccable skill (#85): third-party code, upgraded with `npx impeccable update`.
+      ".claude/skills/impeccable/**",
+      ".github/skills/impeccable/**",
     ],
   },
   {
