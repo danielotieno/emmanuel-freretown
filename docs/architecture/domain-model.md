@@ -13,10 +13,10 @@
 | organisation | HBCs, departments | — |
 | registration | Registrations, revisions, decisions | organisation, verification, membership (on approval) |
 | membership | Members, HBC assignments, department memberships | organisation |
-| verification | Phone challenges (OTP), verification evidence | — |
+| verification | Phone challenges (OTP), verification evidence, rate limits; Kenyan-number and Turnstile checks | — |
 | access | Staff users, role assignments, sessions | membership (optional link) |
 | audit | Audit entries, retention redaction | — (every module writes to it) |
-| notifications | SMS outbox, templates | — |
+| notifications | SMS outbox, templates, SMS settings and the daily cap, the SMS provider (Mobile Sasa, D43) | — |
 | elections | Elections, positions, candidates, electorate, participation, ballots, results | membership, organisation, verification |
 
 A module changes only its own tables. Cross-module work goes through the other module's public functions, inside the same database transaction where atomicity matters (for example, approval creates a member).

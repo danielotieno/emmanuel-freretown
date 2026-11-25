@@ -33,6 +33,7 @@ function harness() {
     },
     log: createLogger({ sink: (r) => lines.push(r) }),
     report: () => undefined,
+    env: {},
   };
   return { deps, lines, counts: () => ({ opened, closed }) };
 }

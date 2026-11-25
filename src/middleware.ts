@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { contentSecurityPolicy, usesTurnstile } from "./lib/csp";
 
 const ADMIN_PREFIX = "/admin";
 
@@ -24,7 +25,7 @@ const ADMIN_HOSTNAMES = new Set([
  */
 export function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
-  const csp = contentSecurityPolicy(nonce);
+  const csp = contentSecurityPolicy(nonce, usesTurnstile(request.nextUrl.pathname));
   const requestId = requestIdOf(request);
 
   const requestHeaders = new Headers(request.headers);
@@ -62,27 +63,6 @@ function requestIdOf(request: NextRequest): string {
 function hostnameOf(request: NextRequest): string {
   const host = (request.headers.get("host") ?? "").toLowerCase();
   return host.replace(/:\d+$/, "");
-}
-
-function contentSecurityPolicy(nonce: string): string {
-  const dev = process.env.NODE_ENV === "development";
-  // Turnstile (challenges.cloudflare.com) is added to script-src and frame-src with the
-  // registration form, not before.
-  const directives = [
-    "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
-    // Next.js and React inject inline style attributes; styles cannot run code.
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
-    "font-src 'self'",
-    `connect-src 'self'${dev ? " ws:" : ""}`,
-    "frame-src 'none'",
-    "frame-ancestors 'none'",
-    "form-action 'self'",
-    "base-uri 'none'",
-    "object-src 'none'",
-  ];
-  return directives.join("; ");
 }
 
 export const config = {

@@ -49,6 +49,7 @@ Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui, Zod,
 | `/registration` | Self-registration, including "I am new / no FWO yet" |
 | `/registration/status` | Check my status (OTP first) |
 | `/vote` | Elections: schedule when closed, ballot when open |
+| `/api/webhooks/sms-delivery` | Mobile Sasa delivery reports, signed with the webhook secret (#14) |
 | `admin.ackemmanuelfreretown.org` | Staff: review queue, officer desk, members, settings. Separate host, separate host-only cookie, behind Cloudflare Access |
 
 ## Code layout

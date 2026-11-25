@@ -260,6 +260,21 @@ CREATE TABLE sms_outbox (
 );
 CREATE INDEX sms_outbox_pending_idx ON sms_outbox (created_at) WHERE status = 'PENDING';
 
+-- SMS settings administrators can change (D25), seeded by migration 0005:
+-- daily_cap = 1000, low_balance_units = 1500.
+CREATE TABLE sms_setting (
+  key                 text PRIMARY KEY CHECK (key IN ('daily_cap','low_balance_units')),
+  value               integer NOT NULL CHECK (value >= 0),
+  updated_at          timestamptz NOT NULL DEFAULT now(),
+  updated_by_user_id  text
+);
+
+-- SMS sent per Africa/Nairobi day, OTP codes included, for the daily cap (D25).
+CREATE TABLE sms_daily_usage (
+  day   date PRIMARY KEY,
+  sent  integer NOT NULL DEFAULT 0 CHECK (sent >= 0)
+);
+
 -- ---------------------------------------------------------------- rate limiting
 CREATE TABLE rate_limit_bucket (
   key           text NOT NULL,          -- e.g. 'otp:phone:<hmac>' or 'form:ip:<hmac>'
@@ -271,6 +286,12 @@ CREATE TABLE rate_limit_bucket (
 
 OTP codes are never stored, only `code_hash` (HMAC-SHA256 with a server secret). Rate-limit keys are HMAC-SHA256 of the phone number or IP with a server secret (a plain hash of a phone number can be reversed by trying every number), so the table holds no readable personal data.
 
+**Rate limits (#13).** `rate_limit_bucket` is a sliding log: each allowed attempt adds a row at its own timestamp, and a check sums the rows of the last window. `consumeRateLimit` (verification module) takes a transaction-scoped advisory lock on the key before checking and counting, so concurrent requests never get more than the limit; a refused attempt is not counted. The OTP limits are FR-2's (3 per phone per hour, a resend after 60 seconds) plus 20 per IP per hour, checked IP first so a client over its limit can't use up a phone's quota. Many phones share an IP (mobile carriers, church Wi-Fi), hence the generous IP limit; Turnstile runs before all of them.
+
+**Daily SMS cap (D25).** Every SMS calls `reserveSms` (notifications module), which raises today's `sms_daily_usage.sent` in one statement only while it is under `sms_setting.daily_cap`. At the cap OTP sending pauses (the public sees the normal message) and outbox messages stay PENDING until the next day's `sms.sweep`. The one request that reaches 80% and the one that reaches the cap each send a warning to Sentry, which alerts staff. An outbox message counts on its first attempt only.
+
+**OTP codes never go through the outbox.** The outbox keeps its parameters in the database until purged, and codes are stored only as a hash (rule 8). An OTP is sent directly through the provider after `reserveSms`; if it fails, the member asks for a new code. Every other SMS (FR-8) goes through the outbox.
+
 ## 3. Rules enforced outside constraints
 
 | Rule | Where |
@@ -280,6 +301,7 @@ OTP codes are never stored, only `code_hash` (HMAC-SHA256 with a server secret).
 | The capturing officer cannot approve (BR-10) | Application service check, plus authorisation test |
 | HBC and department must be active on new registrations | Application validation: `checkUnitsForRegistration` in the organisation module, called inside the registration transaction |
 | Every state change writes an audit entry | Application service, in the same transaction; integration tests per action |
+| SMS go only to Kenyan mobile numbers | CHECK on every phone column, plus `normalizeKenyanPhone` (verification) before any rate limit, Turnstile check or SMS is spent |
 | Optimistic concurrency on review actions | `UPDATE … WHERE id = $1 AND version = $2`, zero rows updated = conflict |
 
 ## 4. Database roles and privileges
@@ -289,7 +311,7 @@ OTP codes are never stored, only `code_hash` (HMAC-SHA256 with a server secret).
 | `app_owner` | Migrations only (CI deploy step) | Owns all objects |
 | `ack_app` (login) | The application, through Hyperdrive, and local development | Member of `app_runtime` only; owns nothing; not superuser, no `CREATEROLE` or `CREATEDB`. Created or rotated with `pnpm db:app-login` (`docs/operations/environments.md`) |
 | `ack_backup` (login) | Nightly backup and weekly drift check (GitHub Actions) | Member of `pg_read_all_data` only: reads every table, including staff credentials so a restore is complete; writes nothing; owns nothing. Created or rotated with `pnpm db:backup-login` (`docs/operations/backups-and-rollback.md`) |
-| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only; no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `passkey` (expired sessions and second-factor resets); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`) |
+| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only (including `sms_setting` and `sms_daily_usage`, migration 0005); no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `passkey` (expired sessions and second-factor resets); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`) |
 | `readonly_ops` | Super Administrators for investigations | `SELECT` only, except staff credentials (`account`, `session`, `verification`, `two_factor`, `passkey`); every session is logged by the provider |
 
 ```sql
@@ -379,10 +401,15 @@ Neon suspends compute after 5 idle minutes and bills by the hour awake. A job th
 | Job | Schedule | Action |
 |---|---|---|
 | `sms.dispatch` | Immediately after each write (in the same request, after commit); retries through a Cloudflare Queue with delays | Send the PENDING row; on failure enqueue a delayed retry with backoff; mark FAILED after 5 attempts |
-| `sms.sweep` | Daily | Re-enqueue PENDING rows older than 15 minutes (safety net if a retry was lost) |
+| `sms.sweep` | Daily | Re-enqueue PENDING rows older than 15 minutes (safety net if a retry was lost; also sends messages paused by yesterday's cap) |
+| `sms.balance` | Daily | Read the Mobile Sasa balance (SMS units); alert staff through Sentry when it is below `sms_setting.low_balance_units` |
 | `otp.purge` | Daily | Delete `phone_challenge` rows older than 24 hours |
 | `ratelimit.purge` | Daily | Delete expired buckets |
 | `sms.purge` | Daily | Delete outbox rows older than 90 days |
 | `retention.redact` | Daily | Call `redact_expired_registration` for each eligible registration |
 
-The Worker entry is `src/jobs/worker.ts` (#10). The daily Cron Trigger (`0 1 * * *`, 04:00 in Mombasa) runs the jobs in `src/jobs/daily.ts` in turn, each with its own database handle. A failing job is logged and reported to Sentry, and the rest still run. `otp.purge` and `retention.redact` are implemented; `ratelimit.purge` arrives with the rate limiter (#13) and the SMS jobs with the outbox sender (#14). Queue messages carry `{ type, id }` only; the consumer acknowledges malformed or unknown messages and retries failed ones after 30 s, 1, 2 and 4 minutes: five attempts in all (`max_retries: 4`). A handler is told when it is on its last attempt, so it can record the failure (e.g. mark an SMS FAILED, as §6 requires).
+The Worker entry is `src/jobs/worker.ts` (#10). The daily Cron Trigger (`0 1 * * *`, 04:00 in Mombasa) runs the jobs in `src/jobs/daily.ts` in turn, each with its own database handle. A failing job is logged and reported to Sentry, and the rest still run. All are implemented (#10, #13, #14). Jobs get the Worker's env and the queue binding, for the SMS secrets and the sweep. Queue messages carry `{ type, id }` only; the consumer acknowledges malformed or unknown messages and retries failed ones after 30 s, 1, 2 and 4 minutes: five attempts in all (`max_retries: 4`). A handler is told when it is on its last attempt, so it can record the failure (e.g. mark an SMS FAILED, as §6 requires).
+
+**SMS sending (#14, D43).** `enqueueSms` writes the outbox row in the caller's transaction; after the commit, `sendNow` sends it (from Next.js `after()`), and on a temporary failure queues `sms.dispatch` in 30 seconds. The outbox counts attempts itself, whichever path makes them, and marks the row FAILED after the fifth or at once when the provider rejects the request. The row is locked (`FOR UPDATE SKIP LOCKED`) during a send, so a message is never sent twice at once; the outbox id goes to Mobile Sasa as the v2 `trackingId`, and Mobile Sasa refuses the same text to the same number twice in a day (`0409`), which the outbox treats as sent, so a retry after a lost response can't double-send. `last_error` holds only codes (`0422`, `http_502`, `timeout`, a delivery status), never provider text. Account problems (balance, token, sender) alert staff through Sentry.
+
+**Delivery reports.** Mobile Sasa POSTs each delivery status to `/api/webhooks/sms-delivery`, signed with the webhook secret (`X-MobileSasa-Signature: t=…,v1=HMAC-SHA256("<t>.<raw body>")`). Reports with a bad signature or a timestamp more than 5 minutes off are refused (401) before anything is read. Delivered marks the row DELIVERED; Failed, Rejected, Expired and Unreachable mark a SENT row FAILED; a DELIVERED row never changes again. The body carries the member's phone number and is never logged. Delivery status changes are not audited: the outbox row is the record (FR-8), and it is purged after 90 days.

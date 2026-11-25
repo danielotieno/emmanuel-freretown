@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Database, DbHandle } from "../db";
-import type { Logger } from "../modules/observability";
+import { dispatchSms, SMS_DISPATCH_JOB, smsProviderFromEnv } from "../modules/notifications";
+import { SafeError, type Logger } from "../modules/observability";
 
 /**
  * A queue message names a job and the id of the row it works on. Never personal data: the
@@ -27,13 +28,21 @@ export type QueueHandler = (
   id: string,
   db: Database,
   attempt: { number: number; isLast: boolean },
+  env: Record<string, unknown>,
 ) => Promise<void>;
 
-/**
- * Handlers by message type. `sms.dispatch` arrives with #14 (send a PENDING outbox row; mark it
- * FAILED after the last attempt).
- */
-export const QUEUE_HANDLERS: Record<string, QueueHandler> = {};
+/** Handlers by message type. */
+export const QUEUE_HANDLERS: Record<string, QueueHandler> = {
+  /**
+   * Retries an outbox SMS (#14). The outbox counts attempts itself and marks the message
+   * FAILED after the fifth, whichever path made them; a message paused by the daily cap is
+   * acknowledged and waits for the next day's sweep.
+   */
+  [SMS_DISPATCH_JOB]: async (id, db, _attempt, env) => {
+    const outcome = await dispatchSms(db, id, smsProviderFromEnv(env));
+    if (outcome === "retry") throw new SafeError("sms_retry", "SMS send failed; will retry");
+  },
+};
 
 /** Seconds to wait after failed attempt number `attempts`: 30 s, then 1, 2 and 4 minutes. */
 export function retryDelaySeconds(attempts: number): number {
@@ -51,6 +60,8 @@ export interface QueueMessage {
 
 export interface QueueDeps {
   openDb: () => DbHandle;
+  /** The Worker's env, for handlers that need a secret. */
+  env: Record<string, unknown>;
   log: Logger;
   report: (error: unknown, tags: Record<string, string>) => void;
 }
@@ -84,10 +95,12 @@ export async function handleQueueBatch(
         continue;
       }
       try {
-        await handler(id, handle.db, {
-          number: message.attempts,
-          isLast: message.attempts >= MAX_ATTEMPTS,
-        });
+        await handler(
+          id,
+          handle.db,
+          { number: message.attempts, isLast: message.attempts >= MAX_ATTEMPTS },
+          deps.env,
+        );
         message.ack();
         deps.log.info("queue.job_completed", { job: type, attempts: message.attempts });
       } catch (error) {

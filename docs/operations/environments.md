@@ -100,6 +100,19 @@ pnpm exec wrangler secret put BETTER_AUTH_SECRET --env staging
 pnpm exec wrangler secret put BETTER_AUTH_SECRET --env production
 ```
 
+Secrets in use:
+
+| Name | Issue | What |
+|---|---|---|
+| `BETTER_AUTH_SECRET` | #17 | Staff session signing |
+| `TURNSTILE_SECRET_KEY` | #13 | Turnstile server-side verification |
+| `RATE_LIMIT_SECRET` | #13 | HMAC key for rate-limit keys (phone numbers, IPs); 32+ random characters |
+| `MOBILESASA_API_TOKEN` | #14 | Mobile Sasa `mbs_` token with the "send messages" scope (D43) |
+| `MOBILESASA_WEBHOOK_SECRET` | #14 | Mobile Sasa's webhook signing secret (portal: Settings → Webhooks) |
+| `SENTRY_DSN` | #9 | Error reports |
+
+Plain variables (not secret): `MOBILESASA_SENDER_ID` (default `MOBILESASA`, the shared sender, until our own is approved) and `MOBILESASA_CALLBACK_URL` (`https://<host>/api/webhooks/sms-delivery` for the environment). Set them as secrets too, or in `wrangler.jsonc` `vars` per environment.
+
 Use different values in each environment. The deploy pipeline's own secrets (Cloudflare API token, owner `DATABASE_URL` per environment for migrations) are GitHub Actions secrets, set up in #7.
 
 ## 7. Job queues
