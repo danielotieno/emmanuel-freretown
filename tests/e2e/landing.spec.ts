@@ -44,7 +44,7 @@ test("links to registration with a plain link (Turnstile's CSP is per page load)
   page,
 }) => {
   await page.goto("/");
-  const link = page.getByRole("link", { name: en.reg_title });
+  const link = page.getByRole("link", { name: en.reg_title }).first();
   await expect(link).toHaveAttribute("href", "/registration");
   // A client-side navigation (<Link>) would fetch no new document and keep the landing page's
   // policy, which blocks Turnstile: so require a document load that carries Turnstile's policy.
@@ -79,14 +79,83 @@ test("has no WCAG 2.2 AA violations", async ({ page }) => {
   expect(results.violations).toEqual([]);
 });
 
-test("first load stays under 200 KB", async ({ page }) => {
-  const sizes: Promise<number>[] = [];
+test("first load stays under 200 KB, plus one hero photo within its cap (D46)", async ({
+  page,
+}) => {
+  const rest: Promise<number>[] = [];
+  const photos: Promise<number>[] = [];
   page.on("requestfinished", (request) => {
-    sizes.push(request.sizes().then((s) => s.responseBodySize + s.responseHeadersSize));
+    const size = request.sizes().then((s) => s.responseBodySize + s.responseHeadersSize);
+    (/\/_next\/static\/media\/church-/.test(request.url()) ? photos : rest).push(size);
   });
   await page.goto("/", { waitUntil: "networkidle" });
-  const total = (await Promise.all(sizes)).reduce((sum, size) => sum + size, 0);
-  expect(total).toBeLessThan(PAGE_WEIGHT_BUDGET_BYTES);
+  const sum = async (sizes: Promise<number>[]) =>
+    (await Promise.all(sizes)).reduce((total, size) => total + size, 0);
+  expect(await sum(rest)).toBeLessThan(PAGE_WEIGHT_BUDGET_BYTES);
+
+  // Exactly one photo, sized for the screen: phones get the small one at any pixel density.
+  expect(photos).toHaveLength(1);
+  const width = page.viewportSize()!.width;
+  const cap = width <= 600 ? 35 * 1024 : width <= 1100 ? 60 * 1024 : 110 * 1024;
+  expect(await sum(photos)).toBeLessThan(cap);
+});
+
+test("the navigation reaches every section and registration", async ({ page }) => {
+  await page.goto("/");
+  for (const [label, id] of [
+    [en.nav_about, "about"],
+    [en.nav_services, "services"],
+    [en.nav_ministries, "ministries"],
+    [en.nav_visit, "visit"],
+  ] as const) {
+    const link = page.getByRole("navigation", { name: en.nav_label }).getByRole("link", {
+      name: label,
+    });
+    await expect(link).toHaveAttribute("href", `/#${id}`);
+    await expect(page.locator(`section#${id}`)).toHaveCount(1);
+  }
+  // A plain link (not client-side navigation): Turnstile's CSP is set per page load.
+  await expect(page.getByRole("link", { name: en.nav_register, exact: true })).toHaveAttribute(
+    "href",
+    "/registration",
+  );
+});
+
+for (const [locale, messages] of [
+  ["en", en],
+  ["sw", sw],
+] as const) {
+  test(`every navigation link is on screen, without scrolling sideways (${locale})`, async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([{ name: "PARAGLIDE_LOCALE", value: locale, url: baseURL! }]);
+    await page.goto("/");
+    const width = page.viewportSize()!.width;
+    // The visible navigation: the phone row below md, the bar beside the lockup from md.
+    const nav = page
+      .getByRole("navigation", { name: messages.nav_label })
+      .filter({ visible: true });
+    const links = nav.getByRole("link");
+    await expect(links).toHaveCount(width < 900 ? 5 : 4);
+    for (const link of await links.all()) {
+      const box = (await link.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+    }
+    const register = page.getByRole("link", { name: messages.nav_register, exact: true });
+    await expect(register).toBeInViewport({ ratio: 1 });
+  });
+}
+
+test("shows service times, the theme of the year and the HBCs from the register", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByText(en.home_time_kiswahili)).toBeVisible();
+  await expect(page.getByRole("heading", { name: en.home_theme_title })).toBeVisible();
+  await expect(page.locator("#ministries").getByText("Judea", { exact: true })).toBeVisible();
 });
 
 test("sends a nonce-based CSP and the page runs without violations", async ({ page }) => {

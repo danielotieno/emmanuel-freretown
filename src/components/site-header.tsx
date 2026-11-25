@@ -1,36 +1,98 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import crest from "./crest.webp";
 import { LanguageSwitch } from "@/components/language-switch";
 import type { Locale } from "@/i18n/locale";
 import { m } from "@/paraglide/messages";
 
 /**
- * The header on every public page: the parish lockup (crest and name, DESIGN.md §1) and the
- * language switch. The crest is the Diocese of Mombasa coat of arms, from a scan, until the
- * official file arrives (#28).
+ * The header on every public page: the parish lockup (crest and name, DESIGN.md §1), the main
+ * navigation and the language switch. The crest is the Diocese of Mombasa coat of arms, from a
+ * scan, until the official file arrives (#87).
+ *
+ * The navigation is plain links with no JavaScript. On phones the links sit in a row under
+ * the lockup rather than behind a menu button, so older members see them straight away. The row
+ * wraps rather than scrolls, so every link stays on screen at 360px in both languages.
  */
 export function SiteHeader({ locale }: { locale: Locale }) {
+  const o = { locale };
+  const links = [
+    ["/#about", m.nav_about({}, o)],
+    ["/#services", m.nav_services({}, o)],
+    ["/#ministries", m.nav_ministries({}, o)],
+    ["/#visit", m.nav_visit({}, o)],
+  ] as const;
   return (
-    <header className="mx-auto flex max-w-content items-center justify-between gap-4 px-4 py-4 sm:px-6 sm:py-5">
-      <Link
-        href="/"
-        prefetch={false}
-        className="flex min-w-0 items-center gap-3 text-ink no-underline"
-      >
-        <Crest className="h-10 w-auto shrink-0 sm:h-11" />
-        {/* Read as the full name, in one piece; the two visual lines are hidden from readers. */}
-        <span className="sr-only">{m.site_name({}, { locale })}</span>
-        <span aria-hidden="true" className="min-w-0 leading-tight">
-          <span className="block font-display text-lg tracking-tight sm:text-xl">
-            {m.site_name_short({}, { locale })}
+    <header className="mx-auto max-w-content px-4 pt-4 sm:px-6 sm:pt-5">
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          href="/"
+          prefetch={false}
+          className="flex min-w-0 items-center gap-3 text-ink no-underline"
+        >
+          <Crest className="h-10 w-auto shrink-0 sm:h-11" />
+          {/* Read as the full name, in one piece; the two visual lines are hidden from readers. */}
+          <span className="sr-only">{m.site_name({}, o)}</span>
+          <span aria-hidden="true" className="min-w-0 leading-tight">
+            <span className="block font-display text-lg tracking-tight sm:text-xl">
+              {m.site_name_short({}, o)}
+            </span>
+            <span className="block truncate text-xs text-ink-muted sm:text-sm">
+              {m.site_name_place({}, o)}
+            </span>
           </span>
-          <span className="block truncate text-xs text-ink-muted sm:text-sm">
-            {m.site_name_place({}, { locale })}
-          </span>
-        </span>
-      </Link>
-      <LanguageSwitch locale={locale} />
+        </Link>
+        <div className="flex items-center gap-3">
+          <NavLinks label={m.nav_label({}, o)} links={links} className="hidden md:block" />
+          {/* A plain link, not <Link>: Turnstile's CSP is set per page load (src/lib/csp.ts).
+              Outlined, so the page's own primary button stays the one solid pill (DESIGN.md §2). */}
+          <a
+            href="/registration"
+            className="hidden min-h-10 items-center rounded-full border border-brand px-5 text-sm text-brand no-underline hover:bg-lagoon md:inline-flex"
+          >
+            {m.nav_register({}, o)}
+          </a>
+          <LanguageSwitch locale={locale} />
+        </div>
+      </div>
+      <NavLinks label={m.nav_label({}, o)} links={links} className="mt-3 md:hidden">
+        <li className="sm:ml-auto">
+          <a
+            href="/registration"
+            className="inline-flex min-h-10 items-center px-1.5 text-brand underline underline-offset-4 sm:px-2"
+          >
+            {m.nav_register({}, o)}
+          </a>
+        </li>
+      </NavLinks>
     </header>
+  );
+}
+
+/** The section links, used for both the phone row and the wide-screen bar. */
+function NavLinks(props: {
+  label: string;
+  links: readonly (readonly [string, string])[];
+  className: string;
+  children?: ReactNode;
+}) {
+  const { label, links, className, children } = props;
+  return (
+    <nav aria-label={label} className={className}>
+      <ul className="-mx-1.5 flex flex-wrap items-center text-[0.9375rem] sm:-mx-2 sm:gap-x-1 md:mx-0">
+        {links.map(([href, text]) => (
+          <li key={href}>
+            <a
+              href={href}
+              className="inline-flex min-h-10 items-center px-1.5 text-ink-muted no-underline hover:text-ink sm:px-2 md:px-3"
+            >
+              {text}
+            </a>
+          </li>
+        ))}
+        {children}
+      </ul>
+    </nav>
   );
 }
 
