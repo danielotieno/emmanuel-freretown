@@ -82,7 +82,7 @@ Each module exposes a small public API from its `index.ts`. Other code imports o
 6. **Migrations are generated, reviewed and committed.** Never `drizzle-kit push` against staging or production. Constraints Drizzle can't express go in custom SQL migrations exactly as in `database-design.md`.
 7. **Ballots never carry a member reference or a timestamp.** Don't add one for "debugging".
 8. **OTP codes are stored hashed.** Every endpoint that can send an SMS has Turnstile and rate limits.
-9. **All member-facing text goes through Paraglide, in English and Kiswahili.** No hard-coded strings on public pages or in SMS.
+9. **All member-facing text goes through Paraglide.** No hard-coded strings on public pages or in SMS. English is required; Kiswahili is optional (D44): add it where you can, and a missing Kiswahili message falls back to English.
 10. **Public pages stay light:** under 200 KB on first load, usable on 3G. Prefer server components; no heavy client libraries on `/registration` or `/vote`.
 11. **Don't add a dependency without a reason** written in the PR description. Pin versions.
 
