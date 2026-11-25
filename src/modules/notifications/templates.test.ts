@@ -7,15 +7,19 @@ import { renderOtpSms, renderSms, SMS_TEMPLATES, validateSmsParams } from "./tem
 // in plain characters that every handset shows.
 const ONE_PART = 160;
 const PLAIN = /^[A-Za-z0-9 .,:'?!()/-]+$/;
+// SMS come from the shared MOBILESASA sender (D43), so every text opens with the church's name,
+// to identify us as the sender.
+const FROM = "ACK Emmanuel Freretown - Kengeleni: ";
 
 describe("SMS templates (FR-8, NFR-5)", () => {
   for (const template of SMS_TEMPLATES) {
     for (const locale of ["en", "sw"] as const) {
-      it(`${template} (${locale}) fits one plain SMS and carries the reference`, () => {
+      it(`${template} (${locale}) names the church, fits one plain SMS and carries the reference`, () => {
         const text = renderSms(template, { reference: "REG-7K3M9" }, locale);
         expect(text.length).toBeLessThanOrEqual(ONE_PART);
         expect(text).toMatch(PLAIN);
         expect(text).toContain("REG-7K3M9");
+        expect(text.slice(0, FROM.length)).toBe(FROM);
       });
     }
   }
@@ -49,9 +53,10 @@ describe("SMS templates (FR-8, NFR-5)", () => {
 });
 
 describe("renderOtpSms", () => {
-  it.each(["en", "sw"] as const)("fits one plain SMS in %s", (locale) => {
+  it.each(["en", "sw"] as const)("names the church and fits one plain SMS in %s", (locale) => {
     const text = renderOtpSms("482913", locale);
     expect(text).toContain("482913");
+    expect(text.slice(0, FROM.length)).toBe(FROM);
     expect(text.length).toBeLessThanOrEqual(ONE_PART);
     expect(text).toMatch(PLAIN);
   });
