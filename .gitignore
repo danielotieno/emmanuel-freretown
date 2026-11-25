@@ -49,7 +49,9 @@ playwright/.cache/
 .github/skills/impeccable/
 .github/agents/impeccable-*
 .github/hooks/impeccable.json
-.impeccable/
+# Impeccable's local state; its project config (reports and telemetry off) is shared.
+.impeccable/*
+!.impeccable/config.json
 
 # inlang SDK cache
 project.inlang/cache/
