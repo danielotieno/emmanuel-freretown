@@ -82,7 +82,7 @@ Mobile first: design at **360 × 800** before anything else.
 ## 5. Imagery
 
 - Real photographs of this congregation, the church building and Mombasa, used with consent. No stock photos of strangers.
-- The homepage may carry one hero photograph, of the church building, on top of the 200 KB budget (D46). Serve it responsively (`srcset`): at most 35 KB on phones, 60 KB on tablets and 110 KB on laptops, WebP. It is the only large image on the site.
+- The homepage may carry one hero photograph, of the church building with no people in it, on top of the 200 KB budget (D46). WebP, one file per screen class chosen by CSS width: at most 35 KB on phones (up to 600px), 60 KB on tablets (up to 1100px) and 110 KB on laptops and larger. Serve it with `<picture>` and `media` sources, not `srcset` width descriptors, so a high-density phone still gets the phone file. It is the only large image on the site.
 - Registration and voting pages carry no large images.
 - Images are pre-optimised and served as static files (no `next/image` on Cloudflare).
 

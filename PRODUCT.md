@@ -32,7 +32,7 @@ The website and member platform of ACK Emmanuel Freretown - Kengeleni, an Anglic
 ## Constraints
 
 - Mobile first; design at 360px wide before anything else.
-- Public pages under 200 KB on first load; usable on 3G. Few web fonts, small images, no heavy animation on registration or voting.
+- Public pages under 200 KB on first load; usable on 3G. The homepage may add one hero photo of the church building on top, within D46's caps. Few web fonts, small images, no heavy animation on registration or voting.
 - Minimum 16px body text, large tap targets, WCAG 2.2 AA contrast.
 - Errors explained in words next to the field, in the member's language.
 - Light theme for outdoor readability. Release 1 is light only (DESIGN.md §2); dark mode may come later.
