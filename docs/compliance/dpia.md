@@ -15,9 +15,9 @@
 | | |
 |---|---|
 | Data controller | ACK Emmanuel Freretown - Kengeleni (the parish), D23 |
-| Postal address | _to be completed by the parish_ |
-| Email address | _to be completed by the parish (a church address, not a personal one)_ |
-| Telephone number | _to be completed by the parish_ |
+| Postal address | P.O. Box 85010-80100, Mombasa |
+| Email address | ackemmanuelkengeleni@gmail.com (the church's address) |
+| Telephone number | +254 790 255515 |
 
 ### 1. Project name
 
@@ -54,7 +54,7 @@ The parish is replacing an unreliable paper list (D5) with a verified register o
 
 | Principle | How the registry complies |
 |---|---|
-| Lawful, fair, transparent | Processing by a religious not-for-profit body, relating solely to its members, not disclosed outside the church without consent (s. 45(a)); explicit consent for storage outside Kenya (s. 49(1)); privacy notice in English and Kiswahili before go-live (NFR-10, #27) |
+| Lawful, fair, transparent | Processing by a religious not-for-profit body, relating solely to its members, not disclosed outside the church without consent (s. 45(a)); explicit consent for storage outside Kenya (s. 49(1)); privacy notice at `/privacy` before go-live, in English (Kiswahili optional, D44), versioned and recorded on every registration (NFR-10, #27) |
 | Purpose limitation | Used only to keep the register and, from Release 2, to run church elections. No marketing, no sharing with the Diocese or third parties |
 | Data minimisation | No date of birth (18+ is a declaration, BR-07), no ID numbers, no address; departments are optional; the status check shows status and HBC only (FR-7) |
 | Accuracy | Administrator approval (BR-08); members see their HBC on the status check (D14); corrections create new revisions (BR-09, FR-5) |

@@ -18,7 +18,7 @@ import { generateReference } from "./reference";
  * The privacy notice the member acknowledges, recorded with every revision (BR-15). Raise it
  * whenever the notice at /privacy changes (#27).
  */
-export const PRIVACY_NOTICE_VERSION = "2026-11-draft";
+export const PRIVACY_NOTICE_VERSION = "2026-11-25";
 
 export interface SelfRegistrationSubmission {
   registration: ValidSelfRegistration;
