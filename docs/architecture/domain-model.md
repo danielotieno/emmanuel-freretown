@@ -13,7 +13,7 @@
 | organisation | HBCs, departments | — |
 | registration | Registrations, revisions, decisions | organisation, verification, membership (on approval) |
 | membership | Members, HBC assignments, department memberships | organisation |
-| verification | Phone challenges (OTP), verification evidence, rate limits; Kenyan-number and Turnstile checks | — |
+| verification | Phone challenges (OTP), verification tokens, verification evidence, rate limits; Kenyan-number and Turnstile checks | notifications (sends the OTP), audit |
 | access | Staff users, role assignments, sessions | membership (optional link) |
 | audit | Audit entries, retention redaction | — (every module writes to it) |
 | notifications | SMS outbox, templates, SMS settings and the daily cap, the SMS provider (Mobile Sasa, D43) | — |
@@ -40,7 +40,7 @@ A module changes only its own tables. Cross-module work goes through the other m
 | Registration | reference, channel (SELF/ASSISTED), status, language, captured_by, event_label, fwo_conflict and phone_conflict flags, member_id (set on approval) | The application |
 | RegistrationRevision | revision_no, full_name, fwo_number, phone, hbc, departments, adult_declared, privacy_notice_version, submitted_by, submitted_at | Immutable snapshot; a correction adds a revision |
 | RegistrationDecision | action (APPROVE/REJECT/REQUEST_CORRECTION/WITHDRAW), reason, actor, at | History of reviewer actions |
-| PhoneChallenge | phone, purpose, code_hash, expires_at, attempts, consumed_at | Short-lived; purged after 24 hours |
+| PhoneChallenge | phone, purpose, code_hash, expires_at, attempts, verified_at, token_hash, consumed_at | One OTP and its single-use verification token: `verified_at` and `token_hash` are set when the right code is entered, `consumed_at` when a submission redeems the token (#15). Short-lived; purged after 24 hours |
 | VerificationEvidence | registration, kind (PHONE_OTP/IN_PERSON/FWO_CONFIRMED_BY_SECRETARY), actor, event_label, at | Many per registration |
 | Member | fwo_number, full_name, phone, status, status_reason, language, source_registration | The official record |
 | MemberHbcAssignment | member, hbc, valid_from, valid_to | Exactly one open period per member |
@@ -78,7 +78,7 @@ Every state change calls `audit.write(tx, entry)` inside the transaction that ma
 - **Actor.** `STAFF` with the staff user id, `PUBLIC` with no id (never a phone number, FWO number or name), or `SYSTEM` for scheduled jobs.
 - **Before and after.** Only the fields that changed (`audit.changes(old, new)`). Personal values are allowed where the change needs them; secrets never are. As a safety net, `audit.write` refuses keys that look like an OTP code, hash, PIN, salt, password, token, cookie, authorization or key, at any depth; it cannot recognise a secret under an unrelated name, so callers must never pass one.
 - **Access to personal data (D31).** `audit.recordAccess(db, event)`, awaited before the data is returned: opening a registration or member record (`registration.view`, `member.view`), a search (`member.search`, with the number of results, never the terms) and an export (`member.export`, with the row count). Searches and exports use entity id `*`. Queue and list pages are not recorded.
-- **Not audited.** Housekeeping jobs that delete short-lived rows after their retention period (OTP challenges, rate-limit buckets, SMS outbox rows; database-design.md §6) change no business state and write no entry. Retention redaction, which does, writes `registration.redact`.
+- **Not audited.** Housekeeping jobs that delete short-lived rows after their retention period (OTP challenges, rate-limit buckets, SMS outbox rows; database-design.md §6) change no business state and write no entry. Retention redaction, which does, writes `registration.redact`. Nor are the OTP challenge's own steps: sending a code, checking it, and redeeming its token (#15). They change no business state, the rows are purged after 24 hours, and an audit entry for each would keep a long-lived record of every phone's OTP activity. What they lead to is audited: `PHONE_OTP` evidence writes `registration.verify_phone`.
 
 ## 4. Elections (Release 2 — draft)
 

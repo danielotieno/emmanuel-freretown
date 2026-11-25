@@ -4,6 +4,18 @@
  * Turnstile and rate limits.
  * Public API of this module. Other code imports only from here.
  */
+export {
+  redeemRegistrationVerification,
+  redeemStatusCheckVerification,
+  requestPhoneChallenge,
+  verifyPhoneChallenge,
+  type OtpDeps,
+  type OtpPurpose,
+  type OtpRequest,
+  type OtpRequestResult,
+  type OtpVerifyResult,
+  type PhoneVerificationActor,
+} from "./otp";
 export { purgeExpiredChallenges } from "./purge";
 export { KENYAN_MOBILE_E164, normalizeKenyanPhone } from "./phone";
 export {
