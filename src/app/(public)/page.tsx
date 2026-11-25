@@ -1,4 +1,6 @@
+import { headers } from "next/headers";
 import { getDb } from "@/app/_lib/db";
+import { cachedJson, defaultEdgeCache } from "@/app/_lib/edge-cache";
 import { getLocale } from "@/app/_lib/i18n";
 import { getLogger } from "@/app/_lib/log";
 import { SiteHeader } from "@/components/site-header";
@@ -17,14 +19,18 @@ import church960 from "./images/church-960.webp";
 export default async function HomePage() {
   const locale = await getLocale();
   const o = { locale };
-  // The page never fails or waits long because the HBC list can't load: after HBC_TIMEOUT_MS
-  // it renders the section without names.
-  const hbcs = await withTimeout(listActiveHbcs(await getDb()), HBC_TIMEOUT_MS).catch(
-    async (error: unknown) => {
-      (await getLogger()).error("home.hbcs_failed", error);
-      return [];
-    },
-  );
+  // The HBC names come from Cloudflare's cache when it has them, so most views don't touch the
+  // database (#88). The page never fails or waits long because the list can't load: after
+  // HBC_TIMEOUT_MS it renders the section without names, and nothing is cached.
+  const hbcs = await cachedJson(defaultEdgeCache(), await hbcCacheKey(), HBC_CACHE_SECONDS, () =>
+    withTimeout(
+      getDb().then((db) => listActiveHbcs(db)),
+      HBC_TIMEOUT_MS,
+    ),
+  ).catch(async (error: unknown) => {
+    (await getLogger()).error("home.hbcs_failed", error);
+    return [];
+  });
 
   const services = [
     [m.home_time_english1({}, o), m.home_service_english1({}, o), m.home_language_english({}, o)],
@@ -365,6 +371,22 @@ export default async function HomePage() {
 // Long enough for a Neon compute to wake from suspend, short enough that a hung database
 // doesn't hold the homepage.
 const HBC_TIMEOUT_MS = 5000;
+
+// HBCs change only when an administrator adds or retires one, so a new name can take up to six
+// hours to appear on the homepage. The registration form reads the register directly.
+const HBC_CACHE_SECONDS = 6 * 60 * 60;
+
+/**
+ * The cache key for the active HBC list, on this request's own host, so staging and production
+ * (one Cloudflare zone) never share an entry. Bump the version if the cached shape changes, or to
+ * refresh the list everywhere at once (docs/operations/environments.md).
+ */
+async function hbcCacheKey(): Promise<string> {
+  // Hostname only, without a port or trailing dot, so odd forms of one host share one entry.
+  const host = (await headers()).get("host") ?? "localhost";
+  const hostname = new URL(`https://${host}`).hostname.replace(/\.$/, "");
+  return `https://${hostname}/_cache/hbcs-active/v1`;
+}
 
 /** Rejects if the promise hasn't settled in time. The query itself carries on, unawaited. */
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
