@@ -25,8 +25,10 @@ export async function getSmsSetting(db: DbOrTx, key: SmsSettingKey): Promise<num
  *
  * The count goes up only while under the cap, in one statement, so concurrent senders never
  * pass it. Each increment returns a distinct total, so exactly one sender sees the 80% mark
- * and one sees the cap, and staff are alerted once each (to Sentry, D25). Pass the caller's
- * transaction to count only if the send is recorded.
+ * and one sees the cap, and staff are alerted once each (to Sentry, D25).
+ *
+ * The statement locks today's row until its transaction ends. Never call this inside a
+ * transaction that then calls the provider: every other SMS would wait for that call.
  */
 export async function reserveSms(db: DbOrTx): Promise<boolean> {
   const cap = await getSmsSetting(db, "daily_cap");

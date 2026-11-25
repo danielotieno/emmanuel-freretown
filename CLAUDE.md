@@ -115,7 +115,7 @@ A change is done when:
 Conventions set up with the scaffold:
 
 - Host routing lives in `src/middleware.ts` (Edge). Don't migrate it to Next 16's `proxy.ts` until OpenNext supports Node middleware on Cloudflare officially: it returned 500 on any request with a cookie when tested.
-- Every page sends a nonce-based Content-Security-Policy from `src/middleware.ts`. Pages must render dynamically (the nonce is per request). Adding a third-party script or frame (e.g. Turnstile) means adding its origin there.
+- Every page sends a nonce-based Content-Security-Policy, built in `src/lib/csp.ts` and sent from `src/middleware.ts`. Pages must render dynamically (the nonce is per request). Adding a third-party script or frame means adding its origin there. Turnstile is allowed on `/registration*` only, so links into those pages are plain `<a>`, never `<Link>`: a client-side navigation keeps the previous page's policy and blocks Turnstile.
 - `wrangler.jsonc` top level is local only; deploys always name `--env staging` or `--env production`.
 - Non-production environments never contain real members' data (ADR 0002 amendment).
 - Server code calls messages with an explicit locale: `m.key({}, { locale })`, with `locale` from `getLocale()` in `src/app/_lib/i18n.ts`.

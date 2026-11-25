@@ -21,7 +21,7 @@ function harness() {
     openDb,
     log: createLogger({ sink: (r) => lines.push(r) }),
     report: (error: unknown) => void reported.push(error),
-    ctx: { env: {}, jobs: { send: async () => undefined } },
+    ctx: { env: {}, jobs: { send: async () => undefined, sendBatch: async () => undefined } },
   };
   return { deps, lines, reported, handles };
 }

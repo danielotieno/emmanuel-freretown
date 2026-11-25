@@ -8,7 +8,11 @@ import { SafeError } from "../observability";
 export type SendResult =
   /** Queued with the carrier. Delivery is confirmed later by a delivery report. */
   | { outcome: "accepted"; messageId: string }
-  /** The same text already went to this number today: an earlier attempt got through. */
+  /**
+   * Mobile Sasa already delivered the same text to this number today, so an earlier attempt
+   * got through. This guards against most double sends on retry, not all: a retry while the
+   * first is still queued with the carrier can still be sent.
+   */
   | { outcome: "duplicate" }
   /** The request itself is wrong (e.g. an invalid number); retrying can't help. */
   | { outcome: "rejected"; code: string }

@@ -9,6 +9,11 @@ const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 /**
  * The public pages that can send an SMS and so show Turnstile (rule 8, issue #13): the
  * registration form and the status check. No other page may load it.
+ *
+ * The policy that applies is the one the document was loaded with. After a client-side
+ * navigation (a Next.js `<Link>`) from another page, the browser keeps that page's
+ * `frame-src 'none'` and blocks Turnstile, so the visitor can't send a code. Every link into
+ * `/registration` must therefore be a plain `<a>` (a full page load), never `<Link>`.
  */
 export function usesTurnstile(pathname: string): boolean {
   return pathname === "/registration" || pathname.startsWith("/registration/");

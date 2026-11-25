@@ -35,7 +35,7 @@ export interface DailyJob {
 export const DAILY_JOBS: DailyJob[] = [
   { name: "otp.purge", run: async (db) => ({ deleted: await purgeExpiredChallenges(db) }) },
   { name: "ratelimit.purge", run: async (db) => ({ deleted: await purgeExpiredRateLimits(db) }) },
-  { name: "sms.sweep", run: async (db, ctx) => ({ queued: await sweepPendingSms(db, ctx.jobs) }) },
+  { name: "sms.sweep", run: async (db, ctx) => sweepPendingSms(db, ctx.jobs) },
   { name: "sms.purge", run: async (db) => ({ deleted: await purgeOldSms(db) }) },
   {
     name: "sms.balance",

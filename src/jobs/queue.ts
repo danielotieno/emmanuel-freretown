@@ -34,8 +34,8 @@ export type QueueHandler = (
 /** Handlers by message type. */
 export const QUEUE_HANDLERS: Record<string, QueueHandler> = {
   /**
-   * Retries an outbox SMS (#14). The outbox counts attempts itself and marks the message
-   * FAILED after the fifth, whichever path made them; a message paused by the daily cap is
+   * Retries an outbox SMS (#14). After the queue's last attempt the message stays PENDING and
+   * the daily sweep retries it, for up to 7 days; a message paused by the daily cap is
    * acknowledged and waits for the next day's sweep.
    */
   [SMS_DISPATCH_JOB]: async (id, db, _attempt, env) => {

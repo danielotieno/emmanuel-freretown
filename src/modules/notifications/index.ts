@@ -13,10 +13,10 @@ export {
 export {
   dispatchSms,
   enqueueSms,
-  MAX_SMS_ATTEMPTS,
   purgeOldSms,
   sendNow,
   sendOtpSms,
+  SMS_EXPIRY_DAYS,
   SMS_DISPATCH_JOB,
   sweepPendingSms,
   type DispatchOutcome,

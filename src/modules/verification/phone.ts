@@ -1,9 +1,11 @@
+import { PHONE_E164_REGEX } from "../../db/schema";
+
 /**
  * Kenyan mobile numbers only (BR-06, FR-2: "Only Kenyan mobile numbers can receive codes").
  * The same rule as the database's CHECK on every phone column: +254 followed by 7 or 1 and
  * eight digits (Safaricom, Airtel, Telkom and Equitel numbers all fit it).
  */
-export const KENYAN_MOBILE_E164 = /^\+254[17][0-9]{8}$/;
+export const KENYAN_MOBILE_E164 = PHONE_E164_REGEX;
 
 /**
  * Turns what a person types into E.164 (`+2547…` or `+2541…`), or null if it isn't a Kenyan

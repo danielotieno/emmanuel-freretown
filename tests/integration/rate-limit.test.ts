@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createDb, type Transaction } from "../../src/db";
+import { hmacSha256Hex } from "../../src/lib/crypto";
 import {
   checkOtpSendLimits,
   consumeRateLimit,
@@ -141,6 +142,49 @@ describe("checkOtpSendLimits (FR-2)", () => {
       ).toEqual({ allowed: true });
     });
   }, 180_000); // ~60 limit checks; slow only against a remote test database
+});
+
+describe("checkOtpSendLimits counts a request all or nothing (issue #60 review)", () => {
+  it("doesn't count a refused request against the IP", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const ip = "198.51.100.30";
+      const send = () => checkOtpSendLimits(tx, { phoneE164: "+254700000031", ip }, SECRET);
+      expect(await send()).toEqual({ allowed: true });
+      expect(await send()).toEqual({ allowed: false, reason: "phone_resend" });
+      expect(await send()).toEqual({ allowed: false, reason: "phone_resend" });
+
+      const ipKey = `otp:ip:${await hmacSha256Hex(SECRET, ip)}`;
+      const hourlyKey = `otp:phone:${await hmacSha256Hex(SECRET, "+254700000031")}`;
+      const { rows } = await tx.execute<{ key: string; total: number }>(sql`
+        SELECT key, sum(count)::int AS total FROM rate_limit_bucket
+         WHERE key IN (${ipKey}, ${hourlyKey}) GROUP BY key`);
+      expect(Object.fromEntries(rows.map((r) => [r.key, r.total]))).toEqual({
+        [ipKey]: 1,
+        [hourlyKey]: 1,
+      });
+    });
+  });
+
+  it("counts IPv6 addresses in one /64 together", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      for (let i = 0; i < OTP_LIMITS.ip.limit; i++) {
+        const ip = `2001:db8:1:2:${(i + 1).toString(16)}::1`;
+        const phone = `+2547000002${String(i).padStart(2, "0")}`;
+        expect(await checkOtpSendLimits(tx, { phoneE164: phone, ip }, SECRET)).toEqual({
+          allowed: true,
+        });
+      }
+      expect(
+        await checkOtpSendLimits(
+          tx,
+          { phoneE164: "+254700000299", ip: "2001:db8:1:2:ffff::9" },
+          SECRET,
+        ),
+      ).toEqual({ allowed: false, reason: "ip" });
+    });
+  }, 180_000);
 });
 
 describe("ratelimit.purge", () => {

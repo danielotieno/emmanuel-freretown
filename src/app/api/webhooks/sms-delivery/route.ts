@@ -18,8 +18,8 @@ export async function POST(request: Request): Promise<Response> {
   const log = await getLogger();
   const length = Number(request.headers.get("content-length") ?? 0);
   if (length > MAX_BODY_BYTES) return new Response(null, { status: 413 });
-  const rawBody = await request.text();
-  if (rawBody.length > MAX_BODY_BYTES) return new Response(null, { status: 413 });
+  const rawBody = await readBody(request, MAX_BODY_BYTES);
+  if (rawBody === null) return new Response(null, { status: 413 });
 
   const { env } = await getCloudflareContext({ async: true });
   const secret = (env as unknown as Record<string, unknown>).MOBILESASA_WEBHOOK_SECRET;
@@ -36,4 +36,32 @@ export async function POST(request: Request): Promise<Response> {
   if (result === "unauthorized") log.warn("sms.delivery_report_refused");
   else log.info("sms.delivery_report", { result });
   return new Response(null, { status: STATUS[result] });
+}
+
+/**
+ * Reads the body as text, stopping at `maxBytes`: Content-Length can be missing or wrong, and
+ * this endpoint is reachable by anyone until the signature is checked. Null when too large.
+ */
+async function readBody(request: Request, maxBytes: number): Promise<string | null> {
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const body = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(body);
 }

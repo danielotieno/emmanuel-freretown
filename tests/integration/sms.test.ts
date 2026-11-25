@@ -1,11 +1,10 @@
 import { sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createDb, type Transaction } from "../../src/db";
+import { createDb, type Database, type Transaction } from "../../src/db";
 import { hmacSha256Hex } from "../../src/lib/crypto";
 import {
   dispatchSms,
   enqueueSms,
-  MAX_SMS_ATTEMPTS,
   purgeOldSms,
   recordDeliveryReport,
   reserveSms,
@@ -212,16 +211,26 @@ describe("dispatchSms (issue #14)", () => {
     });
   });
 
-  it("retries a temporary failure and marks the message FAILED after five attempts", async () => {
+  it("never loses a message to an outage or an account problem: it stays PENDING (FR-8)", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
-      const id = await enqueue(tx);
-      const retry = { outcome: "retry", code: "http_502", accountProblem: false } as const;
-      const { provider } = fakeProvider(...Array.from({ length: MAX_SMS_ATTEMPTS }, () => retry));
-      const outcomes = [];
-      for (let i = 0; i < MAX_SMS_ATTEMPTS; i++) outcomes.push(await dispatchSms(tx, id, provider));
-      expect(outcomes).toEqual(["retry", "retry", "retry", "retry", "failed"]);
-      expect(await outboxRow(tx, id)).toMatchObject({ status: "FAILED", attempts: 5 });
+      for (const failure of [
+        { outcome: "retry", code: "http_502", accountProblem: false },
+        { outcome: "retry", code: "0402", accountProblem: true },
+      ] as const) {
+        const id = await enqueue(tx);
+        const { provider } = fakeProvider(...Array.from({ length: 8 }, () => failure));
+        const outcomes = [];
+        for (let i = 0; i < 8; i++) outcomes.push(await dispatchSms(tx, id, provider));
+        expect(outcomes).toEqual(Array.from({ length: 8 }, () => "retry"));
+        expect(await outboxRow(tx, id)).toMatchObject({
+          status: "PENDING",
+          attempts: 8,
+          last_error: failure.code,
+        });
+        // Once the outage is over, or the account is topped up, it goes.
+        expect(await dispatchSms(tx, id, fakeProvider().provider)).toBe("sent");
+      }
     });
   });
 
@@ -300,23 +309,102 @@ describe("sendOtpSms (FR-2, D25)", () => {
 });
 
 describe("sendNow", () => {
+  function queue() {
+    const queued: unknown[] = [];
+    const jobs = {
+      send: async (...args: unknown[]) => void queued.push(args),
+      sendBatch: async () => undefined,
+    };
+    return { queued, jobs };
+  }
+
   it("queues a retry in 30 seconds after a temporary failure, and nothing after a send", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
-      const queued: unknown[] = [];
-      const jobs = { send: async (...args: unknown[]) => void queued.push(args) };
+      const { queued, jobs } = queue();
+      let closed = 0;
+      const openDb = () => ({ db: tx as unknown as Database, close: async () => void closed++ });
       const retry = { outcome: "retry", code: "timeout", accountProblem: false } as const;
 
       const failing = await enqueue(tx);
-      expect(await sendNow(tx, failing, { provider: fakeProvider(retry).provider, jobs })).toBe(
+      expect(await sendNow(openDb, failing, { provider: fakeProvider(retry).provider, jobs })).toBe(
         "retry",
       );
       expect(queued).toEqual([[{ type: "sms.dispatch", id: failing }, { delaySeconds: 30 }]]);
 
       const ok = await enqueue(tx, "registration.approved");
-      expect(await sendNow(tx, ok, { provider: fakeProvider().provider, jobs })).toBe("sent");
+      expect(await sendNow(openDb, ok, { provider: fakeProvider().provider, jobs })).toBe("sent");
       expect(queued).toHaveLength(1);
+      // It opens its own handle and closes it each time (not the request's, issue #60 review).
+      expect(closed).toBe(2);
     });
+  });
+
+  it("reports an unexpected error and queues a retry instead of failing silently", async () => {
+    const { queued, jobs } = queue();
+    const openDb = () => {
+      throw new Error("Cannot use a pool after calling end on the pool");
+    };
+    const id = "0b6c3f9e-4d1a-4c2b-9f7e-2a5d8e1c3b40";
+    expect(await sendNow(openDb, id, { provider: fakeProvider().provider, jobs })).toBe("retry");
+    expect(reports).toEqual([{ code: "other", tags: { job: "sms.dispatch" } }]);
+    expect(queued).toEqual([[{ type: "sms.dispatch", id }, { delaySeconds: 30 }]]);
+  });
+});
+
+describe("the cap and slow sends (issue #60 review)", () => {
+  it("doesn't make an OTP wait for another message's slow provider call", async () => {
+    // Separate connections and commits, so it cleans up after itself.
+    const pool = createDb(testDatabaseUrl());
+    const today = sql`(now() AT TIME ZONE 'Africa/Nairobi')::date`;
+    const before = await pool.db.execute<{ sent: number | null }>(
+      sql`SELECT (SELECT sent FROM sms_daily_usage WHERE day = ${today}) AS sent`,
+    );
+    const sentBefore = before.rows[0]!.sent;
+    const { rows } = await pool.db.execute<{ id: string }>(sql`
+      INSERT INTO sms_outbox (phone_e164, template, language, params)
+      VALUES (${PHONE}, 'registration.submitted', 'en', '{"reference":"REG-7K3M9"}')
+      RETURNING id`);
+    const id = rows[0]!.id;
+    try {
+      const slow: SmsProvider = {
+        send: () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ outcome: "accepted", messageId: "slow" }), 5_000),
+          ),
+        balance: async () => 0,
+      };
+      // Open two connections first, so connecting isn't part of what's measured.
+      await Promise.all([
+        pool.db.execute(sql`SELECT pg_sleep(0.2)`),
+        pool.db.execute(sql`SELECT pg_sleep(0.2)`),
+      ]);
+      const dispatching = dispatchSms(pool.db, id, slow);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const started = Date.now();
+      const otp = await sendOtpSms(pool.db, fakeProvider().provider, {
+        phoneE164: PHONE,
+        code: "482913",
+        language: "en",
+        trackingId: "0b6c3f9e-4d1a-4c2b-9f7e-2a5d8e1c3b40",
+      });
+      const waited = Date.now() - started;
+      expect(otp).toBe("sent");
+      // A few round trips to the remote test database, not the ~4.5 s left of the slow send
+      // (before the fix, the cap row's lock made it wait for that send to finish).
+      expect(waited).toBeLessThan(2_500);
+      expect(await dispatching).toBe("sent");
+    } finally {
+      await pool.db.execute(sql`DELETE FROM sms_outbox WHERE id = ${id}`);
+      if (sentBefore === null) {
+        await pool.db.execute(sql`DELETE FROM sms_daily_usage WHERE day = ${today}`);
+      } else {
+        await pool.db.execute(
+          sql`UPDATE sms_daily_usage SET sent = ${sentBefore} WHERE day = ${today}`,
+        );
+      }
+      await pool.close();
+    }
   });
 });
 
@@ -421,17 +509,44 @@ describe("daily SMS jobs (database-design.md §6)", () => {
       await asApp(tx);
 
       const queued: { type: string; id: string }[] = [];
-      const swept = await sweepPendingSms(tx, { send: async (m) => void queued.push(m) });
+      const jobs = {
+        send: async () => undefined,
+        sendBatch: async (batch: { body: { type: string; id: string } }[]) => {
+          expect(batch.length).toBeLessThanOrEqual(100);
+          queued.push(...batch.map((m) => m.body));
+        },
+      };
+      const swept = await sweepPendingSms(tx, jobs);
       expect(queued.filter((m) => [fresh, stale, ancient].includes(m.id))).toEqual([
         { type: "sms.dispatch", id: stale },
       ]);
-      expect(swept).toBeGreaterThanOrEqual(1);
+      expect(swept.queued).toBeGreaterThanOrEqual(1);
 
       expect(await purgeOldSms(tx)).toBeGreaterThanOrEqual(1);
       const { rows } = await tx.execute<{ id: string }>(
         sql`SELECT id FROM sms_outbox WHERE id IN (${fresh}, ${stale}, ${ancient})`,
       );
       expect(rows.map((r) => r.id).sort()).toEqual([fresh, stale].sort());
+    });
+  });
+
+  it("sms.sweep gives up on a message PENDING for 7 days: FAILED, expired, not queued", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const old = await enqueue(tx);
+      await tx.execute(sql`RESET ROLE`);
+      await tx.execute(
+        sql`UPDATE sms_outbox SET created_at = now() - interval '8 days', attempts = 9 WHERE id = ${old}`,
+      );
+      await asApp(tx);
+      const queued: string[] = [];
+      const swept = await sweepPendingSms(tx, {
+        send: async () => undefined,
+        sendBatch: async (batch) => void queued.push(...batch.map((m) => m.body.id)),
+      });
+      expect(queued).not.toContain(old);
+      expect(swept.expired).toBeGreaterThanOrEqual(1);
+      expect(await outboxRow(tx, old)).toMatchObject({ status: "FAILED", last_error: "expired" });
     });
   });
 

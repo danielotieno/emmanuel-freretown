@@ -19,12 +19,11 @@ export async function verifyDeliverySignature(
   nowSeconds = Math.floor(Date.now() / 1000),
 ): Promise<boolean> {
   if (!header || !secret) return false;
-  const parts = new Map(
-    header.split(",").map((part) => {
-      const at = part.indexOf("=");
-      return [part.slice(0, at).trim(), part.slice(at + 1).trim()] as const;
-    }),
-  );
+  const parts = new Map<string, string>();
+  for (const part of header.split(",")) {
+    const at = part.indexOf("=");
+    if (at > 0) parts.set(part.slice(0, at).trim(), part.slice(at + 1).trim());
+  }
   const t = parts.get("t");
   const v1 = parts.get("v1");
   if (!t || !/^\d{1,12}$/.test(t) || !v1 || !/^[0-9a-f]{64}$/i.test(v1)) return false;

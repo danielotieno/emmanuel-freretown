@@ -11,9 +11,9 @@ export interface RateLimit {
 }
 
 /**
- * FR-2: at most 3 codes per phone per hour, and a resend only after 60 seconds. Per IP, 20 an
- * hour: generous, because many phones share one address (mobile carriers, church Wi-Fi), yet
- * enough to stop one script from sending many codes. Turnstile runs before these.
+ * FR-2: at most 3 codes per phone per hour, and a resend only after 60 seconds. Per IP (an IPv6
+ * /64), 20 an hour: generous, because many phones share one address (mobile carriers, church
+ * Wi-Fi), yet enough to stop one script from sending many codes. Turnstile runs before these.
  */
 export const OTP_LIMITS = {
   ip: { scope: "otp:ip", limit: 20, windowSeconds: 3600 },
@@ -21,16 +21,62 @@ export const OTP_LIMITS = {
   phoneHourly: { scope: "otp:phone", limit: 3, windowSeconds: 3600 },
 } as const satisfies Record<string, RateLimit>;
 
+interface Check {
+  limit: RateLimit;
+  subject: string;
+}
+
+/**
+ * Checks several limits as one: either every one is under its limit and each counts one
+ * attempt, or nothing is counted. Returns the index of the first limit that refused, or -1.
+ *
+ * Stored keys are `<scope>:<HMAC-SHA256 of the subject>` with a server secret, never the subject
+ * or a plain hash of it: every Kenyan phone number could be hashed and looked up in minutes
+ * (issue #13). Windows slide: a check sums the attempts of the last `windowSeconds`, exactly.
+ * Transaction-scoped advisory locks on the keys, taken in a fixed order so two requests can't
+ * deadlock, make check-and-count atomic: concurrent requests never get more than a limit
+ * through. Runs in its own transaction, or a savepoint inside the caller's.
+ */
+async function consumeAll(db: DbOrTx, checks: Check[], secret: string): Promise<number> {
+  const keys = await Promise.all(
+    checks.map(async (c) => `${c.limit.scope}:${await hmacSha256Hex(secret, c.subject)}`),
+  );
+  if (new Set(keys).size !== keys.length) throw new Error("Each limit needs its own scope");
+  return safeQuery(() =>
+    db.transaction(async (tx) => {
+      for (const key of [...keys].sort()) {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`);
+      }
+      const windows = sql.join(
+        keys.map(
+          (key, i) => sql`(${i}::int, ${key}::text, ${checks[i]!.limit.windowSeconds}::int)`,
+        ),
+        sql`, `,
+      );
+      const { rows } = await tx.execute<{ i: number; used: number }>(sql`
+        SELECT k.i, (SELECT coalesce(sum(b.count), 0)::int FROM rate_limit_bucket b
+                      WHERE b.key = k.key
+                        AND b.window_start > clock_timestamp() - make_interval(secs => k.secs)) AS used
+          FROM (VALUES ${windows}) AS k(i, key, secs)
+         ORDER BY k.i`);
+      const refused = rows.findIndex((row) => row.used >= checks[row.i]!.limit.limit);
+      if (refused !== -1) return rows[refused]!.i;
+
+      const values = sql.join(
+        keys.map((key) => sql`(${key}, clock_timestamp(), 1)`),
+        sql`, `,
+      );
+      await tx.execute(sql`
+        INSERT INTO rate_limit_bucket (key, window_start, count) VALUES ${values}
+        ON CONFLICT (key, window_start) DO UPDATE SET count = rate_limit_bucket.count + 1`);
+      return -1;
+    }),
+  );
+}
+
 /**
  * Counts one attempt for `subject` (a phone number or an IP address) if it is under the limit,
- * and says whether it was. The stored key is `<scope>:<HMAC-SHA256 of the subject>` with a
- * server secret, never the subject or a plain hash of it: every Kenyan phone number could be
- * hashed and looked up in minutes (issue #13).
- *
- * The window slides: it counts the attempts in the last `windowSeconds`, exactly. An advisory
- * lock on the key makes check-and-count atomic, so concurrent requests can never get more than
- * `limit` through; a refused attempt is not counted. Runs in its own transaction, or a
- * savepoint inside the caller's.
+ * and says whether it was. A refused attempt is not counted. See `consumeAll` for how.
  */
 export async function consumeRateLimit(
   db: DbOrTx,
@@ -38,48 +84,61 @@ export async function consumeRateLimit(
   subject: string,
   secret: string,
 ): Promise<boolean> {
-  const key = `${limit.scope}:${await hmacSha256Hex(secret, subject)}`;
-  return safeQuery(() =>
-    db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`);
-      const { rows } = await tx.execute<{ used: number }>(sql`
-        SELECT coalesce(sum(count), 0)::int AS used FROM rate_limit_bucket
-         WHERE key = ${key}
-           AND window_start > clock_timestamp() - make_interval(secs => ${limit.windowSeconds})`);
-      if ((rows[0]?.used ?? 0) >= limit.limit) return false;
-      await tx.execute(sql`
-        INSERT INTO rate_limit_bucket (key, window_start, count)
-        VALUES (${key}, clock_timestamp(), 1)
-        ON CONFLICT (key, window_start) DO UPDATE SET count = rate_limit_bucket.count + 1`);
-      return true;
-    }),
-  );
+  return (await consumeAll(db, [{ limit, subject }], secret)) === -1;
+}
+
+/**
+ * What an IP is counted as. IPv4 as is. IPv6 by its /64 prefix: one client normally controls a
+ * whole /64 and could otherwise rotate addresses to get a fresh limit each time. An IPv4-mapped
+ * IPv6 address counts as its IPv4 address. Anything unparseable is used as given.
+ */
+export function ipRateLimitSubject(ip: string): string {
+  const address = ip.trim().toLowerCase().replace(/%.*$/, "");
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(address);
+  if (mapped) return mapped[1]!;
+  if (!address.includes(":")) return address;
+  const halves = address.split("::");
+  if (halves.length > 2) return address;
+  const head = halves[0] ? halves[0].split(":") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const missing = 8 - head.length - tail.length;
+  if (missing < 0 || (halves.length === 1 && missing !== 0)) return address;
+  const groups = [...head, ...Array<string>(missing).fill("0"), ...tail];
+  if (!groups.every((g) => /^[0-9a-f]{1,4}$/.test(g))) return address;
+  return `${groups
+    .slice(0, 4)
+    .map((g) => g.replace(/^0+(?=.)/, ""))
+    .join(":")}::/64`;
 }
 
 export type OtpSendCheck =
   { allowed: true } | { allowed: false; reason: "ip" | "phone_resend" | "phone_hourly" };
 
+const OTP_REASONS = ["ip", "phone_resend", "phone_hourly"] as const;
+
 /**
- * The rate limits for sending an OTP (FR-2), checked in order: the IP first, so a client over
- * its limit can't use up a phone's quota, then the 60-second resend, then the hourly limit.
- * Call it after Turnstile has passed and the phone is known to be Kenyan, and before the daily
- * SMS cap. The result concerns the request only, never whether the phone is in the registry.
+ * The rate limits for sending an OTP (FR-2): the IP's hourly limit, the phone's 60-second resend
+ * and the phone's hourly limit, checked and counted together: a request refused by any of them
+ * counts against none, so taps that send nothing don't use up a shared IP's quota. The reason
+ * names the first limit that refused, in that order. Call it after Turnstile has passed and the
+ * phone is known to be Kenyan, and before the daily SMS cap. The result concerns the request
+ * only, never whether the phone is in the registry.
  */
 export async function checkOtpSendLimits(
   db: DbOrTx,
   request: { phoneE164: string; ip: string },
   secret: string,
 ): Promise<OtpSendCheck> {
-  if (!(await consumeRateLimit(db, OTP_LIMITS.ip, request.ip, secret))) {
-    return { allowed: false, reason: "ip" };
-  }
-  if (!(await consumeRateLimit(db, OTP_LIMITS.phoneResend, request.phoneE164, secret))) {
-    return { allowed: false, reason: "phone_resend" };
-  }
-  if (!(await consumeRateLimit(db, OTP_LIMITS.phoneHourly, request.phoneE164, secret))) {
-    return { allowed: false, reason: "phone_hourly" };
-  }
-  return { allowed: true };
+  const refused = await consumeAll(
+    db,
+    [
+      { limit: OTP_LIMITS.ip, subject: ipRateLimitSubject(request.ip) },
+      { limit: OTP_LIMITS.phoneResend, subject: request.phoneE164 },
+      { limit: OTP_LIMITS.phoneHourly, subject: request.phoneE164 },
+    ],
+    secret,
+  );
+  return refused === -1 ? { allowed: true } : { allowed: false, reason: OTP_REASONS[refused]! };
 }
 
 /**

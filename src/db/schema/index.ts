@@ -1,6 +1,7 @@
 export * from "./access";
 export * from "./audit";
 export * from "./auth";
+export { PHONE_E164_REGEX } from "./columns";
 export * from "./membership";
 export * from "./notifications";
 export * from "./organisation";
