@@ -304,6 +304,8 @@ REVOKE SELECT ON account, session, verification, two_factor, passkey FROM readon
 
 The full set of grants is in `src/db/migrations/0002_privileges_and_redaction.sql`.
 
+Drizzle's `insert()` lists every column of the table and sends `DEFAULT` for the ones not given, so it cannot write `audit_entry` or `registration_decision` as `app_runtime`: the database refuses the columns `app_runtime` may not insert, such as `at`. Insert into these tables with an explicit column list instead, as `audit.write` does.
+
 Retention redaction (BR-14) runs through one function owned by `app_owner`. The function checks eligibility itself, using only data the application cannot backdate, so the application role cannot use it to erase anything that isn't due:
 
 - `registration.decided_at` is set by the `registration_guard` trigger from the database clock, and a final registration can never change status, decision time or member (§3);
