@@ -4,7 +4,7 @@ Visual rules for ackemmanuelfreretown.org. Read with `PRODUCT.md`. Reference fil
 
 ## 1. Identity
 
-- **Crest.** The Diocese of Mombasa coat of arms: bishop's mitre with gold lappets above a shield with the red cross of St George on silver, over a blue sea bearing a gold anchor and crozier. The scan in `docs/design/references/diocese-crest-scan.jpg` is a placeholder only: its colours are faded and the edges are soft. Obtain the official vector (SVG or high-resolution PNG) from the Diocese office and confirm the parish may use it. Do not trace, redraw or recolour the crest.
+- **Crest.** The Diocese of Mombasa coat of arms: bishop's mitre with gold lappets above a shield with the red cross of St George on silver, over a blue sea bearing a gold anchor and crozier. The scan in `docs/design/references/diocese-crest-scan.jpg` is a placeholder only: its colours are faded and the edges are soft. Obtain the official vector (SVG or high-resolution PNG) from the Diocese office and confirm the parish may use it. Do not trace, redraw or recolour the crest. The one exception is the placeholder below, whose faded colour was lifted slightly until the official file replaces it (#87).
 - **Parish lockup.** Crest at small size beside "ACK Emmanuel" in the display face, with "Freretown - Kengeleni" beneath in small muted text (`src/components/site-header.tsx`). Until the official file arrives, the site uses `src/components/crest.webp`, cut from the scan with its colour lifted slightly (#80). If the parish has its own emblem, it takes this place and the crest moves to the footer.
 - **Motifs drawn from the crest**, used sparingly as lightweight SVG: a single wave line (the sea) as a section divider; the anchor as a small mark for "hope" and for the Freretown coast. Never use the cross or mitre as decoration.
 
@@ -40,7 +40,7 @@ Measured contrast (WCAG 2.2):
 | Error on Paper / Lagoon | 6.6 / 5.9 | ✓ |
 | Success on Paper | 5.4 | ✓ |
 | Control line on Paper | 3.1 | Input boundaries (WCAG 1.4.11) ✓ |
-| Hairline on Paper | 1.5 | ✗ Decoration only, never the only boundary of a control |
+| Hairline on Paper | 1.3 | ✗ Decoration only, never the only boundary of a control |
 
 Rules:
 - One primary action per screen: a solid Ocean Blue pill. Secondary actions are outlined pills or text links with an arrow.
@@ -68,9 +68,9 @@ Mobile first: design at **360 × 800** before anything else.
 | `md` | 900px | Landing page may use two columns; the navigation row under the lockup moves inline beside it |
 | `lg` | 1200px | Content max width about 1120px, centred |
 
-- **Forms stay single column at every size**, max width about 32rem, even on desktop.
+- **Forms stay single column at every size**, max width about 34rem, even on desktop.
 - Use container queries for cards (departments, HBCs, programmes) so they adapt to their column, not just the viewport.
-- Primary controls (buttons, inputs, options) are at least 48px tall. Small secondary controls, such as the language switch, are at least 32px (WCAG 2.2 asks for 24px). Leave 8px between targets.
+- Touch targets at least 44 × 44px, and primary controls (buttons, inputs, options) at least 48px tall. A small control may look smaller if its tap area still reaches 44px: the language switch is a 32px pill whose buttons each take 44 × 44px. Leave 8px between separate targets.
 - Shapes: pill buttons (`rounded-full`), 12px radius on inputs and options, 16–24px on panels. Shared classes `btn-primary`, `btn-secondary`, `btn-text`, `field` and `option` live in `globals.css`.
 - Respect `prefers-reduced-motion`; motion is subtle and never blocks input.
 - Safe-area padding for phones with notches (`viewport-fit=cover`).
@@ -115,7 +115,7 @@ The shared controls are classes in `src/app/globals.css` (`@layer components`). 
 | `option` | Radio or checkbox card: the whole card is the target | Hover: ink border. Checked: brand border on lagoon |
 
 - **Buttons on Brand Deep or over the photo** swap to a paper fill with a Brand Deep label (primary) and a paper outline (secondary), as on the homepage welcome. Contrast stays at least 4.5:1.
-- **Language switch** (`src/components/language-switch.tsx`): a small two-part pill, at least 32px tall. The current language is an ink fill with paper text. Visible labels "EN"/"SW"; each button's accessible name is the language's full name.
+- **Language switch** (`src/components/language-switch.tsx`): a small two-part pill that looks 32px tall, while each button's tap area reaches 44 × 44px (§4). The current language is an ink fill with paper text. The visible codes "EN"/"SW" stay in each button's accessible name with the full name ("SW Kiswahili"), so voice control can say what it sees.
 - **Notices:** lagoon panels with ink text. A field's error is a message in error red under the field; an error for the whole form is a lightly red-tinted panel with a red border and `role="alert"`. The words always say what went wrong, never colour alone.
 - **Panels:** sand or lagoon, no shadow, rounded as in §4 (notices inside a form 12px). Lists inside a section use hairlines (`line`), not nested cards.
 - **Header navigation** (`src/components/site-header.tsx`): plain links with no JavaScript. On phones they sit in a row under the lockup rather than behind a menu button. Links to `/registration` are plain `<a>`, never `<Link>` (Turnstile's CSP, see CLAUDE.md).

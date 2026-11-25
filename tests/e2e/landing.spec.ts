@@ -24,13 +24,40 @@ test("shows English on a first visit and remembers a switch to Kiswahili (#80)",
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(sw.landing_welcome);
 });
 
+test("each language button has a tap area of at least 44 × 44 px (#80)", async ({ page }) => {
+  await page.goto("/");
+  for (const name of [en.language_en, sw.language_sw]) {
+    const button = page.getByRole("button", { name });
+    const box = (await button.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    // The pill is drawn 32px tall; the tap area reaches 6px above and below it.
+    const hits = await button.evaluate((el, b) => {
+      const x = b.x + b.width / 2;
+      return [b.y - 5, b.y + b.height + 5].every((y) => document.elementFromPoint(x, y) === el);
+    }, box);
+    expect(hits).toBe(true);
+    expect(box.height + 12).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test("links to registration with a plain link (Turnstile's CSP is per page load)", async ({
   page,
 }) => {
   await page.goto("/");
   const link = page.getByRole("link", { name: en.reg_title });
   await expect(link).toHaveAttribute("href", "/registration");
-  await link.click();
+  // A client-side navigation (<Link>) would fetch no new document and keep the landing page's
+  // policy, which blocks Turnstile: so require a document load that carries Turnstile's policy.
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        r.request().resourceType() === "document" && new URL(r.url()).pathname === "/registration",
+    ),
+    link.click(),
+  ]);
+  expect(response.headers()["content-security-policy"]).toContain(
+    "frame-src https://challenges.cloudflare.com",
+  );
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(en.reg_title);
 });
 
