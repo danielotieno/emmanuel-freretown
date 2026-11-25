@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Database, DbHandle } from "../db";
 import { createLogger, type LogRecord } from "../modules/observability";
-import { runDailyJobs, type DailyJob, type JobResult, type RunDeps } from "./daily";
+import { DAILY_JOBS, runDailyJobs, type DailyJob, type JobResult, type RunDeps } from "./daily";
 
 function harness() {
   const lines: LogRecord[] = [];
@@ -21,6 +21,7 @@ function harness() {
     openDb,
     log: createLogger({ sink: (r) => lines.push(r) }),
     report: (error: unknown) => void reported.push(error),
+    ctx: { env: {}, jobs: { send: async () => undefined, sendBatch: async () => undefined } },
   };
   return { deps, lines, reported, handles };
 }
@@ -82,5 +83,16 @@ describe("runDailyJobs", () => {
       throw new Error("no Hyperdrive");
     };
     expect(await runDailyJobs([ok("a.one")], deps)).toEqual(["a.one"]);
+  });
+});
+
+describe("DAILY_JOBS", () => {
+  it("skips the SMS balance check where Mobile Sasa isn't configured (CI's smoke test)", async () => {
+    const job = DAILY_JOBS.find((j) => j.name === "sms.balance")!;
+    const ctx = {
+      env: {},
+      jobs: { send: async () => undefined, sendBatch: async () => undefined },
+    };
+    expect(await job.run({} as Database, ctx)).toEqual({ skipped: "sms_not_configured" });
   });
 });

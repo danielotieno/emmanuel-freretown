@@ -1,6 +1,34 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
-import { createdAt, id, PHONE_E164_PATTERN, tz } from "./columns";
+import { check, date, index, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { createdAt, id, PHONE_E164_PATTERN, tz, updatedAt } from "./columns";
+
+/**
+ * SMS settings administrators can change (D25): the daily cap and the balance, in SMS units,
+ * below which staff are alerted. One row per setting, seeded by migration.
+ */
+export const smsSetting = pgTable(
+  "sms_setting",
+  {
+    key: text("key", { enum: ["daily_cap", "low_balance_units"] }).primaryKey(),
+    value: integer("value").notNull(),
+    updatedAt: updatedAt(),
+    updatedByUserId: text("updated_by_user_id"),
+  },
+  (t) => [
+    check("sms_setting_key_check", sql`${t.key} IN ('daily_cap','low_balance_units')`),
+    check("sms_setting_value_check", sql`${t.value} >= 0`),
+  ],
+);
+
+/** SMS sent per Africa/Nairobi day, OTP codes included, for the daily cap (D25). */
+export const smsDailyUsage = pgTable(
+  "sms_daily_usage",
+  {
+    day: date("day", { mode: "string" }).primaryKey(),
+    sent: integer("sent").notNull().default(0),
+  },
+  (t) => [check("sms_daily_usage_sent_check", sql`${t.sent} >= 0`)],
+);
 
 export const smsOutbox = pgTable(
   "sms_outbox",

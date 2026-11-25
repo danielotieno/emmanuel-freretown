@@ -1,6 +1,14 @@
 import { redactExpiredRegistrations } from "../modules/audit";
+import {
+  checkSmsBalance,
+  isSmsConfigured,
+  purgeOldSms,
+  smsProviderFromEnv,
+  sweepPendingSms,
+  type JobQueue,
+} from "../modules/notifications";
 import { SafeError, type Logger } from "../modules/observability";
-import { purgeExpiredChallenges } from "../modules/verification";
+import { purgeExpiredChallenges, purgeExpiredRateLimits } from "../modules/verification";
 import type { Database, DbHandle } from "../db";
 
 /**
@@ -9,19 +17,36 @@ import type { Database, DbHandle } from "../db";
  */
 export type JobResult = Record<string, number | string>;
 
+/** What a job may need besides the database: the Worker's env (secrets) and the job queue. */
+export interface JobContext {
+  env: Record<string, unknown>;
+  jobs: JobQueue;
+}
+
 export interface DailyJob {
   /** The job's name in database-design.md §6, e.g. "otp.purge". */
   name: string;
-  run(db: Database): Promise<JobResult>;
+  run(db: Database, ctx: JobContext): Promise<JobResult>;
 }
 
 /**
  * The daily housekeeping jobs (database-design.md §6), run once a day by the Cron Trigger so
- * that Neon can scale to zero the rest of the time. `ratelimit.purge` arrives with #13 and the
- * SMS jobs with #14.
+ * that Neon can scale to zero the rest of the time.
  */
 export const DAILY_JOBS: DailyJob[] = [
   { name: "otp.purge", run: async (db) => ({ deleted: await purgeExpiredChallenges(db) }) },
+  { name: "ratelimit.purge", run: async (db) => ({ deleted: await purgeExpiredRateLimits(db) }) },
+  { name: "sms.sweep", run: async (db, ctx) => sweepPendingSms(db, ctx.jobs) },
+  { name: "sms.purge", run: async (db) => ({ deleted: await purgeOldSms(db) }) },
+  {
+    // Skipped where Mobile Sasa isn't configured (local runs, CI's smoke test). A missing token
+    // in staging or production still surfaces: the first SMS send fails and is reported.
+    name: "sms.balance",
+    run: async (db, ctx): Promise<JobResult> =>
+      isSmsConfigured(ctx.env)
+        ? checkSmsBalance(db, smsProviderFromEnv(ctx.env))
+        : { skipped: "sms_not_configured" },
+  },
   {
     name: "retention.redact",
     run: async (db): Promise<JobResult> => {
@@ -37,6 +62,7 @@ export interface RunDeps {
   log: Logger;
   /** Reports a failure to Sentry (reportError from the observability module). */
   report: (error: unknown, tags: Record<string, string>) => void;
+  ctx: JobContext;
 }
 
 /**
@@ -50,7 +76,7 @@ export async function runDailyJobs(jobs: DailyJob[], deps: RunDeps): Promise<str
     let handle: DbHandle | undefined;
     try {
       handle = deps.openDb();
-      const result = await job.run(handle.db);
+      const result = await job.run(handle.db, deps.ctx);
       const ms = Date.now() - started;
       if (typeof result.failed === "number" && result.failed > 0) {
         failed.push(job.name);

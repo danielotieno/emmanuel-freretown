@@ -430,6 +430,8 @@ describe("privilege coverage", () => {
     "department_membership",
     "phone_challenge",
     "sms_outbox",
+    "sms_setting",
+    "sms_daily_usage",
     "rate_limit_bucket",
     "role_assignment",
     "user",

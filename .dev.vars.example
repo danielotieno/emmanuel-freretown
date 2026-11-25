@@ -11,12 +11,21 @@
 # Better Auth session signing (#17). Any random string of 32+ characters locally.
 BETTER_AUTH_SECRET=
 
-# Africa's Talking SMS (#14). Use the sandbox username and key locally.
-AFRICASTALKING_USERNAME=sandbox
-AFRICASTALKING_API_KEY=
+# Mobile Sasa SMS (#14, D43). An mbs_ token with the "send messages" scope (a trial account
+# sends only to its own registered number). The webhook secret is in the portal under
+# Settings -> Webhooks. The callback URL is this environment's
+# https://<host>/api/webhooks/sms-delivery; leave it empty to use the account's callback URL.
+MOBILESASA_API_TOKEN=
+MOBILESASA_SENDER_ID=MOBILESASA
+MOBILESASA_WEBHOOK_SECRET=
+MOBILESASA_CALLBACK_URL=
 
 # Cloudflare Turnstile (#13). Cloudflare publishes test keys that always pass.
 TURNSTILE_SECRET_KEY=
+
+# Rate-limit keys (#13): HMAC-SHA256 of phone numbers and IPs. 32+ random characters, different
+# in each environment. Changing it only resets the current limits.
+RATE_LIMIT_SECRET=
 
 # Sentry (#9). Leave empty locally to send nothing.
 SENTRY_DSN=

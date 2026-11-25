@@ -10,7 +10,11 @@ export const tz = (name: string) => timestamp(name, { withTimezone: true, mode: 
 export const createdAt = () => tz("created_at").notNull().defaultNow();
 export const updatedAt = () => tz("updated_at").notNull().defaultNow();
 
-/** E.164 Kenyan mobile number. */
-export const PHONE_E164_PATTERN = sql.raw(`'^\\+254[17][0-9]{8}$'`);
+/**
+ * E.164 Kenyan mobile number (BR-06): the one definition, used by the CHECK on every phone
+ * column and by the modules' own checks.
+ */
+export const PHONE_E164_REGEX = /^\+254[17][0-9]{8}$/;
+export const PHONE_E164_PATTERN = sql.raw(`'${PHONE_E164_REGEX.source}'`);
 /** FWO numbers: digits only, stored as text (BR-01). */
 export const FWO_PATTERN = sql.raw(`'^[0-9]+$'`);

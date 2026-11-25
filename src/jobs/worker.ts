@@ -35,14 +35,20 @@ const handler: ExportedHandler<Env, JobMessage> = {
   async scheduled(controller, env) {
     const log = createLogger().child({ cron: controller.cron });
     const openDb = () => createDb(env.HYPERDRIVE.connectionString);
-    const failed = await runDailyJobs(DAILY_JOBS, { openDb, log, report: reportError });
+    const ctx = { env: env as unknown as Record<string, unknown>, jobs: env.JOBS };
+    const failed = await runDailyJobs(DAILY_JOBS, { openDb, log, report: reportError, ctx });
     log.info("jobs.daily_finished", { jobs: DAILY_JOBS.length, failed: failed.length });
   },
 
   async queue(batch, env) {
     const log = createLogger().child({ queue: batch.queue });
     const openDb = () => createDb(env.HYPERDRIVE.connectionString);
-    await handleQueueBatch(batch.messages, QUEUE_HANDLERS, { openDb, log, report: reportError });
+    await handleQueueBatch(batch.messages, QUEUE_HANDLERS, {
+      openDb,
+      log,
+      report: reportError,
+      env: env as unknown as Record<string, unknown>,
+    });
   },
 };
 
