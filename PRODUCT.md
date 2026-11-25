@@ -12,7 +12,7 @@ The website and member platform of ACK Emmanuel Freretown - Kengeleni, an Anglic
 ## Who uses it
 
 - **Members of all ages from 18 up**, including many older members who are not confident online, use low-end Android phones, have limited data bundles and patchy connections, and may share a phone with family.
-- **Kiswahili and English speakers.** Many members are more comfortable in Kiswahili. Both languages are first-class; neither is a translation afterthought.
+- **Kiswahili and English speakers.** Many members are more comfortable in Kiswahili. English is required in Release 1 and Kiswahili is optional (D44): offer it where a translation exists, and design every screen so a Kiswahili phrase fits.
 - **Church officers** (Secretary, Wardens, committee volunteers) using the admin side on phones at a registration desk in a church hall, sometimes with dozens of people waiting.
 
 ## What success feels like

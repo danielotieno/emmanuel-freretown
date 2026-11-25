@@ -20,6 +20,6 @@ Status: `Not started` · `In progress` · `Done` · `Waived` (with the decision 
 | 12 | Each agreement checked: vendor notifies breaches within 48 hours where practicable (s. 43(3)) | Technical lead | Not started | Notifications go to the church account email; someone must watch it |
 | 13 | Mobile Sasa account opened under the church email and full access requested (business registration document) for the shared `MOBILESASA` sender | Technical lead | Not started | D43. Approval usually the same day; OTP depends on it (go/no-go item 4). Our own sender ID is optional and can follow later |
 | 14 | Privacy notice owner named | Vicar | Done | The Vicar owns and approves it (D39). Writing it is #27 |
-| 15 | Kiswahili reviewer named | Committee | Not started | One fluent member (D39); the review itself is #29 |
+| 15 | Kiswahili reviewer named | Committee | Not needed | Kiswahili is optional (D44); a review (#29) can follow go-live |
 | 16 | Breach contact named and procedure adopted | Vicar | In progress | Vicar, with the technical lead first (D42). Procedure in `docs/compliance/breach-response.md`; deputy still to be named |
 | 17 | Two Super Administrators named | Committee | In progress | The technical lead and one committee member who is not the Secretary or a Warden (D40); committee member still to be named |
