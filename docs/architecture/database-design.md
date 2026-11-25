@@ -184,10 +184,15 @@ CREATE TABLE phone_challenge (
   code_hash    text NOT NULL,
   attempts     integer NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 5),
   expires_at   timestamptz NOT NULL,
-  consumed_at  timestamptz,
-  created_at   timestamptz NOT NULL DEFAULT now()
+  verified_at  timestamptz,                 -- the right code was entered (#15)
+  token_hash   text,                        -- HMAC of the single-use verification token
+  consumed_at  timestamptz,                 -- the token was redeemed by a submission
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  CHECK ((verified_at IS NULL) = (token_hash IS NULL)),
+  CHECK (consumed_at IS NULL OR verified_at IS NOT NULL)
 );
 CREATE INDEX phone_challenge_rate_idx ON phone_challenge (phone_e164, created_at);
+CREATE UNIQUE INDEX phone_challenge_token_uq ON phone_challenge (token_hash);
 
 CREATE TABLE verification_evidence (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -289,6 +294,8 @@ OTP codes are never stored, only `code_hash` (HMAC-SHA256 with a server secret).
 **Rate limits (#13).** `rate_limit_bucket` is a sliding log: each allowed attempt adds a row at its own timestamp, and a check sums the rows of the last window. The verification module checks a request's limits together, in one transaction, under advisory locks on their keys taken in a fixed order: either every limit has room and each counts the attempt, or none counts it, so concurrent requests never get more than a limit through and a refused request uses up nothing. The OTP limits are FR-2's (3 per phone per hour, a resend after 60 seconds) plus 20 per IP per hour; an IPv6 address counts by its /64, which one client normally controls. Many phones share an IP (mobile carriers, church Wi-Fi), hence the generous IP limit; Turnstile runs before all of them.
 
 **Daily SMS cap (D25).** Every SMS calls `reserveSms` (notifications module), which raises today's `sms_daily_usage.sent` in one statement only while it is under `sms_setting.daily_cap`. At the cap OTP sending pauses (the public sees the normal message) and outbox messages stay PENDING until the next day's `sms.sweep`. The one request that reaches 80% and the one that reaches the cap each send a warning to Sentry, which alerts staff. An outbox message counts on its first attempt only. The statement locks today's row until its transaction ends, so it never runs inside a transaction that also calls the provider; otherwise every SMS would wait for the slowest send.
+
+**Phone OTP (#15, FR-2).** `requestPhoneChallenge` (verification module) refuses a number that isn't a Kenyan mobile, then checks Turnstile, then the rate limits, before anything is stored or sent. Each send creates a new challenge valid for 5 minutes (database clock) and expires any earlier unverified one for the same phone and purpose, so only the newest code works. The 6-digit code comes from the platform's secure random source and is stored as `code_hash` = HMAC-SHA256(`OTP_SECRET`, challenge id and code); it exists otherwise only in memory and in the SMS, and is never logged. `verifyPhoneChallenge` locks the row, compares in constant time and counts each wrong or malformed code; after 5 attempts even the right code is refused. An expired or already verified challenge is refused without using an attempt. A correct code sets `verified_at` and returns a random single-use token, stored only as `token_hash`. `redeemVerificationToken` consumes it in one `UPDATE … WHERE consumed_at IS NULL`, for the same phone and purpose, within 15 minutes of verification; it runs inside the transaction that submits the form, so a failed submission leaves the token usable and a committed one spends it. The registration module then calls `recordPhoneOtpEvidence`, which writes `PHONE_OTP` evidence and a `registration.verify_phone` audit entry in that transaction. Creating and verifying challenges are not audited: they are short-lived rows purged after 24 hours (domain-model.md §3, "Not audited").
 
 **OTP codes never go through the outbox.** The outbox keeps its parameters in the database until purged, and codes are stored only as a hash (rule 8). An OTP is sent directly through the provider after `reserveSms`; if it fails, the member asks for a new code. Every other SMS (FR-8) goes through the outbox.
 

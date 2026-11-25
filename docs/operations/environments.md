@@ -107,6 +107,7 @@ Secrets in use:
 | `BETTER_AUTH_SECRET` | #17 | Staff session signing |
 | `TURNSTILE_SECRET_KEY` | #13 | Turnstile server-side verification |
 | `RATE_LIMIT_SECRET` | #13 | HMAC key for rate-limit keys (phone numbers, IPs); 32+ random characters |
+| `OTP_SECRET` | #15 | HMAC key for OTP codes and verification tokens; 32+ random characters. Changing it invalidates codes and tokens issued in the last few minutes, nothing else |
 | `MOBILESASA_API_TOKEN` | #14 | Mobile Sasa `mbs_` token with the "send messages" scope (D43) |
 | `MOBILESASA_WEBHOOK_SECRET` | #14 | Mobile Sasa's webhook signing secret (portal: Settings → Webhooks) |
 | `SENTRY_DSN` | #9 | Error reports |

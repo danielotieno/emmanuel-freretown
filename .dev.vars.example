@@ -27,5 +27,9 @@ TURNSTILE_SECRET_KEY=
 # in each environment. Changing it only resets the current limits.
 RATE_LIMIT_SECRET=
 
+# OTP codes and verification tokens (#15): their HMAC key. 32+ random characters, different in
+# each environment.
+OTP_SECRET=
+
 # Sentry (#9). Leave empty locally to send nothing.
 SENTRY_DSN=
