@@ -5,12 +5,16 @@ import { m } from "@/paraglide/messages";
 // Each language is named in its own language, whatever the page language is.
 const NAMES = { en: m.language_en, sw: m.language_sw } satisfies Record<Locale, unknown>;
 // The short visible label: a quiet pill, not two big buttons.
-const SHORT = { en: "EN", sw: "SW" } satisfies Record<Locale, string>;
+const SHORT = { en: m.language_en_short, sw: m.language_sw_short } satisfies Record<
+  Locale,
+  unknown
+>;
 
 /**
  * Language switch shown on every public page (NFR-5): a small two-part pill. A server component
- * posting a plain form, so it works without JavaScript. Each button's accessible name is the
- * language's full name ("English", "Kiswahili"); the visible label is its short code.
+ * posting a plain form, so it works without JavaScript. The visible label is the short code and
+ * stays in the accessible name ("SW Kiswahili"), so voice control can say what it sees (WCAG
+ * 2.5.3). The pill looks 32px tall, but each button's tap area reaches 44 × 44px (#80).
  */
 export function LanguageSwitch({ locale }: { locale: Locale }) {
   return (
@@ -33,15 +37,12 @@ export function LanguageSwitch({ locale }: { locale: Locale }) {
               value={option}
               lang={option}
               aria-pressed={current}
-              title={NAMES[option]({}, { locale: option })}
-              className={
-                current
-                  ? "min-h-8 min-w-10 rounded-full bg-ink px-2.5 text-paper"
-                  : "min-h-8 min-w-10 rounded-full px-2.5 text-ink-muted hover:text-ink"
-              }
+              className={`relative min-h-8 min-w-11 rounded-full px-2.5 before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] ${
+                current ? "bg-ink text-paper" : "text-ink-muted hover:text-ink"
+              }`}
             >
-              <span aria-hidden="true">{SHORT[option]}</span>
-              <span className="sr-only">{NAMES[option]({}, { locale: option })}</span>
+              {SHORT[option]({}, { locale: option })}
+              <span className="sr-only"> {NAMES[option]({}, { locale: option })}</span>
             </button>
           );
         })}
