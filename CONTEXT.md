@@ -9,6 +9,7 @@ Use these terms exactly, in conversation, code, tests and docs.
 | **Parish** | ACK Emmanuel Kengeleni-Freretown as a whole |
 | **HBC** | One of the parish's 11 zones (Jordan, Judea, Galilaya, Samaria, Zion Leisure, Zion Bombolulu, Zion Freretown, Damascus, Jerusalem, Bethlehem B, Bethlehem A). Every member belongs to exactly one. Code name: `hbc` |
 | **Department** | A church group such as Mother's Union, KAMA / AMF, KAYO, Children Ministry. A member may belong to none or several |
+| **Unit** | An HBC or a department. Administrators can deactivate a unit; it then can't be chosen on new registrations |
 | **PCC** | Parish Church Council. Some seats are elected by the parish, some appointed, some held by clergy by right of office |
 | **Vicar** | The parish priest; chairs the PCC |
 | **Wardens** | Vicar's Warden (appointed) and People's Warden (elected) |

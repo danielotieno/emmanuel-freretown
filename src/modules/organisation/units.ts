@@ -45,7 +45,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /**
  * Checks the HBC and departments chosen on a new registration (database-design.md §3,
  * requirements "a deactivated unit cannot be chosen on new registrations", BR-04). An id that
- * is inactive, unknown or not a uuid at all is unavailable; the form can't tell which, and
+ * is inactive, unknown or not a lowercase uuid is unavailable; the form can't tell which, and
  * doesn't need to. Departments are optional (BR-05), so an empty list is fine.
  *
  * Pass the registration's transaction to check inside it. A unit deactivated a moment after
@@ -55,14 +55,11 @@ export async function checkUnitsForRegistration(
   db: DbOrTx,
   choice: { hbcId: string; departmentIds: readonly string[] },
 ): Promise<UnitCheck> {
-  // uuids are case-insensitive and Postgres returns them lowercase: compare lowercased,
-  // report ids as the caller gave them, each once.
-  const hbcId = choice.hbcId.toLowerCase();
-  const departments = new Map<string, string>();
-  for (const id of choice.departmentIds) {
-    if (!departments.has(id.toLowerCase())) departments.set(id.toLowerCase(), id);
-  }
-  const wellFormed = [...departments.keys()].filter((id) => UUID.test(id));
+  // Ids come from the lists above, which Postgres returns lowercase; anything else is
+  // unavailable, the safe answer. Each unavailable id is reported once.
+  const { hbcId } = choice;
+  const departmentIds = [...new Set(choice.departmentIds)];
+  const wellFormed = departmentIds.filter((id) => UUID.test(id));
 
   const activeHbc = UUID.test(hbcId)
     ? await safeQuery(() =>
@@ -83,9 +80,7 @@ export async function checkUnitsForRegistration(
 
   const active = new Set(activeDepartments.map((d) => d.id));
   const hbcUnavailable = activeHbc.length === 0;
-  const unavailableDepartmentIds = [...departments]
-    .filter(([key]) => !active.has(key))
-    .map(([, given]) => given);
+  const unavailableDepartmentIds = departmentIds.filter((id) => !active.has(id));
   if (!hbcUnavailable && unavailableDepartmentIds.length === 0) return { ok: true };
   return { ok: false, hbcUnavailable, unavailableDepartmentIds };
 }

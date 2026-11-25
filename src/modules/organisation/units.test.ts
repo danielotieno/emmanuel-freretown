@@ -19,7 +19,7 @@ describe("checkUnitsForRegistration", () => {
     expect(
       await checkUnitsForRegistration(untouchable, {
         hbcId: "Judea",
-        departmentIds: ["KAYO", "", "kayo", "1"],
+        departmentIds: ["KAYO", "", "KAYO", "1"],
       }),
     ).toEqual({ ok: false, hbcUnavailable: true, unavailableDepartmentIds: ["KAYO", "", "1"] });
   });

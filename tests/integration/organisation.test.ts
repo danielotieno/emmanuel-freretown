@@ -62,6 +62,7 @@ describe("listActiveHbcs and listActiveDepartments", () => {
       expect(hbcs.map((u) => u.name)).toEqual(HBCS);
       expect(departments.map((u) => u.name)).toEqual(DEPARTMENTS);
       expect(Object.keys(hbcs[0]!).sort()).toEqual(["id", "name"]);
+      expect(Object.keys(departments[0]!).sort()).toEqual(["id", "name"]);
     });
   });
 
@@ -106,13 +107,6 @@ describe("checkUnitsForRegistration (database-design.md §3)", () => {
       expect(await checkUnitsForRegistration(tx, { hbcId, departmentIds: [] })).toEqual({
         ok: true,
       });
-      // Repeated and uppercase ids are the same department.
-      expect(
-        await checkUnitsForRegistration(tx, {
-          hbcId: hbcId.toUpperCase(),
-          departmentIds: [choir, choir.toUpperCase()],
-        }),
-      ).toEqual({ ok: true });
     });
   });
 
@@ -132,7 +126,7 @@ describe("checkUnitsForRegistration (database-design.md §3)", () => {
     });
   });
 
-  it("rejects unknown and malformed ids the same way as inactive ones", async () => {
+  it("rejects unknown, malformed and uppercase ids the same way as inactive ones", async () => {
     await rolledBack(db, async (tx) => {
       const hbcId = await idOf(tx, "hbc", "Jordan");
       await asApp(tx);
