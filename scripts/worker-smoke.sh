@@ -40,8 +40,8 @@ check() {
 }
 
 check "public page renders" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/")"
-check "Kiswahili by default" '<html lang="sw"' "$(curl -s "$BASE/")"
-check "saved language cookie" '<html lang="en"' "$(curl -s -H 'Cookie: PARAGLIDE_LOCALE=en' "$BASE/")"
+check "English by default (#80)" '<html lang="en"' "$(curl -s "$BASE/")"
+check "saved language cookie" '<html lang="sw"' "$(curl -s -H 'Cookie: PARAGLIDE_LOCALE=sw' "$BASE/")"
 check "CSP header" "script-src 'self' 'nonce-" "$(curl -s -D - -o /dev/null "$BASE/")"
 check "request id header" "x-request-id:" "$(curl -s -D - -o /dev/null "$BASE/" | tr 'A-Z' 'a-z')"
 check "no /admin on public host" "404" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/admin")"

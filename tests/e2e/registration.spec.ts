@@ -112,9 +112,19 @@ test.describe("without JavaScript", () => {
   });
 });
 
-test.describe("on a first visit", () => {
-  test("shows the form in Kiswahili", async ({ browser }) => {
+test.describe("languages", () => {
+  test("shows the form in English on a first visit (#80)", async ({ browser }) => {
     const context = await browser.newContext(); // no language cookie
+    const page = await context.newPage();
+    await page.goto("/registration");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(en.reg_title);
+    await context.close();
+  });
+
+  test("shows the form in Kiswahili once chosen", async ({ browser }) => {
+    const context = await browser.newContext();
+    await context.addCookies([{ name: "PARAGLIDE_LOCALE", value: "sw", url: "http://localhost" }]);
     const page = await context.newPage();
     await page.goto("/registration");
     await expect(page.locator("html")).toHaveAttribute("lang", "sw");

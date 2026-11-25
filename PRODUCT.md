@@ -12,7 +12,7 @@ The website and member platform of ACK Emmanuel Freretown - Kengeleni, an Anglic
 ## Who uses it
 
 - **Members of all ages from 18 up**, including many older members who are not confident online, use low-end Android phones, have limited data bundles and patchy connections, and may share a phone with family.
-- **Kiswahili and English speakers.** Many members are more comfortable in Kiswahili. English is required in Release 1 and Kiswahili is optional (D44): offer it where a translation exists, and design every screen so a Kiswahili phrase fits.
+- **Kiswahili and English speakers.** Many members are more comfortable in Kiswahili. English is required in Release 1 and shown by default; Kiswahili is optional (D44) and one tap away: offer it where a translation exists, and design every screen so a Kiswahili phrase fits.
 - **Church officers** (Secretary, Wardens, committee volunteers) using the admin side on phones at a registration desk in a church hall, sometimes with dozens of people waiting.
 
 ## What success feels like
@@ -39,7 +39,7 @@ The website and member platform of ACK Emmanuel Freretown - Kengeleni, an Anglic
 
 ## Avoid
 
-- Generic SaaS dashboard looks, gradient-heavy "AI" aesthetics, and default component-library styling. The brand blues (see DESIGN.md) must feel like this church — warm paper backgrounds, the crest's gold, real photographs — not like a tech product.
+- Generic SaaS dashboard looks, gradient-heavy "AI" aesthetics, and default component-library styling. Clean is the aim (DESIGN.md §7: kurax.vercel.app), but it must still feel like this church — the crest, Ocean Blue from its sea, real photographs — not like a tech product.
 - Stock photos of strangers.
 - Cleverness that slows people down on registration or voting screens.
 - Anything that looks like it is asking for money or passwords.

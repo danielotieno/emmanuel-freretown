@@ -31,7 +31,7 @@ check() {
 }
 
 check "public page renders" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$PUBLIC/")"
-check "Kiswahili by default" '<html lang="sw"' "$(curl -s "$PUBLIC/")"
+check "English by default (#80)" '<html lang="en"' "$(curl -s "$PUBLIC/")"
 check "CSP header" "script-src 'self' 'nonce-" "$(curl -s -D - -o /dev/null "$PUBLIC/")"
 # Plain http must redirect to https (zone setting "Always Use HTTPS"): 301 or 308.
 check "http redirects to https" "30" "$(curl -s -o /dev/null -w '%{http_code}' "${PUBLIC/https:/http:}/")"
