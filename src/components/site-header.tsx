@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import crest from "./crest.webp";
 import { LanguageSwitch } from "@/components/language-switch";
 import type { Locale } from "@/i18n/locale";
@@ -7,10 +8,11 @@ import { m } from "@/paraglide/messages";
 /**
  * The header on every public page: the parish lockup (crest and name, DESIGN.md §1), the main
  * navigation and the language switch. The crest is the Diocese of Mombasa coat of arms, from a
- * scan, until the official file arrives (#28).
+ * scan, until the official file arrives (#87).
  *
  * The navigation is plain links with no JavaScript. On phones the links sit in a row under
- * the lockup rather than behind a menu button, so older members see them straight away.
+ * the lockup rather than behind a menu button, so older members see them straight away. The row
+ * wraps rather than scrolls, so every link stays on screen at 360px in both languages.
  */
 export function SiteHeader({ locale }: { locale: Locale }) {
   const o = { locale };
@@ -41,63 +43,54 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           </span>
         </Link>
         <div className="flex items-center gap-3">
-          <NavLinks label={m.nav_label({}, o)} links={links} className="hidden md:flex" />
-          {/* A plain link, not <Link>: Turnstile's CSP is set per page load (src/lib/csp.ts). */}
+          <NavLinks label={m.nav_label({}, o)} links={links} className="hidden md:block" />
+          {/* A plain link, not <Link>: Turnstile's CSP is set per page load (src/lib/csp.ts).
+              Outlined, so the page's own primary button stays the one solid pill (DESIGN.md §2). */}
           <a
             href="/registration"
-            className="hidden min-h-10 items-center rounded-full bg-brand px-5 text-sm text-paper no-underline hover:bg-brand-deep md:inline-flex"
+            className="hidden min-h-10 items-center rounded-full border border-brand px-5 text-sm text-brand no-underline hover:bg-lagoon md:inline-flex"
           >
             {m.nav_register({}, o)}
           </a>
           <LanguageSwitch locale={locale} />
         </div>
       </div>
-      <nav aria-label={m.nav_label({}, o)} className="-mx-4 mt-3 overflow-x-auto px-4 md:hidden">
-        <ul className="flex items-center gap-1 text-[0.9375rem] whitespace-nowrap">
-          {links.map(([href, label]) => (
-            <li key={href}>
-              <a
-                href={href}
-                className="inline-flex min-h-10 items-center px-2 text-ink-muted no-underline hover:text-ink"
-              >
-                {label}
-              </a>
-            </li>
-          ))}
-          <li className="ml-auto">
-            <a
-              href="/registration"
-              className="inline-flex min-h-10 items-center px-2 text-brand underline underline-offset-4"
-            >
-              {m.nav_register({}, o)}
-            </a>
-          </li>
-        </ul>
-      </nav>
+      <NavLinks label={m.nav_label({}, o)} links={links} className="mt-3 md:hidden">
+        <li className="sm:ml-auto">
+          <a
+            href="/registration"
+            className="inline-flex min-h-10 items-center px-1.5 text-brand underline underline-offset-4 sm:px-2"
+          >
+            {m.nav_register({}, o)}
+          </a>
+        </li>
+      </NavLinks>
     </header>
   );
 }
 
-/** The section links for wide screens. */
+/** The section links, used for both the phone row and the wide-screen bar. */
 function NavLinks(props: {
   label: string;
   links: readonly (readonly [string, string])[];
   className: string;
+  children?: ReactNode;
 }) {
-  const { label, links, className } = props;
+  const { label, links, className, children } = props;
   return (
     <nav aria-label={label} className={className}>
-      <ul className="flex items-center gap-1 text-[0.9375rem]">
-        {links.map(([href, label]) => (
+      <ul className="-mx-1.5 flex flex-wrap items-center text-[0.9375rem] sm:-mx-2 sm:gap-x-1 md:mx-0">
+        {links.map(([href, text]) => (
           <li key={href}>
             <a
               href={href}
-              className="inline-flex min-h-10 items-center px-3 text-ink-muted no-underline hover:text-ink"
+              className="inline-flex min-h-10 items-center px-1.5 text-ink-muted no-underline hover:text-ink sm:px-2 md:px-3"
             >
-              {label}
+              {text}
             </a>
           </li>
         ))}
+        {children}
       </ul>
     </nav>
   );

@@ -94,6 +94,34 @@ test("the navigation reaches every section and registration", async ({ page }) =
   );
 });
 
+for (const [locale, messages] of [
+  ["en", en],
+  ["sw", sw],
+] as const) {
+  test(`every navigation link is on screen, without scrolling sideways (${locale})`, async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([{ name: "PARAGLIDE_LOCALE", value: locale, url: baseURL! }]);
+    await page.goto("/");
+    const width = page.viewportSize()!.width;
+    // The visible navigation: the phone row below md, the bar beside the lockup from md.
+    const nav = page
+      .getByRole("navigation", { name: messages.nav_label })
+      .filter({ visible: true });
+    const links = nav.getByRole("link");
+    await expect(links).toHaveCount(width < 900 ? 5 : 4);
+    for (const link of await links.all()) {
+      const box = (await link.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+    }
+    const register = page.getByRole("link", { name: messages.nav_register, exact: true });
+    await expect(register).toBeInViewport({ ratio: 1 });
+  });
+}
+
 test("shows service times, the theme of the year and the HBCs from the register", async ({
   page,
 }) => {

@@ -17,11 +17,14 @@ import church960 from "./images/church-960.webp";
 export default async function HomePage() {
   const locale = await getLocale();
   const o = { locale };
-  // The page never fails because the HBC list can't load: it shows the section without names.
-  const hbcs = await listActiveHbcs(await getDb()).catch(async (error: unknown) => {
-    (await getLogger()).error("home.hbcs_failed", error);
-    return [];
-  });
+  // The page never fails or waits long because the HBC list can't load: after HBC_TIMEOUT_MS
+  // it renders the section without names.
+  const hbcs = await withTimeout(listActiveHbcs(await getDb()), HBC_TIMEOUT_MS).catch(
+    async (error: unknown) => {
+      (await getLogger()).error("home.hbcs_failed", error);
+      return [];
+    },
+  );
 
   const services = [
     [m.home_time_english1({}, o), m.home_service_english1({}, o), m.home_language_english({}, o)],
@@ -313,7 +316,7 @@ export default async function HomePage() {
               </p>
               <a
                 href="https://www.google.com/maps/search/?api=1&query=ACK+Emmanuel+Kengeleni+Church"
-                rel="noopener"
+
                 className="btn-secondary mt-8"
               >
                 {m.home_visit_map({}, o)}
@@ -333,22 +336,19 @@ export default async function HomePage() {
                       ackemmanuelkengeleni@gmail.com
                     </a>
                   </li>
-                  <li>P.O. Box 85010-80100, Mombasa</li>
+                  <li>{m.home_visit_postal({}, o)}</li>
                 </ul>
               </div>
               <div className="py-6">
                 <h3 className="text-2xl">{m.home_visit_follow({}, o)}</h3>
                 <ul className="mt-3 flex flex-wrap gap-x-8 gap-y-2">
                   <li>
-                    <a
-                      href="https://www.facebook.com/profile.php?id=100069793723070"
-                      rel="noopener"
-                    >
+                    <a href="https://www.facebook.com/profile.php?id=100069793723070">
                       {m.home_visit_facebook({}, o)}
                     </a>
                   </li>
                   <li>
-                    <a href="https://www.youtube.com/@ACKCONTROLROOM/streams" rel="noopener">
+                    <a href="https://www.youtube.com/@ACKCONTROLROOM/streams">
                       {m.home_visit_youtube({}, o)}
                     </a>
                   </li>
@@ -360,6 +360,22 @@ export default async function HomePage() {
       </main>
     </>
   );
+}
+
+// Long enough for a Neon compute to wake from suspend, short enough that a hung database
+// doesn't hold the homepage.
+const HBC_TIMEOUT_MS = 5000;
+
+/** Rejects if the promise hasn't settled in time. The query itself carries on, unawaited. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(Object.assign(new Error("timeout"), { name: "TimeoutError" })),
+      ms,
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 function SectionHeading(props: { id: string; title: string; children?: string }) {
