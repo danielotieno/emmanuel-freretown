@@ -54,7 +54,8 @@
       ],
       "placement": { "mode": "smart" },
       // observability is inherited from the top level; vars are not. SENTRY_DSN is a secret.
-      "vars": { "SENTRY_ENVIRONMENT": "staging" },
+      // TURNSTILE_SITE_KEY is public (it is sent to every visitor); its secret is a Wrangler secret.
+      "vars": { "SENTRY_ENVIRONMENT": "staging", "TURNSTILE_SITE_KEY": "0x4AAAAAAGSxdHaXpQTNGov4" },
       "queues": {
         "producers": [{ "binding": "JOBS", "queue": "ack-jobs-staging" }],
         "consumers": [{ "queue": "ack-jobs-staging", "max_batch_size": 10, "max_retries": 4 }],
@@ -78,7 +79,11 @@
       // Run near the database in Frankfurt rather than near the visitor (ADR 0002).
       "placement": { "mode": "smart" },
       // observability is inherited from the top level; vars are not. SENTRY_DSN is a secret.
-      "vars": { "SENTRY_ENVIRONMENT": "production" },
+      // TURNSTILE_SITE_KEY is public (it is sent to every visitor); its secret is a Wrangler secret.
+      "vars": {
+        "SENTRY_ENVIRONMENT": "production",
+        "TURNSTILE_SITE_KEY": "0x4AAAAAAGSw6xC2FNX6wX0k",
+      },
       "queues": {
         "producers": [{ "binding": "JOBS", "queue": "ack-jobs-production" }],
         "consumers": [{ "queue": "ack-jobs-production", "max_batch_size": 10, "max_retries": 4 }],
