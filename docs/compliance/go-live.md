@@ -17,7 +17,7 @@ Status: `Not started` · `In progress` · `Done` · `Waived` (with the decision 
 | 9 | Data processing agreement accepted: Mobile Sasa | Vicar (account owner) | Not started | Go/no-go item 9 |
 | 10 | Data processing agreement accepted: Sentry | Vicar (account owner) | Not started | Go/no-go item 9; confirm the data region |
 | 11 | Data processing agreement accepted: GitHub | Vicar (account owner) | Not started | Go/no-go item 9; backups run on its runners (#8) |
-| 12 | Each agreement checked: vendor notifies breaches within 48 hours where practicable (s. 43(3)) | Technical lead | Not started | Notifications go to the church account email; someone must watch it |
+| 12 | Each agreement checked: vendor notifies breaches within 48 hours where practicable (s. 43(3)) | Technical lead | Not started | Notices go to each account's email, which may be the technical lead's (D40, amended); the technical lead passes them to the Vicar at once |
 | 13 | Mobile Sasa account opened under the church email and full access requested (business registration document) for the shared `MOBILESASA` sender | Technical lead | Not started | D43. Approval usually the same day; OTP depends on it (go/no-go item 4). Our own sender ID is optional and can follow later |
 | 14 | Privacy notice owner named | Vicar | Done | The Vicar owns and approves it (D39). Writing it is #27 |
 | 15 | Kiswahili reviewer named | Committee | Not needed | Kiswahili is optional (D44); a review (#29) can follow go-live |
