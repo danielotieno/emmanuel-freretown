@@ -25,7 +25,7 @@ await submitRegistration(db, input, { log });
 
 // In a module:
 log.info("registration.submitted", { registrationId, channel: "SELF" });
-log.error("otp.send_failed", error, { provider: "africastalking" });
+log.error("otp.send_failed", error, { provider: "mobilesasa" });
 ```
 
 `event` is a dotted lower-case name. Anything else is replaced with `invalid_event_name`, so data can't be smuggled in through it.

@@ -11,14 +11,14 @@ Status: `Not started` · `In progress` · `Done` · `Waived` (with the decision 
 | 3 | DPIA completed, signed by the Vicar and submitted to the ODPC | Vicar, drafted by the technical lead | In progress | Draft in `docs/compliance/dpia.md` (D41). **s. 31(5): submit sixty days before processing; see Q28** |
 | 4 | Decision on the sixty-day DPIA rule and the registration date (Q28) | Vicar, on legal advice | Not started | Needed before registration opens |
 | 5 | ODPC confirmation of safeguards for storage outside Kenya, or the Vicar's documented decision to proceed while it is pending | Vicar | Not started | ADR 0002, go/no-go item 10 |
-| 6 | Church-owned accounts created with a church email held by the Vicar; technical lead invited as administrator | Vicar, technical lead | Not started | D40: GitHub, Africa's Talking, Sentry. Neon and Cloudflare are in the technical lead's personal accounts, shared with the church email |
+| 6 | Church-owned accounts created with a church email held by the Vicar; technical lead invited as administrator | Vicar, technical lead | Not started | D40: GitHub, Mobile Sasa (D43), Sentry. Neon and Cloudflare are in the technical lead's personal accounts, shared with the church email |
 | 7 | Data processing agreement accepted: Neon | Technical lead (account owner), on the parish's behalf | Not started | Go/no-go item 9 |
 | 8 | Data processing agreement accepted: Cloudflare | Technical lead (account owner), on the parish's behalf | Not started | Go/no-go item 9 |
-| 9 | Data processing agreement accepted: Africa's Talking | Vicar (account owner) | Not started | Go/no-go item 9 |
+| 9 | Data processing agreement accepted: Mobile Sasa | Vicar (account owner) | Not started | Go/no-go item 9 |
 | 10 | Data processing agreement accepted: Sentry | Vicar (account owner) | Not started | Go/no-go item 9; confirm the data region |
 | 11 | Data processing agreement accepted: GitHub | Vicar (account owner) | Not started | Go/no-go item 9; backups run on its runners (#8) |
 | 12 | Each agreement checked: vendor notifies breaches within 48 hours where practicable (s. 43(3)) | Technical lead | Not started | Notifications go to the church account email; someone must watch it |
-| 13 | Africa's Talking account opened and sender ID applied for | Technical lead | Not started | Lead time can exceed a week; OTP depends on it (go/no-go item 4) |
+| 13 | Mobile Sasa account opened under the church email and full access requested (business registration document) for the shared `MOBILESASA` sender | Technical lead | Not started | D43. Approval usually the same day; OTP depends on it (go/no-go item 4). Our own sender ID is optional and can follow later |
 | 14 | Privacy notice owner named | Vicar | Done | The Vicar owns and approves it (D39). Writing it is #27 |
 | 15 | Kiswahili reviewer named | Committee | Not started | One fluent member (D39); the review itself is #29 |
 | 16 | Breach contact named and procedure adopted | Vicar | In progress | Vicar, with the technical lead first (D42). Procedure in `docs/compliance/breach-response.md`; deputy still to be named |

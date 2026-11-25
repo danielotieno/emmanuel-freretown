@@ -35,13 +35,13 @@ The clock starts when anyone at the parish, or any of our vendors, **becomes awa
 | By | Step |
 |---|---|
 | Immediately | Whoever notices tells the technical lead (or, if unreachable, the Vicar). Don't discuss details in WhatsApp groups, GitHub issues or email threads with other people |
-| Within 4 hours | **Contain.** Depending on what happened: revoke staff sessions, rotate the affected credentials (Neon roles, Cloudflare tokens, Africa's Talking key, GitHub secrets), block the staff portal in Cloudflare Access, or replace the public site with a maintenance page. Preserve evidence: audit log, Cloudflare and Neon logs. Take nothing down permanently and delete nothing |
+| Within 4 hours | **Contain.** Depending on what happened: revoke staff sessions, rotate the affected credentials (Neon roles, Cloudflare tokens, Mobile Sasa API token and webhook secret, GitHub secrets), block the staff portal in Cloudflare Access, or replace the public site with a maintenance page. Preserve evidence: audit log, Cloudflare and Neon logs. Take nothing down permanently and delete nothing |
 | Within 24 hours | **Assess and brief the Vicar:** what data, how many people, how it happened, whether it is still happening, and whether there is a real risk of harm. Start a written timeline (reg. 38(1)(b) asks for one) |
 | Within 72 hours of awareness | **Notify the Data Commissioner** (s. 43(1)(a)), signed by the Vicar, through the ODPC's current breach-notification channel (check odpc.go.ke for the form). If any detail is still unknown, send what is known and add the rest later (s. 43(7)). If the 72 hours are missed, notify anyway, with the reasons for the delay (s. 43(2)) |
 | As soon as reasonably practical | **Tell affected members in writing** (s. 43(1)(b)), in English and Kiswahili: by SMS to their own phone where the content allows, otherwise through the church office. This may be delayed only if the police ask, for an investigation (s. 43(4)). It is not required if the data was protected, for example encrypted, so the breach exposes nothing (s. 43(6)). If members are not told, the notice to the Data Commissioner must say why (reg. 38(2)) |
 | Within 2 weeks | Review: what failed, what changes, who does what. Record it in the parish's breach register. Update the DPIA if the risk picture changed |
 
-Vendors (data processors) must tell us within 48 hours where reasonably practicable (s. 43(3)). Check each data processing agreement says so; Africa's Talking, Sentry and GitHub notify the email address on the church-owned account; Neon and Cloudflare notify the technical lead's account (D40). Both inboxes must be watched.
+Vendors (data processors) must tell us within 48 hours where reasonably practicable (s. 43(3)). Check each data processing agreement says so; Mobile Sasa, Sentry and GitHub notify the email address on the church-owned account; Neon and Cloudflare notify the technical lead's account (D40). Both inboxes must be watched.
 
 ## What the notification to the Data Commissioner contains (reg. 38(1))
 
