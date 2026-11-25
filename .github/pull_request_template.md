@@ -23,7 +23,7 @@ Closes #
 - [ ] An authorisation test exists for every role/action pair added
 - [ ] Every state change writes an audit entry in the same transaction
 - [ ] No personal data in logs, errors, analytics or URLs
-- [ ] Member-facing text is in `messages/en.json` and `messages/sw.json`
+- [ ] Member-facing text is in `messages/en.json` (Kiswahili in `messages/sw.json` optional, D44)
 - [ ] Migrations generated with `pnpm db:generate` / `db:custom`, reviewed, committed; new tables have grants
 - [ ] Docs updated if behaviour or a decision changed (requirements, domain model, database design, ADR)
 - [ ] New dependencies are pinned and justified below
