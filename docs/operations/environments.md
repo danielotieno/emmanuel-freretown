@@ -105,14 +105,14 @@ Secrets in use:
 | Name | Issue | What |
 |---|---|---|
 | `BETTER_AUTH_SECRET` | #17 | Staff session signing |
-| `TURNSTILE_SECRET_KEY` | #13 | Turnstile server-side verification |
+| `TURNSTILE_SECRET_KEY` | #13 | Turnstile server-side verification (the widget's secret key) |
 | `RATE_LIMIT_SECRET` | #13 | HMAC key for rate-limit keys (phone numbers, IPs); 32+ random characters |
 | `OTP_SECRET` | #15 | HMAC key for OTP codes and verification tokens; 32+ random characters. Changing it invalidates codes and tokens issued in the last few minutes, nothing else |
 | `MOBILESASA_API_TOKEN` | #14 | Mobile Sasa `mbs_` token with the "send messages" scope (D43) |
 | `MOBILESASA_WEBHOOK_SECRET` | #14 | Mobile Sasa's webhook signing secret (portal: Settings → Webhooks) |
 | `SENTRY_DSN` | #9 | Error reports |
 
-Plain variables (not secret): `MOBILESASA_SENDER_ID` (default `MOBILESASA`, the shared sender, until our own is approved) and `MOBILESASA_CALLBACK_URL` (`https://<host>/api/webhooks/sms-delivery` for the environment). Set them as secrets too, or in `wrangler.jsonc` `vars` per environment.
+Plain variables (not secret): `TURNSTILE_SITE_KEY` (#16), the widget's public site key, set per environment in `wrangler.jsonc` `vars`. Create the widget in Cloudflare (Turnstile → Add widget, Managed mode) for the environment's public hostname; without the key, staging and production show no widget and nobody can get a code. Locally and in CI the app falls back to Cloudflare's always-pass test key. `E2E_TEST_MODE` is for automated tests only and must never be set in staging or production; it also refuses to run where a Mobile Sasa token exists. `MOBILESASA_SENDER_ID` (default `MOBILESASA`, the shared sender, until our own is approved) and `MOBILESASA_CALLBACK_URL` (`https://<host>/api/webhooks/sms-delivery` for the environment). Set them as secrets too, or in `wrangler.jsonc` `vars` per environment.
 
 Use different values in each environment. The deploy pipeline's own secrets (Cloudflare API token, owner `DATABASE_URL` per environment for migrations) are GitHub Actions secrets, set up in #7.
 

@@ -70,6 +70,11 @@ export interface OtpDeps {
   provider: SmsProvider;
   /** For tests: the fetch used for Turnstile. */
   fetch?: typeof fetch;
+  /**
+   * For automated tests only: replaces the random code (the app's test mode, which can't run
+   * where SMS are real). Never set in staging or production.
+   */
+  generateCode?: () => string;
 }
 
 export type OtpRequestResult =
@@ -111,7 +116,7 @@ export async function requestPhoneChallenge(
   if (!limits.allowed) return { ok: false, reason: limits.reason };
 
   const challengeId = crypto.randomUUID();
-  const code = generateOtpCode();
+  const code = (deps.generateCode ?? generateOtpCode)();
   const codeHash = await otpCodeHash(deps.otpSecret, challengeId, code);
   await safeQuery(() =>
     db.insert(phoneChallenge).values({
