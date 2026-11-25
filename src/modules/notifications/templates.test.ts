@@ -7,6 +7,9 @@ import { renderOtpSms, renderSms, SMS_TEMPLATES, validateSmsParams } from "./tem
 // in plain characters that every handset shows.
 const ONE_PART = 160;
 const PLAIN = /^[A-Za-z0-9 .,:'?!()/-]+$/;
+// SMS come from the shared MOBILESASA sender (D43), so every text opens with the church's name:
+// it is how members know the message is ours.
+const FROM = "ACK Emmanuel Freretown - Kengeleni: ";
 
 describe("SMS templates (FR-8, NFR-5)", () => {
   for (const template of SMS_TEMPLATES) {
@@ -16,6 +19,7 @@ describe("SMS templates (FR-8, NFR-5)", () => {
         expect(text.length).toBeLessThanOrEqual(ONE_PART);
         expect(text).toMatch(PLAIN);
         expect(text).toContain("REG-7K3M9");
+        expect(text.startsWith(FROM)).toBe(true);
       });
     }
   }
@@ -52,6 +56,7 @@ describe("renderOtpSms", () => {
   it.each(["en", "sw"] as const)("fits one plain SMS in %s", (locale) => {
     const text = renderOtpSms("482913", locale);
     expect(text).toContain("482913");
+    expect(text.startsWith(FROM)).toBe(true);
     expect(text.length).toBeLessThanOrEqual(ONE_PART);
     expect(text).toMatch(PLAIN);
   });
