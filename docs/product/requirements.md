@@ -61,6 +61,7 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Freret
 | D42 | The Vicar is the breach contact and notifies the Data Commissioner within 72 hours (s. 43). The technical lead responds first: contains the breach and briefs the Vicar within 24 hours. Procedure: `docs/compliance/breach-response.md` (Q15) | Danny (technical lead), 24 Nov 2026 |
 | D43 | SMS is sent through Mobile Sasa (Bitwise Digital Solutions Ltd), replacing Africa's Talking. At published prices (25 Nov 2026) it costs KES 0.60 per SMS on every Kenyan network, VAT included, against KES 0.80, with no minimum and no expiry. Its shared `MOBILESASA` sender reaches any number once the account is approved, so OTP does not wait for our own sender ID, which may follow later. Its API covers sending, delivery reports to a webhook signed with a secret, and the wallet balance. The account is church-owned (D40) and its data processing agreement is required (NFR-1) (#58) | Danny (technical lead), 25 Nov 2026 |
 | D44 | Kiswahili is optional in Release 1; English is required for all member-facing text (public pages, SMS, the privacy notice, the officer desk). Existing Kiswahili text stays as an unreviewed draft, new text may ship in English only, and a missing Kiswahili message falls back to English. The language switch and each member's SMS language stay. Supersedes D11 and the reviewer in D39; the fluent review (#29) no longer blocks go-live (#61) | The Vicar, via the technical lead, 25 Nov 2026 |
+| D45 | One year after a member is marked deceased or transferred out, their personal details are removed: name, phone number and department memberships, from the member record and from every revision and audit entry about them, as BR-14 does for registrations. The FWO number is kept, no longer linked to a name, so it is never issued again (D2, BR-02); status, dates and the reasons for status changes are kept. The removal runs automatically with the retention jobs (#26) and is audited (Q13, #71) | Technical lead, with the Vicar's go-ahead, 25 Nov 2026 |
 
 ## 3. Roles in Release 1
 
@@ -253,13 +254,12 @@ If any criterion fails, registration does not open; members continue on paper fo
 
 ## 11. Open questions
 
-Resolved: Q1 → D11, Q2 → D12, Q3 → D13 / BR-14, Q4 → D14, Q5 → D23, Q6 → D15, Q10 → D24, Q12 → D25, Q14 → D26, Q16 → D27, Q18 → D28, Q19 → D29, Q20 → D30, Q21 → D31, Q22 → D32, Q23 → D33, Q24 → D34 / BR-17 / D36, Q26 → D35, Q7 → D39, Q9 → D40, Q11 → D41, Q15 → D42.
+Resolved: Q13 → D45, Q1 → D11, Q2 → D12, Q3 → D13 / BR-14, Q4 → D14, Q5 → D23, Q6 → D15, Q10 → D24, Q12 → D25, Q14 → D26, Q16 → D27, Q18 → D28, Q19 → D29, Q20 → D30, Q21 → D31, Q22 → D32, Q23 → D33, Q24 → D34 / BR-17 / D36, Q26 → D35, Q7 → D39, Q9 → D40, Q11 → D41, Q15 → D42.
 
 | # | Question | Owner |
 |---|---|---|
 | Q28 | **Urgent.** The Data Protection Act s. 31(5) says DPIA reports "shall be submitted sixty days prior to the processing of data"; under reg. 52(3), processing may start if the Data Commissioner has not responded within sixty days. Registration is planned to open about 30 November 2026 and the voting pilot is on 13 December. How does the parish proceed: submit now and ask the ODPC for an early review (reg. 52(1)), move the dates, or another course on legal advice? Elections (Release 2) also need an updated DPIA (reg. 49(1)(d)). | Vicar, on legal advice |
 | Q8 | Who staffs the desks on 17 January, when five HBC AGMs run on the same day? | Committee |
-| Q13 | How long are approved members' records kept after they are marked deceased or transferred out? BR-14 covers only rejected and withdrawn registrations. | Vicar |
 | Q17 | Members who decline storage outside Kenya (BR-15) stay on paper. How do they get into an election's electorate (D18)? | Committee |
 | Q25 | D22 says eligible if approved before nominations *open*, but the electorate is frozen when nominations *close*. Which date decides the member's HBC for voting? Needed before the pilot's nominations open (D37). | Committee |
 | Q27 | What must the pilot show for online voting to be used officially in January: for example, electronic and paper results agree, no member voted twice, and OTP worked for most voters? Needed before 13 December. | Committee |
