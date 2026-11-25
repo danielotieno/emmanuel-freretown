@@ -55,6 +55,14 @@ describe("SMS templates (FR-8, NFR-5)", () => {
   });
 });
 
+describe("the church's name", () => {
+  // The Vicar confirmed this name against the parish's registration, for the DPIA and the
+  // ODPC registration (D23, #65). Changing it should be a deliberate edit here, not a side effect.
+  it.each(["en", "sw"] as const)("is the confirmed name in %s", (locale) => {
+    expect(m.site_name({}, { locale })).toBe("ACK Emmanuel Freretown - Kengeleni");
+  });
+});
+
 describe("renderOtpSms", () => {
   it.each(["en", "sw"] as const)("names the church and fits one plain SMS in %s", (locale) => {
     const text = renderOtpSms("482913", locale);
