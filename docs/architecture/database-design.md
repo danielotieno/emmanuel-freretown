@@ -278,7 +278,7 @@ OTP codes are never stored, only `code_hash` (HMAC-SHA256 with a server secret).
 | Registrations start `SUBMITTED`; a final registration (APPROVED, REJECTED, WITHDRAWN) never changes status, `decided_at` or `member_id`; `decided_at` is the database clock; reference, channel and capturing officer never change (domain-model invariant 7) | `registration_guard` trigger (migration `0001_constraints.sql`) |
 | Every member has at least one open HBC assignment | `membership.approve()` creates it in the same transaction; integration test asserts no member without an open assignment |
 | The capturing officer cannot approve (BR-10) | Application service check, plus authorisation test |
-| HBC and department must be active on new registrations | Application validation |
+| HBC and department must be active on new registrations | Application validation: `checkUnitsForRegistration` in the organisation module, called inside the registration transaction |
 | Every state change writes an audit entry | Application service, in the same transaction; integration tests per action |
 | Optimistic concurrency on review actions | `UPDATE … WHERE id = $1 AND version = $2`, zero rows updated = conflict |
 
