@@ -17,7 +17,7 @@ test.beforeEach(async ({ context }) => {
 });
 
 test("every public page links the privacy notice, terms and cookies", async ({ page }) => {
-  for (const path of ["/", "/privacy"]) {
+  for (const path of ["/", "/registration", "/privacy"]) {
     await page.goto(path);
     const footer = page.getByRole("contentinfo");
     await expect(footer.getByRole("link", { name: en.footer_privacy })).toHaveAttribute(

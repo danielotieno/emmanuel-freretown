@@ -12,18 +12,18 @@ export async function generateMetadata(): Promise<Metadata> {
 /** The cookies the site sets (#27). Only those needed to work and stay secure. */
 export default async function CookiesPage() {
   const locale = await getLocale();
-  const t = (message: (inputs: object, options: { locale: "en" }) => string) =>
-    message({}, { locale: "en" });
+  // The body is English whatever the page language (D44); the title follows the visitor's.
+  const en = { locale: "en" } as const;
   return (
     <LegalPage
       locale={locale}
       title={m.cookies_title({}, { locale })}
       version={COOKIES_VERSION}
-      intro={t(m.cookies_intro)}
+      intro={m.cookies_intro({}, en)}
       sections={[
-        { heading: t(m.cookies_ours_heading), list: t(m.cookies_ours_body) },
-        { heading: t(m.cookies_security_heading), intro: t(m.cookies_security_body) },
-        { heading: t(m.cookies_control_heading), intro: t(m.cookies_control_body) },
+        { heading: m.cookies_ours_heading({}, en), list: m.cookies_ours_body({}, en) },
+        { heading: m.cookies_security_heading({}, en), intro: m.cookies_security_body({}, en) },
+        { heading: m.cookies_control_heading({}, en), intro: m.cookies_control_body({}, en) },
       ]}
     />
   );

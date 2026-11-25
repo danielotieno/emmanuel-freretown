@@ -12,19 +12,19 @@ export async function generateMetadata(): Promise<Metadata> {
 /** Terms of use (#27). */
 export default async function TermsPage() {
   const locale = await getLocale();
-  const t = (message: (inputs: object, options: { locale: "en" }) => string) =>
-    message({}, { locale: "en" });
+  // The body is English whatever the page language (D44); the title follows the visitor's.
+  const en = { locale: "en" } as const;
   return (
     <LegalPage
       locale={locale}
       title={m.terms_title({}, { locale })}
       version={TERMS_VERSION}
-      intro={t(m.terms_intro)}
+      intro={m.terms_intro({}, en)}
       sections={[
-        { heading: t(m.terms_register_heading), list: t(m.terms_register_body) },
-        { heading: t(m.terms_use_heading), list: t(m.terms_use_body) },
-        { heading: t(m.terms_availability_heading), intro: t(m.terms_availability_body) },
-        { heading: t(m.terms_law_heading), intro: t(m.terms_law_body) },
+        { heading: m.terms_register_heading({}, en), list: m.terms_register_body({}, en) },
+        { heading: m.terms_use_heading({}, en), list: m.terms_use_body({}, en) },
+        { heading: m.terms_availability_heading({}, en), intro: m.terms_availability_body({}, en) },
+        { heading: m.terms_law_heading({}, en), intro: m.terms_law_body({}, en) },
       ]}
     />
   );

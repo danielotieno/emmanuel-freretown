@@ -26,7 +26,8 @@ export function LegalPage(props: {
   sections: LegalSection[];
 }) {
   const { locale } = props;
-  const englishOnly = m.legal_english_only({}, { locale });
+  // The text is English (D44): in any other language, say so and point to the church office.
+  const englishOnly = locale === "en" ? undefined : m.legal_english_only({}, { locale });
   return (
     <>
       <header className="mx-auto flex max-w-content flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">

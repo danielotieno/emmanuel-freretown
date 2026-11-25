@@ -12,41 +12,41 @@ export async function generateMetadata(): Promise<Metadata> {
 /** The privacy notice (NFR-10, BR-15, #27). Registrations record its version. */
 export default async function PrivacyPage() {
   const locale = await getLocale();
-  const t = (message: (inputs: object, options: { locale: "en" }) => string) =>
-    message({}, { locale: "en" });
+  // The body is English whatever the page language (D44); the title follows the visitor's.
+  const en = { locale: "en" } as const;
   return (
     <LegalPage
       locale={locale}
       title={m.privacy_title({}, { locale })}
       version={PRIVACY_NOTICE_VERSION}
-      intro={t(m.privacy_intro)}
+      intro={m.privacy_intro({}, en)}
       sections={[
         {
-          heading: t(m.privacy_collect_heading),
-          list: t(m.privacy_collect_body),
-          after: [t(m.privacy_collect_not), t(m.privacy_collect_visits)],
+          heading: m.privacy_collect_heading({}, en),
+          list: m.privacy_collect_body({}, en),
+          after: [m.privacy_collect_not({}, en), m.privacy_collect_visits({}, en)],
         },
         {
-          heading: t(m.privacy_why_heading),
-          list: t(m.privacy_why_body),
-          after: [t(m.privacy_why_sensitive)],
+          heading: m.privacy_why_heading({}, en),
+          list: m.privacy_why_body({}, en),
+          after: [m.privacy_why_sensitive({}, en)],
         },
-        { heading: t(m.privacy_where_heading), intro: t(m.privacy_where_body) },
-        { heading: t(m.privacy_who_heading), intro: t(m.privacy_who_body) },
+        { heading: m.privacy_where_heading({}, en), intro: m.privacy_where_body({}, en) },
+        { heading: m.privacy_who_heading({}, en), intro: m.privacy_who_body({}, en) },
         {
-          heading: t(m.privacy_processors_heading),
-          intro: t(m.privacy_processors_intro),
-          list: t(m.privacy_processors_body),
+          heading: m.privacy_processors_heading({}, en),
+          intro: m.privacy_processors_intro({}, en),
+          list: m.privacy_processors_body({}, en),
         },
-        { heading: t(m.privacy_keep_heading), list: t(m.privacy_keep_body) },
-        { heading: t(m.privacy_safe_heading), intro: t(m.privacy_safe_body) },
+        { heading: m.privacy_keep_heading({}, en), list: m.privacy_keep_body({}, en) },
+        { heading: m.privacy_safe_heading({}, en), intro: m.privacy_safe_body({}, en) },
         {
-          heading: t(m.privacy_rights_heading),
-          list: t(m.privacy_rights_body),
-          after: [t(m.privacy_rights_how)],
+          heading: m.privacy_rights_heading({}, en),
+          list: m.privacy_rights_body({}, en),
+          after: [m.privacy_rights_how({}, en)],
         },
-        { heading: t(m.privacy_contact_heading), intro: t(m.privacy_contact_body) },
-        { heading: t(m.privacy_changes_heading), intro: t(m.privacy_changes_body) },
+        { heading: m.privacy_contact_heading({}, en), intro: m.privacy_contact_body({}, en) },
+        { heading: m.privacy_changes_heading({}, en), intro: m.privacy_changes_body({}, en) },
       ]}
     />
   );
