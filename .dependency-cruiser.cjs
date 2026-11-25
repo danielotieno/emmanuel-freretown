@@ -54,13 +54,15 @@ module.exports = {
     },
     {
       name: "not-to-unresolvable",
+      comment:
+        "Except OpenNext's build output, which src/jobs/worker.ts imports and which only exists after `opennextjs-cloudflare build`.",
       severity: "error",
       from: {},
-      to: { couldNotResolve: true },
+      to: { couldNotResolve: true, pathNot: "(^|/)\\.open-next/" },
     },
   ],
   options: {
-    doNotFollow: { path: "node_modules" },
+    doNotFollow: { path: ["node_modules", "^\\.open-next/"] },
     exclude: { path: "^src/paraglide/" },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },

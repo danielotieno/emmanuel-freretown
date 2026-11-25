@@ -67,7 +67,7 @@ src/
     elections/        Release 2
   app/                Next.js routes: thin adapters only
   db/                 Drizzle schema, migrations, seeds
-  jobs/               Cron Trigger entry points
+  jobs/               Worker entry: fetch (OpenNext), daily cron, job queue
 ```
 
 Each module exposes a small public API from its `index.ts`. Other code imports only from there. A dependency-cruiser rule enforces this.
@@ -108,7 +108,7 @@ A change is done when:
 | `pnpm db:migrate` | Apply migrations to `DATABASE_URL` |
 | `pnpm db:app-login` | Create or rotate the app's login (`ack_app`, member of `app_runtime`); the app never connects as the owner |
 | `pnpm db:backup-login` / `pnpm db:drift` | Read-only backup login (`ack_backup`) / compare a live schema with the migrations (`DRIFT_EXPECTED_URL`, `DRIFT_ACTUAL_URL`) |
-| `pnpm preview` / `pnpm smoke:worker` | Run the built Worker locally in workerd / smoke-test it (after an OpenNext build) |
+| `pnpm preview` / `pnpm smoke:worker` | Run the built Worker locally in workerd / smoke-test it (after an OpenNext build). The smoke test also fires the daily cron, so `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` must point at a migrated database as the app's login |
 | `pnpm deploy:staging` / `pnpm deploy:production` | Build and deploy to a named Cloudflare environment by hand. Normally the Deploy workflow does it, building first and migrating before the upload (see ADR 0002 amendment) |
 
 Conventions set up with the scaffold:
@@ -120,5 +120,5 @@ Conventions set up with the scaffold:
 - Server code calls messages with an explicit locale: `m.key({}, { locale })`, with `locale` from `getLocale()` in `src/app/_lib/i18n.ts`.
 - Routes get the request's database handle from `getDb()` in `src/app/_lib/db.ts` and pass it to module functions.
 - Log only through `createLogger` (`src/modules/observability`); routes get the request's logger from `getLogger()` in `src/app/_lib/log.ts`. Log ids, counts and outcomes, never personal data. Module functions wrap queries in `safeQuery` (`src/db`) so a raw Drizzle or Postgres error never leaves a module. See `docs/operations/observability.md`.
-- The Worker entry is `worker.ts` (Sentry around OpenNext's handler). Only it imports `@sentry/cloudflare` at runtime: the SDK needs `cloudflare:workers`, which Node doesn't have.
+- The Worker entry is `src/jobs/worker.ts`: OpenNext's `fetch`, the daily Cron Trigger and the job queue consumer, wrapped with Sentry. Only it imports `@sentry/cloudflare` at runtime: the SDK needs `cloudflare:workers`, which Node doesn't have. Daily jobs live in `src/jobs/daily.ts` and call module functions; queue messages carry `{ type, id }` only, never personal data.
 - New tables need `app_runtime` (and, unless they hold credentials, `readonly_ops`) grants in the same migration (see `0002_privileges_and_redaction.sql`).

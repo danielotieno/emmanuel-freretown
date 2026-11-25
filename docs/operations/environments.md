@@ -14,6 +14,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 | 6 | Custom domains: apex, `admin.`, `staging.`, `admin-staging.` | Created by the first deploy (`backups-and-rollback.md`). Also turn on **Always Use HTTPS** for the zone (SSL/TLS → Edge Certificates); the live smoke test checks it |
 | 7 | Cloudflare Access in front of `admin.` and `admin-staging.` | Done 24 Nov 2026: team `ack-emmanuel`; apps `ACK staff portal (production)` and `(staging)` with reusable policies `ACK staff (production)` and `(staging)`; One-time PIN only, instant auth, 24-hour sessions |
 | 8 | Secrets in Cloudflare; local ones documented in `.dev.vars.example` | Example done; secrets added as each feature lands |
+| 9 | Job queues `ack-jobs-staging` and `ack-jobs-production` (#10) | Done 24 Nov 2026: both created with `wrangler queues create`. A Worker bound to a missing queue fails to deploy, so a new environment needs its queue first |
 
 ## The rules
 
@@ -100,3 +101,19 @@ pnpm exec wrangler secret put BETTER_AUTH_SECRET --env production
 ```
 
 Use different values in each environment. The deploy pipeline's own secrets (Cloudflare API token, owner `DATABASE_URL` per environment for migrations) are GitHub Actions secrets, set up in #7.
+
+## 7. Job queues
+
+The Worker consumes and produces a Cloudflare Queue for background job retries (`database-design.md` §6, #10). Bindings aren't inherited, so each environment names its own queue in `wrangler.jsonc`, and the queue must exist before a Worker bound to it can deploy. Create both once:
+
+```bash
+pnpm exec wrangler queues create ack-jobs-staging
+```
+
+```bash
+pnpm exec wrangler queues create ack-jobs-production
+```
+
+Queues are included in Workers Paid (ADR 0002). Messages carry a job type and a row id only, never personal data. `pnpm dev` and `pnpm preview` use a local simulated queue (`ack-jobs-local`); nothing needs creating for them.
+
+The daily Cron Trigger (`0 1 * * *`) needs no setup: `wrangler deploy` registers it. To see recent runs, open the Worker in the Cloudflare dashboard → Settings → Trigger events, or filter Workers Logs on `event = "jobs.daily_finished"`.

@@ -8,7 +8,7 @@ How code reaches staging and production, how to undo a bad deploy, and how the d
 |---|---|---|
 | 1 | GitHub environments `staging` and `production`, deployments from `main` only | Done 24 Nov 2026. Required reviewers aren't available on this repository's plan, so production deploys only when started by hand |
 | 2 | Deploy workflow (`.github/workflows/deploy.yml`) | Configured 24 Nov 2026. The first two staging runs failed at the Worker upload after migrating (#49: no local Hyperdrive string for the environment's proxy). Fix in #53, which also builds the Worker before migrating; confirmed once the first staging run after merge passes |
-| 3 | Cloudflare API token for deploys | Done 24 Nov 2026: `github-deploy-ack-emmanuel`, this account and zone only, expires Nov 2027. Remove its R2 permission if the R2 token list still shows it |
+| 3 | Cloudflare API token for deploys | Done 24 Nov 2026: `github-deploy-ack-emmanuel`, this account and zone only, expires Nov 2027. Remove its R2 permission if the R2 token list still shows it. Queues (edit) added 25 Nov 2026 for the job queue (#10) |
 | 4 | Neon API key and project id for restore branches | Done 24 Nov 2026 (`NEON_PROJECT_ID` = `ack-production`'s id) |
 | 5 | R2 enabled; bucket `ack-backups` in the EU jurisdiction with a 35-day lifecycle rule | Done 24 Nov 2026 (location EEUR; rule `expire-35-days`). R2 token scoped to `ack-backups`, expires Nov 2027 |
 | 6 | Backup login `ack_backup` on staging and production | Done 24 Nov 2026; verified read-only on both |
@@ -58,7 +58,7 @@ gh variable set CLOUDFLARE_ACCOUNT_ID --env production --body '<account id>'
 Cloudflare can't limit a token to a single Worker. The narrowest it allows is one account and one zone. In **My Profile → API Tokens → Create Token**, start from the **Edit Cloudflare Workers** template, then:
 - **Account resources:** only your account.
 - **Zone resources:** only `ackemmanuelfreretown.org`.
-- **Remove** the permissions we don't use (KV, D1, R2, Pages, Queues). Keep Workers Scripts, Workers Routes, Workers custom domains, Hyperdrive (read) and Account Settings (read).
+- **Remove** the permissions we don't use (KV, D1, R2, Pages). Keep Workers Scripts, Workers Routes, Workers custom domains, Hyperdrive (read), Account Settings (read) and **Queues (edit)**: since #10, every deploy checks the job queue exists and updates its consumer.
 - Optionally restrict **client IP**: GitHub runners' IPs change, so leave it open, and set a **TTL** (for example 1 year) with a reminder to rotate it.
 
 ### The Neon API key
