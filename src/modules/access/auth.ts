@@ -12,7 +12,7 @@ export interface AuthConfig {
   baseURL: string;
 }
 
-const APP_NAME = "ACK Emmanuel Kengeleni-Freretown";
+const APP_NAME = "ACK Emmanuel Freretown - Kengeleni";
 
 /**
  * Staff authentication (FR-10). Members never sign in in Release 1.

@@ -14,14 +14,14 @@
 
 | | |
 |---|---|
-| Data controller | ACK Emmanuel Kengeleni-Freretown (the parish), D23 |
+| Data controller | ACK Emmanuel Freretown - Kengeleni (the parish), D23 |
 | Postal address | _to be completed by the parish_ |
 | Email address | _to be completed by the parish (a church address, not a personal one)_ |
 | Telephone number | _to be completed by the parish_ |
 
 ### 1. Project name
 
-ACK Emmanuel Kengeleni-Freretown membership registry (ackemmanuelfreretown.org), Release 1.
+ACK Emmanuel Freretown - Kengeleni membership registry (ackemmanuelfreretown.org), Release 1.
 
 ### 2. Need for a DPIA
 

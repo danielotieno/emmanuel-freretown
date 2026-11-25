@@ -1,4 +1,4 @@
-# ACK Emmanuel Kengeleni-Freretown Platform
+# ACK Emmanuel Freretown - Kengeleni Platform
 
 The parish website and membership registry at ackemmanuelfreretown.org. Start with [`CLAUDE.md`](CLAUDE.md) for the rules and [`docs/`](docs/README.md) for requirements and architecture.
 

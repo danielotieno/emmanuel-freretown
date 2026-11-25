@@ -2,7 +2,7 @@
 
 ## What this is
 
-The website and member platform of ACK Emmanuel Kengeleni-Freretown, an Anglican parish in Mombasa, Kenya. It has three public faces and one staff face:
+The website and member platform of ACK Emmanuel Freretown - Kengeleni, an Anglican parish in Mombasa, Kenya. It has three public faces and one staff face:
 
 - **Landing page** (`/`): who the church is, service times, programmes, departments and HBCs, how to join.
 - **Registration** (`/registration`): adult members join the official register, or check their status.

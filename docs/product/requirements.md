@@ -11,7 +11,7 @@
 
 ## 1. Purpose
 
-Establish an accurate, verified register of adult members of ACK Emmanuel Kengeleni-Freretown, captured through online self-registration and assisted registration at HBC and department AGMs, and approved by a membership administrator. This register is the foundation for future member services and online elections. Release 1 does not include elections.
+Establish an accurate, verified register of adult members of ACK Emmanuel Freretown - Kengeleni, captured through online self-registration and assisted registration at HBC and department AGMs, and approved by a membership administrator. This register is the foundation for future member services and online elections. Release 1 does not include elections.
 
 ## 2. Confirmed decisions
 
@@ -39,7 +39,7 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Kengel
 | D20 | No two members share a phone number; each phone number belongs to one member | Committee, 24 Nov 2026 |
 | D21 | Members with their own phone vote online (FWO + phone OTP). Members without one vote manually on election day, after an officer checks in the system that they have not already voted | Committee, 24 Nov 2026 |
 | D22 | A member is eligible to vote only if approved before nominations open | Committee, 24 Nov 2026 |
-| D23 | The parish (ACK Emmanuel Kengeleni-Freretown) is the data controller and registers with the ODPC, not the Diocese of Mombasa (Q5) | Danny (technical lead), 24 Nov 2026 |
+| D23 | The parish (ACK Emmanuel Freretown - Kengeleni) is the data controller and registers with the ODPC, not the Diocese of Mombasa (Q5). Name amended 25 Nov 2026 from "ACK Emmanuel Kengeleni-Freretown" (#65); the Vicar confirmed it matches the parish's registration | Danny (technical lead), 24 Nov 2026 |
 | D24 | The status check accepts the FWO number **or** the registration reference (REG-…), after phone OTP. A new member (BR-16) uses their reference until an FWO number is issued (Q10) | Danny (technical lead), 24 Nov 2026 |
 | D25 | The daily SMS cap is 1,000 messages (Africa/Nairobi day), kept as a setting administrators can change. Every SMS counts towards it. Staff are warned at 80%. At the cap, OTP sending pauses and other messages wait in the outbox until the next day; staff are alerted (Q12) | Danny (technical lead), 24 Nov 2026 |
 | D26 | Production runs on Neon's Launch plan with a 7-day restore window. Staging and development share the same Neon account, so they are on Launch too; they sleep when unused and cost cents (amended 24 Nov 2026, D40). Ceiling: US$20 a month for the database (a few dollars expected). If the monthly bill approaches the ceiling, the technical lead tells the committee before it is exceeded (Q14, ADR 0002 amendment) | Danny (technical lead), 24 Nov 2026 |
