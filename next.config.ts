@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // `next dev` would print each server action's arguments: form values, which can be personal
+  // data (CLAUDE.md rule 2). Production never logs them; this keeps development quiet too.
+  logging: { serverFunctions: false },
   // Local admin portal: http://admin.localhost:3000 (see src/middleware.ts).
   allowedDevOrigins: ["admin.localhost"],
   // DESIGN.md §5: images are pre-optimised static files; no next/image optimisation on Cloudflare.

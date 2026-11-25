@@ -1,0 +1,107 @@
+import { describe, expect, it } from "vitest";
+import { checkFullName, checkFwoNumber, checkPhone, checkSelfRegistration } from "./fields";
+
+describe("checkFullName", () => {
+  it("trims and collapses spaces, and keeps 2 to 120 characters (database CHECK)", () => {
+    expect(checkFullName("  Test   Person ")).toEqual({ ok: true, value: "Test Person" });
+    expect(checkFullName("   ")).toEqual({ ok: false, error: "required" });
+    expect(checkFullName("A")).toEqual({ ok: false, error: "too_short" });
+    expect(checkFullName("A".repeat(121))).toEqual({ ok: false, error: "too_long" });
+    expect(checkFullName("A".repeat(120)).ok).toBe(true);
+  });
+});
+
+describe("checkFwoNumber (BR-01, BR-16)", () => {
+  it("keeps the number exactly as typed, leading zeros included", () => {
+    expect(checkFwoNumber("0042", false)).toEqual({ ok: true, value: "0042" });
+    expect(checkFwoNumber(" 42 ", false)).toEqual({ ok: true, value: "42" });
+  });
+
+  it("has no length rule (BR-01: none until real numbers are reviewed)", () => {
+    const long = "1".repeat(40);
+    expect(checkFwoNumber(long, false)).toEqual({ ok: true, value: long });
+    expect(checkFwoNumber("7", false)).toEqual({ ok: true, value: "7" });
+  });
+
+  it("refuses anything but digits, without changing what was typed", () => {
+    for (const input of ["42a", "4 2", "-42", "4.2", "４２"]) {
+      expect(checkFwoNumber(input, false)).toEqual({ ok: false, error: "invalid" });
+    }
+    expect(checkFwoNumber("", false)).toEqual({ ok: false, error: "required" });
+  });
+
+  it("needs no number for a new member", () => {
+    expect(checkFwoNumber("", true)).toEqual({ ok: true, value: null });
+    expect(checkFwoNumber("123", true)).toEqual({ ok: true, value: null });
+  });
+});
+
+describe("checkPhone (BR-06)", () => {
+  it("accepts Kenyan mobiles in any common form, as E.164", () => {
+    expect(checkPhone("0712 345 678")).toEqual({ ok: true, value: "+254712345678" });
+  });
+
+  it("refuses other numbers", () => {
+    expect(checkPhone("")).toEqual({ ok: false, error: "required" });
+    expect(checkPhone("+255712345678")).toEqual({ ok: false, error: "invalid" });
+  });
+});
+
+describe("checkSelfRegistration (FR-1, BR-07, BR-15)", () => {
+  const valid = {
+    fullName: "Test Person",
+    isNewMember: false,
+    fwoNumber: "0042",
+    phone: "0712345678",
+    hbcId: "0b6c3f9e-4d1a-4c2b-9f7e-2a5d8e1c3b40",
+    departmentIds: ["d1", "d1", " ", "d2"],
+    adultDeclared: true,
+    privacyAcknowledged: true,
+    transferConsent: true,
+  };
+
+  it("returns the cleaned values, with departments de-duplicated", () => {
+    expect(checkSelfRegistration(valid)).toEqual({
+      ok: true,
+      value: {
+        fullName: "Test Person",
+        isNewMember: false,
+        fwoNumber: "0042",
+        phoneE164: "+254712345678",
+        hbcId: valid.hbcId,
+        departmentIds: ["d1", "d2"],
+      },
+    });
+  });
+
+  it("needs the 18+ declaration, the privacy notice and the separate consent, each ticked", () => {
+    const result = checkSelfRegistration({
+      ...valid,
+      adultDeclared: false,
+      privacyAcknowledged: false,
+      transferConsent: false,
+    });
+    expect(result).toEqual({
+      ok: false,
+      errors: {
+        adultDeclared: "must_accept",
+        privacyAcknowledged: "must_accept",
+        transferConsent: "must_accept",
+      },
+    });
+  });
+
+  it("reports every invalid field at once", () => {
+    const result = checkSelfRegistration({
+      ...valid,
+      fullName: "",
+      fwoNumber: "x",
+      phone: "1",
+      hbcId: "",
+    });
+    expect(result).toEqual({
+      ok: false,
+      errors: { fullName: "required", fwoNumber: "invalid", phone: "invalid", hbcId: "required" },
+    });
+  });
+});

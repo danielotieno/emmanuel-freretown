@@ -40,6 +40,24 @@ Run `pnpm i18n:watch` in a second terminal while editing `messages/*.json`.
 | `pnpm auth:schema`             | Regenerate `src/db/schema/auth.ts` from the Better Auth config                               |
 | `pnpm gen`                     | Compile Paraglide messages and generate `cloudflare-env.d.ts`                                |
 
+### Running Playwright locally
+
+The registration journey stores registrations, so `pnpm e2e` needs a migrated database
+(`CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE`, as the app's login) and test mode in
+`.dev.vars`: no SMS is sent and every code is `000000` (`src/app/_lib/env.ts`). Never put a
+Mobile Sasa token in the same `.dev.vars`: test mode refuses to run beside one.
+
+```bash
+E2E_TEST_MODE=1
+OTP_SECRET=any-local-test-value-32-characters-or-more
+RATE_LIMIT_SECRET=any-local-test-value-32-characters-or-more
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+```
+
+The Turnstile key is Cloudflare's public always-pass test key. Against a remote database (such
+as a Neon branch), run with `--workers=1`: every step is a database round trip, and parallel
+browsers slow each other down. CI runs against a local Postgres container.
+
 ## Layout
 
 ```

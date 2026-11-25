@@ -11,7 +11,7 @@
 | Module | Owns | Depends on |
 |---|---|---|
 | organisation | HBCs, departments | — |
-| registration | Registrations, revisions, decisions | organisation, verification, membership (on approval) |
+| registration | Registrations, revisions, decisions | organisation, verification, membership (conflict checks; on approval), notifications, audit |
 | membership | Members, HBC assignments, department memberships | organisation |
 | verification | Phone challenges (OTP), verification tokens, verification evidence, rate limits; Kenyan-number and Turnstile checks | notifications (sends the OTP), audit |
 | access | Staff users, role assignments, sessions | membership (optional link) |

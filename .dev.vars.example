@@ -22,6 +22,13 @@ MOBILESASA_CALLBACK_URL=
 
 # Cloudflare Turnstile (#13). Cloudflare publishes test keys that always pass.
 TURNSTILE_SECRET_KEY=
+# The public site key is a var (wrangler.jsonc) in staging and production; locally the app uses
+# Cloudflare's always-pass test key when it is unset.
+# TURNSTILE_SITE_KEY=
+
+# Automated tests only (Playwright): no SMS, every code 000000. Never in staging or production,
+# and never beside MOBILESASA_API_TOKEN (test mode refuses to run then). See the README.
+# E2E_TEST_MODE=1
 
 # Rate-limit keys (#13): HMAC-SHA256 of phone numbers and IPs. 32+ random characters, different
 # in each environment. Changing it only resets the current limits.
