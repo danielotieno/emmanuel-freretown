@@ -6,7 +6,7 @@ Status: `Not started` · `In progress` · `Done` · `Waived` (with the decision 
 
 | # | Item | Owner | Status | Evidence / notes |
 |---|---|---|---|---|
-| 1 | Data controller named | Vicar | Done | The parish (D23) |
+| 1 | Data controller named | Vicar | Done | The parish (D23), as "ACK Emmanuel Freretown - Kengeleni"; the Vicar confirmed the name matches the parish's registration (25 Nov 2026, #65). Use it on the DPIA and the ODPC registration |
 | 2 | ODPC registration as data controller submitted | Vicar | Not started | Go/no-go item 2 |
 | 3 | DPIA completed, signed by the Vicar and submitted to the ODPC | Vicar, drafted by the technical lead | In progress | Draft in `docs/compliance/dpia.md` (D41). **s. 31(5): submit sixty days before processing; see Q28** |
 | 4 | Decision on the sixty-day DPIA rule and the registration date (Q28) | Vicar, on legal advice | Not started | Needed before registration opens |
