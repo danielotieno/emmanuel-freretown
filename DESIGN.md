@@ -82,7 +82,7 @@ Mobile first: design at **360 × 800** before anything else.
 ## 5. Imagery
 
 - Real photographs of this congregation, the church building and Mombasa, used with consent. No stock photos of strangers.
-- One illustration may give the landing page its character: for example a painted Mombasa coastline or the church at Freretown, in the palette. Compressed WebP, under about 80 KB at mobile size, landing page only.
+- The homepage may carry one hero photograph, of the church building, on top of the 200 KB budget (D46). Serve it responsively (`srcset`): at most 35 KB on phones, 60 KB on tablets and 110 KB on laptops, WebP. It is the only large image on the site.
 - Registration and voting pages carry no large images.
 - Images are pre-optimised and served as static files (no `next/image` on Cloudflare).
 
