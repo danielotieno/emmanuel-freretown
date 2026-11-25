@@ -39,7 +39,7 @@
   "reg_adult_label": "Nina umri wa miaka 18 au zaidi.",
   "reg_privacy_label": "Nimesoma taarifa ya faragha.",
   "reg_privacy_link": "Soma taarifa ya faragha",
-  "reg_consent_label": "Nakubali taarifa zangu zihifadhiwe kwenye seva nje ya Kenya, katika Umoja wa Ulaya.",
+  "reg_consent_label": "Nakubali taarifa zangu zihifadhiwe kwa usalama kwenye seva katika Umoja wa Ulaya, nje ya Kenya.",
   "reg_consent_why": "Rejista ya kanisa inahifadhiwa kwenye seva katika Umoja wa Ulaya, kwa hiyo sheria inaomba ukubali. Usipokubali, ofisi ya kanisa inaweza kukusajili kwa karatasi.",
   "reg_review_title": "Hakiki taarifa zako",
   "reg_review_hint": "Kisha tutatuma nambari kwa simu yako kuthibitisha ni yako.",
@@ -71,5 +71,15 @@
   "err_code_expired": "Nambari hiyo imeisha muda. Tafadhali pata nambari mpya.",
   "err_code_too_many": "Majaribio mengi yasiyo sahihi. Tafadhali pata nambari mpya.",
   "err_verification": "Uthibitisho wa simu yako umeisha muda. Tafadhali pata nambari mpya.",
-  "err_generic": "Kuna hitilafu. Tafadhali jaribu tena."
+  "err_generic": "Kuna hitilafu. Tafadhali jaribu tena.",
+  "footer_privacy": "Taarifa ya faragha",
+  "footer_terms": "Masharti ya matumizi",
+  "footer_cookies": "Vidakuzi",
+  "legal_english_only": "Ukurasa huu uko kwa Kiingereza. Ukihitaji maelezo kwa Kiswahili, tafadhali uliza ofisi ya kanisa.",
+  "legal_version": "Toleo {version}",
+  "legal_back_home": "Rudi kwenye ukurasa wa mwanzo",
+  "privacy_title": "Taarifa ya faragha",
+  "terms_title": "Masharti ya matumizi",
+  "cookies_title": "Vidakuzi",
+  "footer_nav_label": "Faragha na masharti"
 }

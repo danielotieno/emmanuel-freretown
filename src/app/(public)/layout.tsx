@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { getLocale } from "@/app/_lib/i18n";
+import { SiteFooter } from "@/components/site-footer";
 import { m } from "@/paraglide/messages";
 import "../globals.css";
 
@@ -32,6 +33,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
           {m.skip_to_content({}, { locale })}
         </a>
         {children}
+        <SiteFooter locale={locale} />
       </body>
     </html>
   );
