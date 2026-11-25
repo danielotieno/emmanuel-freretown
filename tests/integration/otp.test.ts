@@ -4,8 +4,8 @@ import { createDb, type Transaction } from "../../src/db";
 import { hmacSha256Hex } from "../../src/lib/crypto";
 import type { SendResult, SmsMessage, SmsProvider } from "../../src/modules/notifications";
 import {
-  recordPhoneOtpEvidence,
-  redeemVerificationToken,
+  redeemRegistrationVerification,
+  redeemStatusCheckVerification,
   requestPhoneChallenge,
   verifyPhoneChallenge,
   type OtpDeps,
@@ -227,6 +227,52 @@ describe("requestPhoneChallenge (FR-2, rule 8)", () => {
       expect((await challenges(tx))[0]!.live).toBe(false);
     });
   });
+
+  it("keeps the earlier code working when a resend fails (the first SMS may still be on its way)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const h = harness({
+        results: [
+          { outcome: "accepted", messageId: "m-1" },
+          { outcome: "rejected", code: "0422" },
+        ],
+      });
+      const first = await requestPhoneChallenge(tx, request(), h.deps);
+      const firstCode = h.codeFrom(0);
+      await timePasses(tx, 61);
+      expect(await requestPhoneChallenge(tx, request(), h.deps)).toEqual({
+        ok: false,
+        reason: "send_failed",
+      });
+      const result = await verifyPhoneChallenge(
+        tx,
+        { challengeId: (first as { challengeId: string }).challengeId, code: firstCode },
+        OTP_SECRET,
+      );
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  it("keeps the earlier code working when the daily cap pauses a resend", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const h = harness();
+      const first = await requestPhoneChallenge(tx, request(), h.deps);
+      const firstCode = h.codeFrom(0);
+      await timePasses(tx, 61);
+      await asOwner(tx, async () => {
+        await tx.execute(sql`UPDATE sms_setting SET value = 0 WHERE key = 'daily_cap'`);
+      });
+      expect((await requestPhoneChallenge(tx, request(), h.deps)).ok).toBe(true);
+      expect(h.sent).toHaveLength(1);
+      const result = await verifyPhoneChallenge(
+        tx,
+        { challengeId: (first as { challengeId: string }).challengeId, code: firstCode },
+        OTP_SECRET,
+      );
+      expect(result.ok).toBe(true);
+    });
+  });
 });
 
 /** A sent challenge and its code. */
@@ -307,36 +353,162 @@ describe("verifyPhoneChallenge (FR-2)", () => {
   });
 });
 
-describe("redeemVerificationToken (#15)", () => {
-  async function verifiedToken(tx: Transaction, purpose: OtpRequest["purpose"] = "REGISTRATION") {
-    const { challengeId, code } = await sentChallenge(tx, purpose);
-    const result = await verifyPhoneChallenge(tx, { challengeId, code }, OTP_SECRET);
-    return (result as { token: string }).token;
-  }
+/** A registration row, made as the owner, for evidence to refer to. */
+async function registration(tx: Transaction, reference = "REG-QTP2K"): Promise<string> {
+  let id = "";
+  await asOwner(tx, async () => {
+    const { rows } = await tx.execute<{ id: string }>(sql`
+      INSERT INTO registration (reference, channel, language)
+      VALUES (${reference}, 'SELF', 'en') RETURNING id`);
+    id = rows[0]!.id;
+  });
+  return id;
+}
 
-  it("works once, only for the phone and purpose it was issued for", async () => {
+async function verifiedToken(tx: Transaction, purpose: OtpRequest["purpose"] = "REGISTRATION") {
+  const { challengeId, code } = await sentChallenge(tx, purpose);
+  const result = await verifyPhoneChallenge(tx, { challengeId, code }, OTP_SECRET);
+  return (result as { token: string }).token;
+}
+
+async function evidenceFor(tx: Transaction, registrationId: string) {
+  const evidence = await tx.execute<{
+    kind: string;
+    phone_e164: string;
+    actor_user_id: string | null;
+  }>(sql`
+    SELECT kind, phone_e164, actor_user_id FROM verification_evidence
+     WHERE registration_id = ${registrationId} ORDER BY at`);
+  const entries = await tx.execute<{
+    action: string;
+    actor_type: string;
+    actor_id: string | null;
+    after: unknown;
+    request_id: string | null;
+  }>(sql`
+    SELECT action, actor_type, actor_id, after, request_id FROM audit_entry
+     WHERE entity_type = 'registration' AND entity_id = ${registrationId} ORDER BY id`);
+  return { evidence: evidence.rows, audit: entries.rows };
+}
+
+describe("redeemRegistrationVerification (#15, BR-11, rule 4)", () => {
+  it("spends the token and records PHONE_OTP evidence with its audit entry", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
       const token = await verifiedToken(tx);
-      const redeem = (
-        over: Partial<{
-          token: string;
-          phoneE164: string;
-          purpose: "REGISTRATION" | "STATUS_CHECK";
-        }>,
-      ) =>
-        redeemVerificationToken(
+      const registrationId = await registration(tx);
+      expect(
+        await redeemRegistrationVerification(
           tx,
-          { token, phoneE164: PHONE, purpose: "REGISTRATION", ...over },
+          {
+            token,
+            phoneE164: PHONE,
+            registrationId,
+            actor: { type: "PUBLIC" },
+            requestId: "req-otp",
+          },
+          OTP_SECRET,
+        ),
+      ).toBe(true);
+      expect(await evidenceFor(tx, registrationId)).toEqual({
+        evidence: [{ kind: "PHONE_OTP", phone_e164: PHONE, actor_user_id: null }],
+        audit: [
+          {
+            action: "registration.verify_phone",
+            actor_type: "PUBLIC",
+            actor_id: null,
+            after: { evidence: "PHONE_OTP" },
+            request_id: "req-otp",
+          },
+        ],
+      });
+      expect((await challenges(tx))[0]).toMatchObject({ verified: true, consumed: true });
+    });
+  });
+
+  it("records the officer for an assisted registration (FR-3)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const token = await verifiedToken(tx);
+      const registrationId = await registration(tx);
+      const actor = { type: "STAFF", userId: "officer-1" } as const;
+      expect(
+        await redeemRegistrationVerification(
+          tx,
+          { token, phoneE164: PHONE, registrationId, actor },
+          OTP_SECRET,
+        ),
+      ).toBe(true);
+      const { evidence, audit } = await evidenceFor(tx, registrationId);
+      expect(evidence[0]!.actor_user_id).toBe("officer-1");
+      expect(audit[0]).toMatchObject({ actor_type: "STAFF", actor_id: "officer-1" });
+    });
+  });
+
+  it("records nothing without a valid token for this exact phone and purpose, and works only once", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const token = await verifiedToken(tx);
+      await timePasses(tx, 61); // a second code for the same phone needs the 60-second wait
+      const statusToken = await verifiedToken(tx, "STATUS_CHECK");
+      const registrationId = await registration(tx);
+      const redeem = (over: Partial<{ token: string; phoneE164: string }>) =>
+        redeemRegistrationVerification(
+          tx,
+          { token, phoneE164: PHONE, registrationId, actor: { type: "PUBLIC" }, ...over },
           OTP_SECRET,
         );
 
       expect(await redeem({ phoneE164: "+254700000042" })).toBe(false);
-      expect(await redeem({ purpose: "STATUS_CHECK" })).toBe(false);
+      expect(await redeem({ token: statusToken })).toBe(false);
       expect(await redeem({ token: "made-up" })).toBe(false);
+      expect(await redeem({ token: "" })).toBe(false);
+      expect(await evidenceFor(tx, registrationId)).toEqual({ evidence: [], audit: [] });
+
       expect(await redeem({})).toBe(true);
       expect(await redeem({})).toBe(false);
-      expect((await challenges(tx))[0]).toMatchObject({ verified: true, consumed: true });
+      expect((await evidenceFor(tx, registrationId)).evidence).toHaveLength(1);
+    });
+  });
+
+  it("stays unspent if the submission rolls back, so the member can retry", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const token = await verifiedToken(tx);
+      const registrationId = await registration(tx);
+      const verification = {
+        token,
+        phoneE164: PHONE,
+        registrationId,
+        actor: { type: "PUBLIC" },
+      } as const;
+      await expect(
+        tx.transaction(async (submission) => {
+          expect(await redeemRegistrationVerification(submission, verification, OTP_SECRET)).toBe(
+            true,
+          );
+          throw new Error("the submission failed");
+        }),
+      ).rejects.toThrow("the submission failed");
+      expect(await evidenceFor(tx, registrationId)).toEqual({ evidence: [], audit: [] });
+      expect(await redeemRegistrationVerification(tx, verification, OTP_SECRET)).toBe(true);
+    });
+  });
+});
+
+describe("redeemStatusCheckVerification (FR-7)", () => {
+  it("works once, only for a status-check token and its phone", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const registrationToken = await verifiedToken(tx);
+      await timePasses(tx, 61); // a second code for the same phone needs the 60-second wait
+      const token = await verifiedToken(tx, "STATUS_CHECK");
+      const redeem = (over: Partial<{ token: string; phoneE164: string }>) =>
+        redeemStatusCheckVerification(tx, { token, phoneE164: PHONE, ...over }, OTP_SECRET);
+      expect(await redeem({ token: registrationToken })).toBe(false);
+      expect(await redeem({ phoneE164: "+254700000042" })).toBe(false);
+      expect(await redeem({})).toBe(true);
+      expect(await redeem({})).toBe(false);
     });
   });
 
@@ -345,28 +517,29 @@ describe("redeemVerificationToken (#15)", () => {
       await asApp(tx);
       const token = await verifiedToken(tx, "STATUS_CHECK");
       await timePasses(tx, 15 * 60 + 1);
-      expect(
-        await redeemVerificationToken(
-          tx,
-          { token, phoneE164: PHONE, purpose: "STATUS_CHECK" },
-          OTP_SECRET,
-        ),
-      ).toBe(false);
+      expect(await redeemStatusCheckVerification(tx, { token, phoneE164: PHONE }, OTP_SECRET)).toBe(
+        false,
+      );
     });
   });
+});
 
-  it("stays unused if the submission rolls back, so the member can retry", async () => {
+describe("phone_challenge constraints (migration 0006)", () => {
+  it("refuses a token without verification, and either without the other", async () => {
     await rolledBack(db, async (tx) => {
-      await asApp(tx);
-      const token = await verifiedToken(tx);
-      const redemption = { token, phoneE164: PHONE, purpose: "REGISTRATION" } as const;
-      await expect(
-        tx.transaction(async (submission) => {
-          expect(await redeemVerificationToken(submission, redemption, OTP_SECRET)).toBe(true);
-          throw new Error("the submission failed");
-        }),
-      ).rejects.toThrow("the submission failed");
-      expect(await redeemVerificationToken(tx, redemption, OTP_SECRET)).toBe(true);
+      const refused = (statement: ReturnType<typeof sql>) =>
+        expect(tx.transaction((savepoint) => savepoint.execute(statement))).rejects.toMatchObject({
+          cause: { code: "23514" },
+        });
+      await refused(sql`
+        INSERT INTO phone_challenge (phone_e164, purpose, code_hash, expires_at, token_hash)
+        VALUES ('+254700000044', 'REGISTRATION', 'h', now(), 't')`);
+      await refused(sql`
+        INSERT INTO phone_challenge (phone_e164, purpose, code_hash, expires_at, verified_at)
+        VALUES ('+254700000044', 'REGISTRATION', 'h', now(), now())`);
+      await refused(sql`
+        INSERT INTO phone_challenge (phone_e164, purpose, code_hash, expires_at, consumed_at)
+        VALUES ('+254700000044', 'REGISTRATION', 'h', now(), now())`);
     });
   });
 });
@@ -379,7 +552,7 @@ describe("under concurrency (separate connections)", () => {
     try {
       await pool.db.execute(sql`
         INSERT INTO phone_challenge (id, phone_e164, purpose, code_hash, expires_at)
-        VALUES (${challengeId}, '+254700000043', 'REGISTRATION',
+        VALUES (${challengeId}, '+254700000043', 'STATUS_CHECK',
                 ${await hmacSha256Hex(OTP_SECRET, `otp:${challengeId}:${code}`)},
                 now() + interval '5 minutes')`);
       const verifies = await Promise.all(
@@ -390,10 +563,10 @@ describe("under concurrency (separate connections)", () => {
       expect(verifies.filter((r) => !r.ok)).toEqual([{ ok: false, reason: "invalid" }]);
 
       const token = (winners[0] as { token: string }).token;
-      const redemption = { token, phoneE164: "+254700000043", purpose: "REGISTRATION" } as const;
+      const redemption = { token, phoneE164: "+254700000043" };
       const redeemed = await Promise.all(
         [0, 1].map(() =>
-          pool.db.transaction((tx) => redeemVerificationToken(tx, redemption, OTP_SECRET)),
+          pool.db.transaction((tx) => redeemStatusCheckVerification(tx, redemption, OTP_SECRET)),
         ),
       );
       expect(redeemed.filter(Boolean)).toHaveLength(1);
@@ -401,65 +574,5 @@ describe("under concurrency (separate connections)", () => {
       await pool.db.execute(sql`DELETE FROM phone_challenge WHERE id = ${challengeId}`);
       await pool.close();
     }
-  });
-});
-
-describe("recordPhoneOtpEvidence (BR-11, rule 4)", () => {
-  it("records PHONE_OTP evidence and audits it in the same transaction", async () => {
-    await rolledBack(db, async (tx) => {
-      let registrationId = "";
-      await asOwner(tx, async () => {
-        const { rows } = await tx.execute<{ id: string }>(sql`
-          INSERT INTO registration (reference, channel, language)
-          VALUES ('REG-QTP2K', 'SELF', 'en') RETURNING id`);
-        registrationId = rows[0]!.id;
-      });
-
-      await recordPhoneOtpEvidence(tx, {
-        registrationId,
-        phoneE164: PHONE,
-        actor: { type: "PUBLIC" },
-        requestId: "req-otp",
-      });
-      await recordPhoneOtpEvidence(tx, {
-        registrationId,
-        phoneE164: PHONE,
-        actor: { type: "STAFF", userId: "officer-1" },
-      });
-
-      const evidence = await tx.execute<{
-        kind: string;
-        phone_e164: string;
-        actor_user_id: string | null;
-      }>(sql`
-        SELECT kind, phone_e164, actor_user_id FROM verification_evidence
-         WHERE registration_id = ${registrationId} ORDER BY at, actor_user_id NULLS FIRST`);
-      expect(evidence.rows).toEqual([
-        { kind: "PHONE_OTP", phone_e164: PHONE, actor_user_id: null },
-        { kind: "PHONE_OTP", phone_e164: PHONE, actor_user_id: "officer-1" },
-      ]);
-      const entries = await tx.execute<{
-        action: string;
-        actor_type: string;
-        after: unknown;
-        request_id: string | null;
-      }>(sql`
-        SELECT action, actor_type, after, request_id FROM audit_entry
-         WHERE entity_type = 'registration' AND entity_id = ${registrationId} ORDER BY id`);
-      expect(entries.rows).toEqual([
-        {
-          action: "registration.verify_phone",
-          actor_type: "PUBLIC",
-          after: { evidence: "PHONE_OTP" },
-          request_id: "req-otp",
-        },
-        {
-          action: "registration.verify_phone",
-          actor_type: "STAFF",
-          after: { evidence: "PHONE_OTP" },
-          request_id: null,
-        },
-      ]);
-    });
   });
 });

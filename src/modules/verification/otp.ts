@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, ne, sql, type SQL } from "drizzle-orm";
 import { safeQuery, type DbOrTx, type Transaction } from "../../db";
 import { phoneChallenge, verificationEvidence } from "../../db/schema";
 import { hmacSha256Hex, timingSafeEqual } from "../../lib/crypto";
@@ -84,8 +84,9 @@ export type OtpRequestResult =
 /**
  * Sends an OTP (FR-2, rule 8). In order: the phone must be a Kenyan mobile; Turnstile must pass;
  * the rate limits (20 per IP per hour, a resend after 60 seconds, 3 per phone per hour) must
- * have room. Then a new challenge replaces any earlier unverified one for the same phone and
- * purpose, so only the latest code works, and the code goes out by SMS.
+ * have room. Then a new challenge is created and its code goes out by SMS; once it is sent, it
+ * replaces any earlier unverified one for the same phone and purpose, so only the latest code
+ * works.
  *
  * Nothing here looks at the registry: the answer never says whether a phone belongs to anyone
  * (rule 3). The code exists only in memory and in the SMS; the database holds its HMAC. Pass a
@@ -113,25 +114,12 @@ export async function requestPhoneChallenge(
   const code = generateOtpCode();
   const codeHash = await otpCodeHash(deps.otpSecret, challengeId, code);
   await safeQuery(() =>
-    db.transaction(async (tx) => {
-      await tx
-        .update(phoneChallenge)
-        .set({ expiresAt: sql`now()` })
-        .where(
-          and(
-            eq(phoneChallenge.phoneE164, phoneE164),
-            eq(phoneChallenge.purpose, request.purpose),
-            isNull(phoneChallenge.verifiedAt),
-            gt(phoneChallenge.expiresAt, sql`now()`),
-          ),
-        );
-      await tx.insert(phoneChallenge).values({
-        id: challengeId,
-        phoneE164,
-        purpose: request.purpose,
-        codeHash,
-        expiresAt: sql`now() + make_interval(secs => ${OTP_VALID_SECONDS})`,
-      });
+    db.insert(phoneChallenge).values({
+      id: challengeId,
+      phoneE164,
+      purpose: request.purpose,
+      codeHash,
+      expiresAt: sql`now() + make_interval(secs => ${OTP_VALID_SECONDS})`,
     }),
   );
 
@@ -142,15 +130,34 @@ export async function requestPhoneChallenge(
     trackingId: challengeId,
   });
   if (sent === "failed") {
-    await safeQuery(() =>
-      db
-        .update(phoneChallenge)
-        .set({ expiresAt: sql`now()` })
-        .where(eq(phoneChallenge.id, challengeId)),
-    );
+    await expire(db, eq(phoneChallenge.id, challengeId));
     return { ok: false, reason: "send_failed" };
   }
+  // Only once the new code is on its way does it replace the earlier ones. If the resend
+  // failed or the cap paused it, the code the member already has (perhaps still in transit)
+  // keeps working.
+  if (sent === "sent") {
+    await expire(
+      db,
+      and(
+        eq(phoneChallenge.phoneE164, phoneE164),
+        eq(phoneChallenge.purpose, request.purpose),
+        ne(phoneChallenge.id, challengeId),
+        isNull(phoneChallenge.verifiedAt),
+        gt(phoneChallenge.expiresAt, sql`now()`),
+      ),
+    );
+  }
   return { ok: true, challengeId, phoneE164 };
+}
+
+async function expire(db: DbOrTx, where: SQL | undefined): Promise<void> {
+  await safeQuery(() =>
+    db
+      .update(phoneChallenge)
+      .set({ expiresAt: sql`now()` })
+      .where(where),
+  );
 }
 
 export type OtpVerifyResult =
@@ -165,8 +172,8 @@ export type OtpVerifyResult =
  * minutes, by the database clock) or one already verified is refused without using an attempt.
  *
  * The comparison is constant-time. A correct code returns a single-use verification token,
- * stored only as an HMAC; redeem it with `redeemVerificationToken` in the transaction that
- * submits the form.
+ * stored only as an HMAC; redeem it with `redeemRegistrationVerification` or
+ * `redeemStatusCheckVerification` in the transaction that submits the form.
  */
 export async function verifyPhoneChallenge(
   db: DbOrTx,
@@ -215,15 +222,15 @@ export async function verifyPhoneChallenge(
 }
 
 /**
- * Redeems a verification token: true once, for the phone and purpose it was issued for, within
+ * Spends a verification token: true once, for the phone and purpose it was issued for, within
  * 15 minutes of the code being verified; false otherwise, and for every later call. One
  * statement marks it consumed, so two concurrent submissions can't both use it.
  *
- * Call it inside the transaction that submits the form. That binds the token to the submission:
+ * It runs inside the transaction that submits the form. That binds the token to the submission:
  * if the submission fails and rolls back, the token is still unused and the member can retry;
  * if it commits, the token is spent and can't be replayed for another form.
  */
-export async function redeemVerificationToken(
+async function redeemVerificationToken(
   tx: Transaction,
   redemption: { token: string; phoneE164: string; purpose: OtpPurpose },
   otpSecret: string,
@@ -248,35 +255,64 @@ export async function redeemVerificationToken(
   return redeemed.length === 1;
 }
 
+/** Who verified a registration's phone: the member themselves, or the officer at the desk. */
+export type PhoneVerificationActor = { type: "PUBLIC" } | audit.StaffActor;
+
 /**
- * Records that the registration's phone was verified by OTP (`PHONE_OTP` evidence, BR-11) and
- * audits it, in the caller's transaction (rule 4). The actor is PUBLIC for a self-registration
- * and the officer for an assisted one (FR-3). Call it after `redeemVerificationToken`
- * succeeds, in the same transaction.
+ * For a registration being submitted (FR-1, FR-3): spends a REGISTRATION token for the
+ * registration's phone and, only if that succeeds, records `PHONE_OTP` evidence (BR-11) with a
+ * `registration.verify_phone` audit entry (rule 4). One call, so evidence can never be recorded
+ * without a verified, unspent token for that exact phone. Returns false, recording nothing, if
+ * the token isn't valid for this phone; the caller then refuses the submission.
+ *
+ * Call it inside the transaction that creates the registration, after the registration row
+ * exists (the evidence refers to it): see `redeemVerificationToken` for why.
  */
-export async function recordPhoneOtpEvidence(
+export async function redeemRegistrationVerification(
   tx: Transaction,
-  evidence: {
-    registrationId: string;
+  verification: {
+    token: string;
     phoneE164: string;
-    actor: audit.Actor;
+    registrationId: string;
+    actor: PhoneVerificationActor;
     requestId?: string;
   },
-): Promise<void> {
+  otpSecret: string,
+): Promise<boolean> {
+  const { token, phoneE164, registrationId, actor, requestId } = verification;
+  if (
+    !(await redeemVerificationToken(tx, { token, phoneE164, purpose: "REGISTRATION" }, otpSecret))
+  ) {
+    return false;
+  }
   await safeQuery(() =>
     tx.insert(verificationEvidence).values({
-      registrationId: evidence.registrationId,
+      registrationId,
       kind: "PHONE_OTP",
-      phoneE164: evidence.phoneE164,
-      actorUserId: evidence.actor.type === "STAFF" ? evidence.actor.userId : null,
+      phoneE164,
+      actorUserId: actor.type === "STAFF" ? actor.userId : null,
     }),
   );
   await audit.write(tx, {
-    actor: evidence.actor,
+    actor,
     action: "registration.verify_phone",
     entityType: "registration",
-    entityId: evidence.registrationId,
+    entityId: registrationId,
     after: { evidence: "PHONE_OTP" },
-    requestId: evidence.requestId,
+    requestId,
   });
+  return true;
+}
+
+/**
+ * For the status check (FR-7, BR-13): spends a STATUS_CHECK token for the phone the member
+ * verified. Only a true result allows showing anything; call it in the transaction that reads
+ * the status. Records no evidence: no registration is created.
+ */
+export async function redeemStatusCheckVerification(
+  tx: Transaction,
+  verification: { token: string; phoneE164: string },
+  otpSecret: string,
+): Promise<boolean> {
+  return redeemVerificationToken(tx, { ...verification, purpose: "STATUS_CHECK" }, otpSecret);
 }
