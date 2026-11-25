@@ -5,6 +5,9 @@ src/db/migrations/meta/
 .open-next/
 .wrangler/
 docs/design/references/
+# Vendored Impeccable skill (#85)
+.claude/skills/impeccable/
+.claude/agents/impeccable-*.md
 # Hand-written project documents: keep their formatting as authored
 docs/
 CLAUDE.md

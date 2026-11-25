@@ -41,6 +41,15 @@ playwright/.cache/
 # Claude Code: local settings and reviewer worktrees (the agents in .claude/agents are shared)
 .claude/settings.local.json
 .claude/worktrees/
+.claude/launch.json
+
+# Impeccable (#85): the Claude Code copy in .claude/ is committed. Its engine binary is
+# downloaded and checked against engine-checksums.txt, and the GitHub Copilot copy isn't used.
+.claude/skills/impeccable/scripts/bin/
+.github/skills/impeccable/
+.github/agents/impeccable-*
+.github/hooks/impeccable.json
+.impeccable/
 
 # inlang SDK cache
 project.inlang/cache/
