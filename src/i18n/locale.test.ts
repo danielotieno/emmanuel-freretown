@@ -8,7 +8,7 @@ describe("resolveLocale", () => {
   });
 
   it("shows English on a first visit (#80)", () => {
-    expect(DEFAULT_LOCALE).toBe("en");
+    expect(resolveLocale(undefined)).toBe("en");
   });
 
   it("falls back to the default for missing or unsupported values", () => {

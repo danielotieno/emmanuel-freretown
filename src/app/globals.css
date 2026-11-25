@@ -24,10 +24,10 @@
   --color-success: #1e7a46;
 
   /* Typography (DESIGN.md §3). Self-hosted with next/font in src/app/(public)/fonts.ts. */
-  --font-display: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-display: var(--font-instrument-serif, Georgia), Georgia, "Times New Roman", serif;
   --font-sans:
-    var(--font-instrument-sans), system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
-    "Helvetica Neue", Arial, sans-serif;
+    var(--font-instrument-sans, system-ui), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Noto Sans", "Helvetica Neue", Arial, sans-serif;
 
   /* Breakpoints (DESIGN.md §4): base 0–599, sm 600, md 900, lg 1200 */
   --breakpoint-*: initial;

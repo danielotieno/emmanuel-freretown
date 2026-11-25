@@ -7,6 +7,8 @@
   "language_switch_label": "Language",
   "language_en": "English",
   "language_sw": "Kiswahili",
+  "language_en_short": "EN",
+  "language_sw_short": "SW",
   "landing_welcome": "Welcome to our church family.",
   "nav_label": "Main",
   "nav_about": "About",
