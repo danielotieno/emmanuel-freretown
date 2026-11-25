@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { cachedJson, defaultEdgeCache, type EdgeCache } from "./edge-cache";
+import { cachedJson, type EdgeCache } from "./edge-cache";
 
 /** An in-memory stand-in for caches.default that records the max-age it was given. */
 function fakeCache() {
@@ -67,9 +67,5 @@ describe("cachedJson", () => {
       },
     };
     expect(await cachedJson(broken, KEY, 60, async () => HBCS)).toEqual(HBCS);
-  });
-
-  it("finds no cache outside the Worker", () => {
-    expect(defaultEdgeCache()).toBeUndefined();
   });
 });

@@ -378,11 +378,14 @@ const HBC_CACHE_SECONDS = 6 * 60 * 60;
 
 /**
  * The cache key for the active HBC list, on this request's own host, so staging and production
- * (one Cloudflare zone) never share an entry. Bump the version if the cached shape changes.
+ * (one Cloudflare zone) never share an entry. Bump the version if the cached shape changes, or to
+ * refresh the list everywhere at once (docs/operations/environments.md).
  */
 async function hbcCacheKey(): Promise<string> {
+  // Hostname only, without a port or trailing dot, so odd forms of one host share one entry.
   const host = (await headers()).get("host") ?? "localhost";
-  return `https://${host}/_cache/hbcs-active/v1`;
+  const hostname = new URL(`https://${host}`).hostname.replace(/\.$/, "");
+  return `https://${hostname}/_cache/hbcs-active/v1`;
 }
 
 /** Rejects if the promise hasn't settled in time. The query itself carries on, unawaited. */

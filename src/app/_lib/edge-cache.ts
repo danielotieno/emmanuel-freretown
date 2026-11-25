@@ -25,7 +25,8 @@ export function defaultEdgeCache(): EdgeCache | undefined {
  * Returns the cached value for `key`, or loads it, stores it for `ttlSeconds` and returns it.
  * A failed load is not stored, so the next call tries again; it still throws to the caller.
  * Cache errors never fail the page: a broken read falls through to `load`, a broken write is
- * dropped.
+ * dropped. The write is awaited, adding a little time to a miss (once per period per data
+ * centre); `waitUntil` would avoid that but tie this file to the Worker runtime.
  */
 export async function cachedJson<T>(
   cache: EdgeCache | undefined,

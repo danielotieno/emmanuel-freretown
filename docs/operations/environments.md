@@ -23,6 +23,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
   - **Owner** (`neondb_owner`, or `postgres` locally): runs migrations only. Its connection string is the `DATABASE_URL` used by `pnpm db:migrate` and, later, the deploy pipeline (#7).
   - **App login** (`ack_app`): a member of `app_runtime` that owns nothing (database-design.md §4). Hyperdrive and local development use this one, so a missing grant fails in development, not in production.
 - Hyperdrive caching is **disabled** for every config. The registry must never serve a stale status or a stale "already voted".
+- **One deliberate cache (#88):** the homepage's list of active HBCs (ids and names, no personal data) is held in Cloudflare's Cache API for 6 hours in each Cloudflare data centre, under `https://<host>/_cache/hbcs-active/v1`, so bot traffic doesn't keep Neon awake. Registration and the status check are never cached. After an administrator adds, renames or retires an HBC, the homepage can show the old list for up to 6 hours. To refresh it everywhere, purge that URL in the Cloudflare dashboard (Caching → Configuration → Custom Purge), or deploy with the key's version bumped (`v1` → `v2` in `src/app/(public)/page.tsx`), or wait.
 - Connection strings and secrets live in Cloudflare, GitHub Actions secrets or a local `.env` / `.dev.vars`. Never in the repository, an issue or a chat.
 
 ## 1. Neon projects
