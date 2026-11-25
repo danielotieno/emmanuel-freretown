@@ -7,26 +7,27 @@
 @theme {
   --color-*: initial;
 
-  /* Brand palette (DESIGN.md §2) */
-  --color-paper: #fffef9; /* Baby Powder: default page background */
-  --color-cream: #fff7d6; /* Cornsilk: warm sections, cards, notices */
-  --color-sky: #7a9cef; /* Vista Blue: decoration, focus halo. Never text on light backgrounds */
-  --color-brand: #1330be; /* Persian Blue: primary buttons, links, headings */
+  /* Palette (DESIGN.md §2): clean white, Ocean Blue for action, sand and lagoon for calm panels */
+  --color-paper: #ffffff; /* page background */
+  --color-sand: #f7f5f0; /* warm neutral panels and the footer */
+  --color-lagoon: #e8f4f8; /* ocean-tinted panels, notices, selected options */
+  --color-brand: #0a5f86; /* Ocean Blue: primary buttons, links, active states (7.0:1 on paper) */
+  --color-brand-deep: #083f5a; /* hover, and dark bands with paper text (11.2:1) */
+  --color-gold: #e0a63a; /* crest accent. Never text on light backgrounds */
 
-  /* Supporting colours */
-  --color-ink: #101a3f; /* body text */
-  --color-ink-muted: #4a5578; /* secondary text */
-  --color-gold: #e0a63a; /* accent. Never text on light backgrounds */
+  /* Text and lines */
+  --color-ink: #0f1a24; /* body text and headings */
+  --color-ink-muted: #55606b; /* secondary text (5.7:1 or better on every panel) */
+  --color-line: #e3e0d9; /* hairlines: cards, dividers (decorative) */
+  --color-line-strong: #8a939c; /* input and control borders (3.1:1, WCAG 1.4.11) */
   --color-error: #b42318;
   --color-success: #1e7a46;
 
-  /* Derived from ink, for hairlines and input borders */
-  --color-line: color-mix(in oklab, var(--color-ink) 18%, transparent);
-
-  /* Typography (DESIGN.md §3). The display face is self-hosted later; until then it falls back. */
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  /* Typography (DESIGN.md §3). Self-hosted with next/font in src/app/(public)/fonts.ts. */
+  --font-display: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
   --font-sans:
-    system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+    var(--font-instrument-sans), system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
+    "Helvetica Neue", Arial, sans-serif;
 
   /* Breakpoints (DESIGN.md §4): base 0–599, sm 600, md 900, lg 1200 */
   --breakpoint-*: initial;
@@ -36,7 +37,8 @@
 
   /* Layout */
   --container-content: 70rem; /* ~1120px */
-  --container-form: 32rem;
+  --container-form: 34rem;
+  --container-prose: 42rem;
 }
 
 @layer base {
@@ -54,7 +56,10 @@
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 1.0625rem; /* 17px on mobile, never below 16px */
-    line-height: 1.55;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    /* Both faces ship one weight (DESIGN.md §3): never fake a bold. */
+    font-synthesis-weight: none;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
       env(safe-area-inset-left);
   }
@@ -69,8 +74,10 @@
   h2,
   h3 {
     font-family: var(--font-display);
-    color: var(--color-brand);
-    line-height: 1.15;
+    font-weight: 400;
+    color: var(--color-ink);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
 
@@ -81,8 +88,11 @@
 
   :focus-visible {
     outline: 3px solid var(--color-brand);
-    outline-offset: 2px;
-    box-shadow: 0 0 0 6px var(--color-sky);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background-color: var(--color-lagoon);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -94,5 +104,31 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/*
+ * Shared controls (DESIGN.md §2 and §4): pill buttons, quiet inputs. Primary actions are Ocean
+ * Blue and at least 48px tall; there is one per screen.
+ */
+@layer components {
+  .btn-primary {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-paper no-underline transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-line-strong bg-paper px-7 text-ink no-underline transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-text {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 px-2 text-ink no-underline hover:text-brand;
+  }
+
+  .field {
+    @apply block min-h-13 w-full rounded-xl border border-line-strong bg-paper px-4 py-3 text-ink transition-colors placeholder:text-ink-muted hover:border-ink focus-visible:border-brand aria-[invalid=true]:border-error;
+  }
+
+  .option {
+    @apply flex min-h-13 cursor-pointer items-start gap-3 rounded-xl border border-line-strong bg-paper p-4 transition-colors hover:border-ink has-checked:border-brand has-checked:bg-lagoon;
   }
 }

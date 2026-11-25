@@ -1,12 +1,24 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "site_name": "ACK Emmanuel Freretown - Kengeleni",
+  "site_name_short": "ACK Emmanuel",
+  "site_name_place": "Freretown - Kengeleni",
   "skip_to_content": "Skip to main content",
   "language_switch_label": "Language",
   "language_en": "English",
   "language_sw": "Kiswahili",
   "landing_welcome": "Welcome to our church family.",
-  "landing_preparing": "Our new website is being prepared. Member registration will open soon.",
+  "landing_eyebrow": "Anglican Church of Kenya · Diocese of Mombasa",
+  "landing_lead": "Join the parish register from your phone. It takes about 3 minutes, and your details stay with the church.",
+  "landing_privacy_cta": "How we use your details",
+  "landing_steps_title": "Register in three steps",
+  "landing_step1_title": "Fill in your details",
+  "landing_step1_body": "Your name, your FWO number if you have one, your HBC and your departments.",
+  "landing_step2_title": "Confirm your phone",
+  "landing_step2_body": "We send a 6-digit code by SMS to the phone you give us.",
+  "landing_step3_title": "Keep your reference",
+  "landing_step3_body": "The church reviews your registration and sends you an SMS when it is approved.",
+  "landing_preparing": "Our full website, with service times and programmes, is coming soon.",
   "sms_otp_code": "ACK Emmanuel Freretown - Kengeleni: your code is {code}. It expires in 5 minutes. Do not share it with anyone.",
   "sms_registration_submitted": "ACK Emmanuel Freretown - Kengeleni: we received your registration. Your reference is {reference}. We will send an SMS when it is approved.",
   "sms_registration_submitted_new_member": "ACK Emmanuel Freretown - Kengeleni: we received your registration, reference {reference}. Please see the Church Secretary to get your FWO number.",
@@ -123,5 +135,6 @@
   "cookies_security_body": "Cloudflare, which runs the website, may set its own security cookies, such as cf_clearance or __cf_bm, on any page when it checks for robots or automated traffic, to remember that a visitor passed its checks. They are not used for advertising. Cloudflare explains them on its Cloudflare Cookies page.",
   "cookies_control_heading": "Turning cookies off",
   "cookies_control_body": "You can delete or block cookies in your browser settings. If you do, the site may forget your language, and the check that you are not a robot may not work, so you may not be able to get a code.",
-  "footer_nav_label": "Privacy and terms"
+  "footer_nav_label": "Privacy and terms",
+  "footer_tagline": "An Anglican parish in Mombasa, part of the Anglican Church of Kenya."
 }

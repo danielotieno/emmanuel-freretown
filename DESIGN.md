@@ -5,59 +5,55 @@ Visual rules for ackemmanuelfreretown.org. Read with `PRODUCT.md`. Reference fil
 ## 1. Identity
 
 - **Crest.** The Diocese of Mombasa coat of arms: bishop's mitre with gold lappets above a shield with the red cross of St George on silver, over a blue sea bearing a gold anchor and crozier. The scan in `references/diocese-crest-scan.jpg` is a placeholder only: its colours are faded and the edges are soft. Obtain the official vector (SVG or high-resolution PNG) from the Diocese office and confirm the parish may use it. Do not trace, redraw or recolour the crest.
-- **Parish lockup.** Crest at small size beside "ACK Emmanuel Freretown - Kengeleni" set in the display face. If the parish has its own emblem, it takes this place and the crest moves to the footer.
+- **Parish lockup.** Crest at small size beside "ACK Emmanuel" in the display face, with "Freretown - Kengeleni" beneath in small muted text (`src/components/site-header.tsx`). Until the official file arrives, the site uses `src/components/crest.webp`, cut from the scan with its colour lifted slightly (#80). If the parish has its own emblem, it takes this place and the crest moves to the footer.
 - **Motifs drawn from the crest**, used sparingly as lightweight SVG: a single wave line (the sea) as a section divider; the anchor as a small mark for "hope" and for the Freretown coast. Never use the cross or mitre as decoration.
 
 ## 2. Colour
 
-Brand palette (supplied):
+Clean white pages, Ocean Blue for action, and two calm panel tints: the coast at Mombasa. Agreed with the technical lead on 25 Nov 2026 (#80). It replaces the first palette (Persian Blue, Vista Blue, Cornsilk; `references/palette.jpeg`), which no longer appears in the interface.
 
 | Token | Hex | Name | Role |
 |---|---|---|---|
-| `--color-paper` | `#FFFEF9` | Baby Powder | Default page background |
-| `--color-cream` | `#FFF7D6` | Cornsilk | Warm section background, cards, highlighted notices |
-| `--color-sky` | `#7A9CEF` | Vista Blue | Decorative fills, illustrations, large headline blocks, focus halo. **Never text on light backgrounds** |
-| `--color-brand` | `#1330BE` | Persian Blue | Primary buttons, links, headings, active states |
-
-Supporting colours (added to fill gaps in the palette; adjust only with contrast re-checked):
-
-| Token | Hex | Role |
-|---|---|---|
-| `--color-ink` | `#101A3F` | Body text (a deep navy drawn from Persian Blue) |
-| `--color-ink-muted` | `#4A5578` | Secondary text, hints, captions |
-| `--color-gold` | `#E0A63A` | Accent from the crest's mitre and anchor: small highlights, icons on dark backgrounds, illustration. **Never text on light backgrounds** |
-| `--color-error` | `#B42318` | Validation errors |
-| `--color-success` | `#1E7A46` | Confirmations |
+| `--color-paper` | `#FFFFFF` | Paper | Page background |
+| `--color-sand` | `#F7F5F0` | Sand | Warm neutral panels, the footer, progress track |
+| `--color-lagoon` | `#E8F4F8` | Lagoon | Ocean-tinted panels, notices, selected options |
+| `--color-brand` | `#0A5F86` | Ocean Blue | The crest's sea, deepened. Primary buttons, links, active states, accents in headings |
+| `--color-brand-deep` | `#083F5A` | Deep Ocean | Hover on primary buttons; dark bands with paper text |
+| `--color-gold` | `#E0A63A` | Crest gold | Small highlights and icons on dark backgrounds. **Never text on light backgrounds** |
+| `--color-ink` | `#0F1A24` | Ink | Body text and headings |
+| `--color-ink-muted` | `#55606B` | Muted ink | Secondary text, hints, captions |
+| `--color-line` | `#E3E0D9` | Hairline | Card borders and dividers (decorative) |
+| `--color-line-strong` | `#8A939C` | Control line | Input, checkbox-card and outline-button borders |
+| `--color-error` | `#B42318` | | Validation errors |
+| `--color-success` | `#1E7A46` | | Confirmations |
 
 Measured contrast (WCAG 2.2):
 
 | Pair | Ratio | Use |
 |---|---|---|
-| Ink on Paper | 16.75 | Body text ✓ |
-| Ink on Cornsilk | 15.73 | Body text ✓ |
-| Persian on Paper | 9.48 | Headings, links, buttons ✓ |
-| Paper on Persian | 9.48 | Button labels ✓ |
-| Persian on Cornsilk | 8.90 | ✓ |
-| Ink-muted on Paper | 7.27 | Secondary text ✓ |
-| Ink on Vista | 6.31 | Text on sky blocks ✓ |
-| Ink on Gold | 7.80 | Badges ✓ |
-| Error on Paper | 6.51 | ✓ |
-| Success on Paper | 5.30 | ✓ |
-| Persian on Vista | 3.57 | Large text (24px+, or 19px bold) and icons only |
-| Vista on Paper | 2.66 | ✗ Decoration only |
-| Gold on Paper | 2.15 | ✗ Decoration only |
+| Ink on Paper / Sand / Lagoon | 17.6 / 16.2 / 15.7 | Body text ✓ |
+| Muted ink on Paper / Sand / Lagoon | 6.4 / 5.9 / 5.7 | Secondary text ✓ |
+| Ocean Blue on Paper / Sand / Lagoon | 7.0 / 6.4 / 6.3 | Links, accents ✓ |
+| Paper on Ocean Blue | 7.0 | Button labels ✓ |
+| Paper on Deep Ocean | 11.2 | Text on dark bands ✓ |
+| Gold on Deep Ocean | 5.2 | Highlights on dark bands ✓ |
+| Error on Paper / Lagoon | 6.6 / 5.9 | ✓ |
+| Success on Paper | 5.4 | ✓ |
+| Control line on Paper | 3.1 | Input boundaries (WCAG 1.4.11) ✓ |
+| Hairline on Paper | 1.5 | ✗ Decoration only, never the only boundary of a control |
 
 Rules:
-- One primary action per screen, in Persian Blue. Secondary actions are outlined or text links.
+- One primary action per screen: a solid Ocean Blue pill. Secondary actions are outlined pills or text links with an arrow.
 - Status is never shown by colour alone: always an icon and words.
-- Light theme only in Release 1 (outdoor readability). Tokens are defined as CSS variables so a dark theme can be added later.
+- Light theme only in Release 1 (outdoor readability). Tokens are CSS variables in `src/app/globals.css`, so a dark theme can be added later.
 - Automated contrast checks (axe in Playwright) run on every public page.
 
 ## 3. Typography
 
-- **Display face:** one warm serif with personality for headings and the landing page (direction: something like Fraunces). Self-hosted, Latin subset, WOFF2, at most one file around 40 KB, `font-display: swap`.
-- **Body:** the system font stack. No download, fast on every phone, good Kiswahili rendering.
-- Body text 17–18px on mobile (never below 16px), line height 1.5–1.6, line length 60–70 characters on wide screens.
+- **Headings:** Instrument Serif, regular (400), slightly tight tracking (−0.02em). Editorial and calm; large sizes carry the personality, never bold weights.
+- **Body and controls:** Instrument Sans, regular (400) only. The variable 400–600 file is nearly twice the size and took the pages over the 200 KB budget, so hierarchy comes from size, colour and the serif, never bold. Faked bold is turned off (`font-synthesis-weight: none`).
+- Both are self-hosted with `next/font/local` (`src/app/(public)/fonts.ts`), subset to the characters English and Kiswahili use, about 27 KB together, preloaded with `font-display: swap` and a size-matched fallback. Licences in `src/app/fonts/README.md`.
+- Body text 17px on mobile and 18px from `sm` (never below 16px), line height 1.6, line length 60–70 characters on wide screens.
 - Fluid headings with `clamp()`; no heading so large that a Kiswahili phrase breaks awkwardly on a 360px screen. Test every heading in both languages.
 - Tabular figures for references, FWO numbers, times and dates.
 
@@ -74,7 +70,8 @@ Mobile first: design at **360 × 800** before anything else.
 
 - **Forms stay single column at every size**, max width about 32rem, even on desktop.
 - Use container queries for cards (departments, HBCs, programmes) so they adapt to their column, not just the viewport.
-- Touch targets at least 48 × 48px with 8px between them.
+- Primary controls (buttons, inputs, options) are at least 48px tall. Small secondary controls, such as the language switch, are at least 32px (WCAG 2.2 asks for 24px). Leave 8px between targets.
+- Shapes: pill buttons (`rounded-full`), 12px radius on inputs and options, 16–24px on panels. Shared classes `btn-primary`, `btn-secondary`, `btn-text`, `field` and `option` live in `globals.css`.
 - Respect `prefers-reduced-motion`; motion is subtle and never blocks input.
 - Safe-area padding for phones with notches (`viewport-fit=cover`).
 - Test viewports in Playwright: 360×800 (low-end Android), 375×667 (small iPhone), 768×1024 (tablet), 1280×800 (laptop).
@@ -99,7 +96,8 @@ Mobile first: design at **360 × 800** before anything else.
 ## 7. Inspiration and what we take from it
 
 - **tihada.com.** Kenyan identity through a local skyline silhouette; "how it works" as short numbered steps; plain promises such as "no account needed"; FAQ in everyday language. *Take:* a Mombasa coastline or Freretown silhouette, "Register in 3 steps", plain reassurances.
-- **ardia.dev.** Warm paper-toned background; one painterly illustration that gives the site a personality; an honest FAQ ("Fair questions") and plainly written privacy notes. *Take:* the paper warmth (Baby Powder and Cornsilk), one hand-made illustration, and a "Fair questions" section on registration: why we need your phone number, where your details are stored, who can see them.
+- **ardia.dev.** Warm paper-toned background; one painterly illustration that gives the site a personality; an honest FAQ ("Fair questions") and plainly written privacy notes. *Take:* the warmth of its sand-toned panels, one hand-made illustration, and a "Fair questions" section on registration: why we need your phone number, where your details are stored, who can see them.
+- **kurax.vercel.app** (the main reference, #80). Clean white space, editorial serif headings over a plain sans, pill buttons, hairline borders, calm tinted panels, numbered steps (01, 02, 03). *Take:* that restraint and rhythm, with Ocean Blue in place of its purple. Not its fintech imagery, mock-ups or copy.
 - **siteinspire.com.** A gallery to browse. When a site is used as a reference, add it here with one line on what specifically to take from it.
 
 Take ideas, not assets: no copying another site's illustrations, layouts or copy.

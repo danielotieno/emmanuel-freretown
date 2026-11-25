@@ -52,15 +52,15 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
   if (step === "done") {
     return (
       <section aria-labelledby="step-heading" className="space-y-5">
-        <h2 id="step-heading" tabIndex={-1} className="text-2xl outline-none">
+        <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
           {text.doneTitle}
         </h2>
-        <div className="rounded-lg bg-cream p-5">
-          <p className="text-ink-muted">{text.doneReference}</p>
-          <p className="mt-1 font-display text-3xl font-semibold tracking-wide text-brand tabular-nums">
+        <div className="rounded-2xl bg-lagoon p-6">
+          <p className="text-sm text-ink-muted">{text.doneReference}</p>
+          <p className="mt-1 font-display text-4xl tracking-wide text-brand tabular-nums">
             {state.reference}
           </p>
-          <p className="mt-2">{text.doneSms}</p>
+          <p className="mt-3 text-ink-muted">{text.doneSms}</p>
         </div>
         <p>{text.doneNext}</p>
       </section>
@@ -75,25 +75,27 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
     .map((d) => d.name);
 
   return (
-    <form action={formAction} noValidate className="space-y-6">
-      <p className="text-ink-muted tabular-nums" aria-live="polite">
-        {text.progress
-          .replace("{current}", String(index))
-          .replace("{total}", String(COUNTED_STEPS))}
-      </p>
-      <progress
-        value={index}
-        max={COUNTED_STEPS}
-        aria-hidden="true"
-        className="h-2 w-full overflow-hidden rounded-full [&::-moz-progress-bar]:bg-brand [&::-webkit-progress-bar]:bg-cream [&::-webkit-progress-value]:bg-brand"
-      />
+    <form action={formAction} noValidate className="space-y-7">
+      <div className="space-y-2">
+        <p className="text-sm text-ink-muted tabular-nums" aria-live="polite">
+          {text.progress
+            .replace("{current}", String(index))
+            .replace("{total}", String(COUNTED_STEPS))}
+        </p>
+        <progress
+          value={index}
+          max={COUNTED_STEPS}
+          aria-hidden="true"
+          className="block h-1.5 w-full overflow-hidden rounded-full [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-brand [&::-webkit-progress-bar]:bg-sand [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-brand"
+        />
+      </div>
 
       <input type="hidden" name="step" value={step} />
       {state.challengeId && <input type="hidden" name="challengeId" value={state.challengeId} />}
       {hidden}
 
       {state.notice && (
-        <p role="alert" className="rounded-md border-l-4 border-error bg-paper p-4 text-error">
+        <p role="alert" className="rounded-xl border border-error/30 bg-error/5 p-4 text-error">
           <span aria-hidden="true">⚠ </span>
           {state.notice}
         </p>
@@ -155,7 +157,7 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
       {step === "departments" && (
         <fieldset aria-describedby="departments-hint departments-error" className="space-y-3">
           <legend>
-            <h2 id="step-heading" tabIndex={-1} className="text-2xl outline-none">
+            <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
               {text.departmentsLabel}
             </h2>
           </legend>
@@ -164,16 +166,13 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
           </p>
           <FieldError id="departments-error" message={errors.departmentIds} />
           {departments.map((d) => (
-            <label
-              key={d.id}
-              className="flex min-h-12 items-center gap-3 rounded-md border border-line px-4"
-            >
+            <label key={d.id} className="option items-center">
               <input
                 type="checkbox"
                 name="departmentIds"
                 value={d.id}
                 defaultChecked={values.departmentIds.includes(d.id)}
-                className="size-5 accent-brand"
+                className="size-5 shrink-0 accent-brand"
               />
               {d.name}
             </label>
@@ -194,7 +193,7 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
             {...invalid("phone", errors)}
             className={`${INPUT} tabular-nums`}
           />
-          <p className="rounded-md bg-cream p-4">{text.phoneOwn}</p>
+          <p className="rounded-xl bg-lagoon p-4 text-ink">{text.phoneOwn}</p>
           <WhyWeAsk title={text.whyWeAsk}>{text.phoneWhy}</WhyWeAsk>
         </Question>
       )}
@@ -202,7 +201,7 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
       {step === "declarations" && (
         <fieldset className="space-y-4">
           <legend>
-            <h2 id="step-heading" tabIndex={-1} className="text-2xl outline-none">
+            <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
               {text.declarationsTitle}
             </h2>
           </legend>
@@ -218,7 +217,7 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
             label={text.privacyLabel}
             error={errors.privacyAcknowledged}
             extra={
-              <a href="/privacy" target="_blank" rel="noopener" className="font-semibold">
+              <a href="/privacy" target="_blank" rel="noopener">
                 {text.privacyLink}
               </a>
             }
@@ -235,10 +234,10 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
 
       {step === "review" && (
         <section aria-labelledby="step-heading" className="space-y-4">
-          <h2 id="step-heading" tabIndex={-1} className="text-2xl outline-none">
+          <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
             {text.reviewTitle}
           </h2>
-          <dl className="divide-y divide-line rounded-lg border border-line">
+          <dl className="divide-y divide-line rounded-2xl border border-line">
             <Row term={text.nameLabel}>{values.fullName}</Row>
             <Row term={text.fwoLabel}>
               {values.isNewMember ? (
@@ -261,7 +260,7 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
           {/* Shown until JavaScript runs (no Turnstile without it, so no code), and wherever
               Turnstile isn't configured: the church office can still register the member. */}
           {(!scripted || !turnstileSiteKey) && (
-            <p className="rounded-md bg-cream p-4">{text.jsNeeded}</p>
+            <p className="rounded-xl bg-lagoon p-4">{text.jsNeeded}</p>
           )}
         </section>
       )}
@@ -280,13 +279,13 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
             autoComplete="one-time-code"
             maxLength={6}
             {...invalid("code", errors)}
-            className={`${INPUT} max-w-[10ch] text-center text-2xl tracking-[0.3em] tabular-nums`}
+            className={`${INPUT} max-w-[11ch] text-center text-2xl tracking-[0.3em] tabular-nums`}
           />
         </Question>
       )}
 
       {/* The primary button comes first in the markup: pressing Enter submits the first one. */}
-      <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-between">
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row-reverse sm:justify-between">
         <button type="submit" name="intent" value="next" disabled={pending} className={PRIMARY}>
           {step === "review" ? text.sendCode : step === "code" ? text.verify : text.continue}
         </button>
@@ -320,12 +319,10 @@ function useScripted(): boolean {
   );
 }
 
-const INPUT =
-  "block min-h-12 w-full rounded-md border border-line bg-paper px-4 py-3 text-ink aria-[invalid=true]:border-error";
-const PRIMARY =
-  "min-h-12 w-full rounded-md bg-brand px-6 font-semibold text-paper disabled:opacity-60 sm:w-auto";
-const SECONDARY =
-  "min-h-12 w-full rounded-md border border-line px-6 text-brand hover:bg-cream disabled:opacity-60 sm:w-auto";
+// Shared control styles live in globals.css (@layer components).
+const INPUT = "field";
+const PRIMARY = "btn-primary w-full sm:w-auto";
+const SECONDARY = "btn-secondary w-full sm:w-auto";
 
 function invalid(field: ErrorField, errors: RegistrationState["errors"]) {
   return {
@@ -365,7 +362,7 @@ function Question(props: {
 }) {
   return (
     <div className="space-y-3">
-      <h2 id="step-heading" tabIndex={-1} className="text-2xl outline-none">
+      <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
         <label htmlFor={props.id}>{props.label}</label>
       </h2>
       {props.hint && (
@@ -381,7 +378,7 @@ function Question(props: {
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   return (
-    <p id={id} className="font-semibold text-error empty:hidden">
+    <p id={id} className="text-error empty:hidden">
       {message && (
         <>
           <span aria-hidden="true">⚠ </span>
@@ -403,7 +400,7 @@ function Tick(props: {
   return (
     <div className="space-y-1">
       <FieldError id={`${props.name}-error`} message={props.error} />
-      <label className="flex min-h-12 items-start gap-3 rounded-md border border-line p-4">
+      <label className="option">
         <input
           type="checkbox"
           name={props.name}
@@ -428,17 +425,22 @@ function Tick(props: {
 
 function WhyWeAsk({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <details className="rounded-md border border-line p-4">
-      <summary className="cursor-pointer font-semibold text-brand">{title}</summary>
-      <p className="mt-2">{children}</p>
+    <details className="group rounded-xl border border-line p-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-ink [&::-webkit-details-marker]:hidden">
+        {title}
+        <span aria-hidden="true" className="text-xl leading-none text-brand group-open:rotate-45">
+          +
+        </span>
+      </summary>
+      <p className="mt-3 text-ink-muted">{children}</p>
     </details>
   );
 }
 
 function Row({ term, children }: { term: string; children: ReactNode }) {
   return (
-    <div className="grid gap-1 p-4 sm:grid-cols-3">
-      <dt className="text-ink-muted">{term}</dt>
+    <div className="grid gap-1 px-5 py-4 sm:grid-cols-3">
+      <dt className="text-sm text-ink-muted sm:text-base">{term}</dt>
       <dd className="sm:col-span-2">{children}</dd>
     </div>
   );

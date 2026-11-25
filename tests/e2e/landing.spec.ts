@@ -5,17 +5,33 @@ import sw from "../../messages/sw.json" with { type: "json" };
 
 const PAGE_WEIGHT_BUDGET_BYTES = 200 * 1024; // NFR-2
 
-test("shows Kiswahili on a first visit and remembers a switch to English", async ({ page }) => {
+test("shows English on a first visit and remembers a switch to Kiswahili (#80)", async ({
+  page,
+}) => {
   await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(en.landing_welcome);
+  await expect(page.getByRole("button", { name: en.language_en })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.getByRole("button", { name: sw.language_sw }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "sw");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(sw.landing_welcome);
 
-  await page.getByRole("button", { name: en.language_en }).click();
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(en.landing_welcome);
-
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(en.landing_welcome);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(sw.landing_welcome);
+});
+
+test("links to registration with a plain link (Turnstile's CSP is per page load)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const link = page.getByRole("link", { name: en.reg_title });
+  await expect(link).toHaveAttribute("href", "/registration");
+  await link.click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(en.reg_title);
 });
 
 test.describe("without JavaScript", () => {
@@ -23,8 +39,8 @@ test.describe("without JavaScript", () => {
 
   test("the language switch still works", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: en.language_en }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(en.landing_welcome);
+    await page.getByRole("button", { name: sw.language_sw }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(sw.landing_welcome);
   });
 });
 
@@ -57,8 +73,8 @@ test("sends a nonce-based CSP and the page runs without violations", async ({ pa
   expect(csp).toContain("frame-ancestors 'none'");
 
   // Hydration must still work under the policy: switching language uses client JS.
-  await page.getByRole("button", { name: en.language_en }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(en.landing_welcome);
+  await page.getByRole("button", { name: sw.language_sw }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(sw.landing_welcome);
   expect(violations).toEqual([]);
 });
 

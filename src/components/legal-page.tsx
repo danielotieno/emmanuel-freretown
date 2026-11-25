@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LanguageSwitch } from "@/components/language-switch";
+import { SiteHeader } from "@/components/site-header";
 import type { Locale } from "@/i18n/locale";
 import { m } from "@/paraglide/messages";
 
@@ -30,26 +30,21 @@ export function LegalPage(props: {
   const englishOnly = locale === "en" ? undefined : m.legal_english_only({}, { locale });
   return (
     <>
-      <header className="mx-auto flex max-w-content flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <Link href="/" className="font-display text-lg font-semibold text-brand no-underline">
-          {m.site_name({}, { locale })}
-        </Link>
-        <LanguageSwitch locale={locale} />
-      </header>
-      <main id="main" className="mx-auto max-w-[44rem] px-4 pt-6 pb-16 sm:px-6">
-        <h1 className="text-[clamp(1.75rem,5vw,2.5rem)]">{props.title}</h1>
-        <p className="mt-2 text-ink-muted tabular-nums">
+      <SiteHeader locale={locale} />
+      <main id="main" className="mx-auto max-w-prose px-4 pt-6 sm:px-6 sm:pt-12">
+        <h1 className="text-[clamp(2.25rem,6vw,3.25rem)]">{props.title}</h1>
+        <p className="mt-3 text-sm text-ink-muted tabular-nums">
           {m.legal_version({ version: props.version }, { locale })}
         </p>
-        {englishOnly && <p className="mt-4 rounded-md bg-cream p-4">{englishOnly}</p>}
-        <div lang="en" className="mt-6 space-y-8">
-          <p>{props.intro}</p>
+        {englishOnly && <p className="mt-6 rounded-xl bg-lagoon p-4">{englishOnly}</p>}
+        <div lang="en" className="mt-8 space-y-10">
+          <p className="text-lg text-ink-muted">{props.intro}</p>
           {props.sections.map((section) => (
             <section key={section.heading} className="space-y-3">
-              <h2 className="text-2xl">{section.heading}</h2>
+              <h2 className="text-3xl">{section.heading}</h2>
               {section.intro && <p>{section.intro}</p>}
               {section.list && (
-                <ul className="list-disc space-y-2 pl-6">
+                <ul className="list-disc space-y-2 pl-6 marker:text-brand">
                   {section.list.split("\n").map((item) => (
                     <li key={item}>{item}</li>
                   ))}
@@ -61,8 +56,11 @@ export function LegalPage(props: {
             </section>
           ))}
         </div>
-        <p className="mt-12">
-          <Link href="/">{m.legal_back_home({}, { locale })}</Link>
+        <p className="mt-14 border-t border-line pt-6">
+          <Link href="/" prefetch={false}>
+            <span aria-hidden="true">← </span>
+            {m.legal_back_home({}, { locale })}
+          </Link>
         </p>
       </main>
     </>

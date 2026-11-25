@@ -4,6 +4,7 @@ import { getLocale } from "@/app/_lib/i18n";
 import { SiteFooter } from "@/components/site-footer";
 import { m } from "@/paraglide/messages";
 import "../globals.css";
+import { instrumentSans, instrumentSerif } from "./fonts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -17,22 +18,22 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#fffef9",
+  themeColor: "#ffffff",
 };
 
 /** Root layout for the public site: landing, registration, status check and voting. */
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   return (
-    <html lang={locale}>
-      <body className="min-h-dvh">
+    <html lang={locale} className={`${instrumentSerif.variable} ${instrumentSans.variable}`}>
+      <body className="flex min-h-dvh flex-col">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-10 focus:rounded-md focus:bg-paper focus:p-3"
         >
           {m.skip_to_content({}, { locale })}
         </a>
-        {children}
+        <div className="flex-1">{children}</div>
         <SiteFooter locale={locale} />
       </body>
     </html>

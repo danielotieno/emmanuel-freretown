@@ -56,7 +56,8 @@ for (const { path, title } of PAGES) {
 }
 
 test("in Kiswahili, says the page is in English and where to ask (D44)", async ({ browser }) => {
-  const context = await browser.newContext(); // first visit: Kiswahili
+  const context = await browser.newContext();
+  await context.addCookies([{ name: "PARAGLIDE_LOCALE", value: "sw", url: "http://localhost" }]);
   const page = await context.newPage();
   await page.goto("/privacy");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(sw.privacy_title);
