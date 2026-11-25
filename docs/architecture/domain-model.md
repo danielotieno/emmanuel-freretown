@@ -69,6 +69,17 @@ SUBMITTED | CORRECTION_REQUESTED ──withdraw──► WITHDRAWN
 
 `ACTIVE ⇄ INACTIVE`, `ACTIVE | INACTIVE → DECEASED`, `ACTIVE | INACTIVE → TRANSFERRED_OUT`. Every change needs a reason.
 
+### Audit entries
+
+Every state change calls `audit.write(tx, entry)` inside the transaction that makes the change (CLAUDE.md rule 4, BR-12). It takes a transaction, not a database, so the entry and the change commit or roll back together. The database sets the time; the application cannot change or delete an entry (FR-11).
+
+- **Entity type.** Everything that belongs to a registration (its revisions, verification evidence and decisions) uses `entity_type = 'registration'` and the registration's id (the uuid, never the reference), so retention redaction removes it (BR-14). Redaction matches the id's exact text, so `audit.write` accepts only a lowercase uuid for every entity type except `staff_user`, whose ids are Better Auth's text ids. Other types: `member`, `hbc`, `department`, `staff_user`; add one when a module first audits a new kind of record.
+- **Action.** `<entity type>.<verb>` in lowercase snake_case (digits allowed), e.g. `registration.approve`, `member.transfer_hbc`.
+- **Actor.** `STAFF` with the staff user id, `PUBLIC` with no id (never a phone number, FWO number or name), or `SYSTEM` for scheduled jobs.
+- **Before and after.** Only the fields that changed (`audit.changes(old, new)`). Personal values are allowed where the change needs them; secrets never are. As a safety net, `audit.write` refuses keys that look like an OTP code, hash, PIN, salt, password, token, cookie, authorization or key, at any depth; it cannot recognise a secret under an unrelated name, so callers must never pass one.
+- **Access to personal data (D31).** `audit.recordAccess(db, event)`, awaited before the data is returned: opening a registration or member record (`registration.view`, `member.view`), a search (`member.search`, with the number of results, never the terms) and an export (`member.export`, with the row count). Searches and exports use entity id `*`. Queue and list pages are not recorded.
+- **Not audited.** Housekeeping jobs that delete short-lived rows after their retention period (OTP challenges, rate-limit buckets, SMS outbox rows; database-design.md §6) change no business state and write no entry. Retention redaction, which does, writes `registration.redact`.
+
 ## 4. Elections (Release 2 — draft)
 
 ### Confirmed rules

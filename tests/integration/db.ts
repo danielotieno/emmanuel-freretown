@@ -1,6 +1,37 @@
+import { TransactionRollbackError } from "drizzle-orm/errors";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { Client, DatabaseError } from "pg";
 import { afterAll, beforeAll, beforeEach, afterEach } from "vitest";
+import { schema, type Database, type Transaction } from "../../src/db";
 import { testDatabaseUrl } from "./env";
+
+/**
+ * For module functions that take a Drizzle transaction. One connection per test file, without
+ * the per-test BEGIN of `connectTestDb` (Drizzle opens its own transaction); wrap each test's
+ * work in `rolledBack` instead.
+ */
+export function connectTestDrizzle(): Database {
+  const client = new Client({ connectionString: testDatabaseUrl() });
+  beforeAll(() => client.connect());
+  afterAll(() => client.end());
+  return drizzle(client, { schema });
+}
+
+/**
+ * Runs `fn` in a Drizzle transaction that is always rolled back, so tests never see each
+ * other's rows. Inside, `tx.transaction(…)` opens a savepoint: use it to test what happens
+ * when a transaction fails.
+ */
+export async function rolledBack(db: Database, fn: (tx: Transaction) => Promise<void>) {
+  try {
+    await db.transaction(async (tx) => {
+      await fn(tx);
+      tx.rollback();
+    });
+  } catch (error) {
+    if (!(error instanceof TransactionRollbackError)) throw error;
+  }
+}
 
 /**
  * One connection per test file. Each test runs inside a transaction that is rolled back,
