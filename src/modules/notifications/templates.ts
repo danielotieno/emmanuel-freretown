@@ -11,9 +11,9 @@ const referenceOnly = z.strictObject({ reference });
  * The SMS templates (FR-8, BR-16), each with the only parameters it may carry: the reference.
  * SMS text contains nothing beyond the reference and status, and never a name, FWO number or
  * department. Text lives in messages/en.json and messages/sw.json (rule 9, NFR-5). Every
- * text opens with "ACK Emmanuel Freretown - Kengeleni:": SMS come from the shared MOBILESASA
- * sender (D43), so the opening words identify the church as the sender. They don't prove it:
- * anyone can send any text from a shared sender. Only our own sender ID would.
+ * text opens with the church's name (the website's `site_name`) and a colon: SMS come from the
+ * shared MOBILESASA sender (D43), so the opening words identify the church as the sender. They
+ * don't prove it: anyone can send any text from a shared sender. Only our own sender ID would.
  */
 const TEMPLATES = {
   "registration.submitted": {
