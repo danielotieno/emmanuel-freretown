@@ -96,7 +96,7 @@ Mobile first: design at **360 × 800** before anything else.
 ## 7. Inspiration and what we take from it
 
 - **tihada.com.** Kenyan identity through a local skyline silhouette; "how it works" as short numbered steps; plain promises such as "no account needed"; FAQ in everyday language. *Take:* a Mombasa coastline or Freretown silhouette, "Register in 3 steps", plain reassurances.
-- **ardia.dev.** Warm paper-toned background; one painterly illustration that gives the site a personality; an honest FAQ ("Fair questions") and plainly written privacy notes. *Take:* the warmth of its sand-toned panels, one hand-made illustration, and a "Fair questions" section on registration: why we need your phone number, where your details are stored, who can see them.
+- **ardia.dev.** Warm paper-toned background; one painterly illustration that gives the site a personality; an honest FAQ ("Fair questions") and plainly written privacy notes. *Take:* the warmth of its sand-toned panels and a "Fair questions" section on registration: why we need your phone number, where your details are stored, who can see them. Not its illustration: the homepage photo is our one large image (D46, §5).
 - **kurax.vercel.app** (the main reference, #80). Clean white space, editorial serif headings over a plain sans, pill buttons, hairline borders, calm tinted panels, numbered steps (01, 02, 03). *Take:* that restraint and rhythm, with Ocean Blue in place of its purple. Not its fintech imagery, mock-ups or copy.
 - **siteinspire.com.** A gallery to browse. When a site is used as a reference, add it here with one line on what specifically to take from it.
 
