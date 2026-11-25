@@ -16,6 +16,11 @@ const smsEnv = z.object({
   ),
 });
 
+/** Whether the environment has the SMS secrets (local runs and CI don't). */
+export function isSmsConfigured(env: Record<string, unknown>): boolean {
+  return smsEnv.safeParse(env).success;
+}
+
 /**
  * The SMS provider configured by the environment. Throws a SafeError naming no value if a
  * secret is missing, so a misconfigured environment fails loudly instead of dropping SMS.
@@ -41,10 +46,10 @@ export async function checkSmsBalance(
   db: DbOrTx,
   provider: SmsProvider,
 ): Promise<{ units: number; threshold: number; low: number }> {
-  const [units, threshold] = await Promise.all([
-    provider.balance(),
-    getSmsSetting(db, "low_balance_units"),
-  ]);
+  // One after the other: if the provider call failed while the query was still running, the
+  // job's database handle would close under it.
+  const threshold = await getSmsSetting(db, "low_balance_units");
+  const units = await provider.balance();
   const low = units < threshold ? 1 : 0;
   if (low) {
     reportError(new SafeError("sms_low_balance", "SMS balance is low; top up the account"), {

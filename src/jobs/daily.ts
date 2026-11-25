@@ -1,6 +1,7 @@
 import { redactExpiredRegistrations } from "../modules/audit";
 import {
   checkSmsBalance,
+  isSmsConfigured,
   purgeOldSms,
   smsProviderFromEnv,
   sweepPendingSms,
@@ -38,8 +39,13 @@ export const DAILY_JOBS: DailyJob[] = [
   { name: "sms.sweep", run: async (db, ctx) => sweepPendingSms(db, ctx.jobs) },
   { name: "sms.purge", run: async (db) => ({ deleted: await purgeOldSms(db) }) },
   {
+    // Skipped where Mobile Sasa isn't configured (local runs, CI's smoke test). A missing token
+    // in staging or production still surfaces: the first SMS send fails and is reported.
     name: "sms.balance",
-    run: async (db, ctx) => checkSmsBalance(db, smsProviderFromEnv(ctx.env)),
+    run: async (db, ctx): Promise<JobResult> =>
+      isSmsConfigured(ctx.env)
+        ? checkSmsBalance(db, smsProviderFromEnv(ctx.env))
+        : { skipped: "sms_not_configured" },
   },
   {
     name: "retention.redact",

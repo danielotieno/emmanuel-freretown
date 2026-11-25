@@ -4,7 +4,7 @@
  * Public API of this module. Other code imports only from here.
  */
 export { getSmsSetting, reserveSms, type SmsSettingKey } from "./cap";
-export { checkSmsBalance, smsProviderFromEnv } from "./config";
+export { checkSmsBalance, isSmsConfigured, smsProviderFromEnv } from "./config";
 export {
   recordDeliveryReport,
   verifyDeliverySignature,
