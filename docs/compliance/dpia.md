@@ -47,7 +47,7 @@ The parish is replacing an unreliable paper list (D5) with a verified register o
 - **Storage.** PostgreSQL on Neon, AWS Frankfurt region (EU), production on the Launch plan with a 7-day restore window (D26). Nightly encrypted backups in Cloudflare R2 (#8).
 - **Application.** Cloudflare Workers (global edge network); the staff portal is on a separate host behind Cloudflare Access.
 - **Transfers outside Kenya.** The database and backups are in the EU; the application runs on Cloudflare's network; GitHub Actions runners (which run the backup job) and Sentry may be outside the EU. Every member gives explicit, separate consent to storage outside Kenya (BR-15), as s. 49(1) requires for sensitive data.
-- **Retention and deletion.** Rejected and withdrawn registrations are redacted after 12 months, including their audit entries (BR-14, D13). One-time codes are deleted after expiry. Backups expire on a lifecycle rule (#8). **Not yet decided:** how long records of deceased and transferred-out members are kept (Q13).
+- **Retention and deletion.** Rejected and withdrawn registrations are redacted after 12 months, including their audit entries (BR-14, D13). One-time codes are deleted after expiry. Backups expire on a lifecycle rule (#8). Members marked deceased or transferred out have their name, phone number and departments removed one year later; the FWO number is kept so it is never reissued (D45).
 - **People affected.** About 600 adult members, plus around 10 staff users.
 
 ### 6. Compliance with the data protection principles (s. 25)
@@ -58,7 +58,7 @@ The parish is replacing an unreliable paper list (D5) with a verified register o
 | Purpose limitation | Used only to keep the register and, from Release 2, to run church elections. No marketing, no sharing with the Diocese or third parties |
 | Data minimisation | No date of birth (18+ is a declaration, BR-07), no ID numbers, no address; departments are optional; the status check shows status and HBC only (FR-7) |
 | Accuracy | Administrator approval (BR-08); members see their HBC on the status check (D14); corrections create new revisions (BR-09, FR-5) |
-| Storage limitation | Automatic redaction (BR-14); member retention still open (Q13) |
+| Storage limitation | Automatic redaction of rejected and withdrawn registrations after 12 months (BR-14) and of former members one year after they are marked deceased or transferred out (D45) |
 | Integrity and confidentiality | See Part 3: EU hosting, encryption in transit and at rest, role-based access, second factor for staff, append-only audit log, no personal data in logs (NFR-9) |
 | Data subject rights | Through the church office: access, correction (FR-5) and objection; status check for members (FR-7) |
 
@@ -92,7 +92,7 @@ Score = impact × likelihood, each from 1 (low) to 5 (high), assessed with the c
 | R6 | An SMS on a shared family phone reveals another person's registration | Disclosure within a household | Membership Administrator | SMS contains only reference and status (FR-8); one member per phone (D20); conflicts resolved by phone call (D28) | 2 | 3 | 6 | Kiswahili and English SMS wording reviewed (D39) |
 | R7 | Transfer outside Kenya without valid consent or confirmed safeguards | Unlawful processing (s. 49) | Vicar | Separate explicit consent (BR-15); members who decline stay on paper | 4 | 2 | 8 | Obtain ODPC confirmation, or the Vicar's documented decision to proceed (go/no-go item 10) |
 | R8 | The nightly backup job runs on a GitHub-hosted runner outside the EU | Exposure if the runner or GitHub were compromised | Technical lead | Read-only `ack_backup` login; the dump is streamed through age encryption, so no unencrypted copy is written to disk; backups stored in R2's EU jurisdiction and deleted after 35 days; private key held offline | 4 | 1 | 4 | — |
-| R9 | Records kept longer than needed | Unnecessary exposure | Vicar | Automatic redaction after 12 months (BR-14); backup lifecycle (#8) | 2 | 3 | 6 | Decide retention for deceased and transferred members (Q13) |
+| R9 | Records kept longer than needed | Unnecessary exposure | Vicar | Automatic redaction after 12 months (BR-14) and one year after a member is marked deceased or transferred out (D45); backup lifecycle (#8) | 2 | 3 | 6 | Build the former-member redaction job (#26) |
 | R10 | Data lost or unavailable during registration | Members must re-register; loss of trust | Technical lead | Point-in-time restore for 7 days (D26); nightly backups; paper fallback (§10) | 3 | 2 | 6 | Restore drill before go-live (go/no-go item 6) |
 | R11 | Inaccurate records (wrong HBC, wrong person) | Wrong electorate in Release 2 | Membership Administrator | Approval step; HBC shown on status check (D14); revisions keep history | 2 | 3 | 6 | — |
 | R12 | A breach is not noticed or not reported in time | Harm to members; breach of s. 43 | Vicar | Breach procedure (`docs/compliance/breach-response.md`, D42) | 4 | 2 | 8 | Contacts and processor notification terms confirmed before go-live |
