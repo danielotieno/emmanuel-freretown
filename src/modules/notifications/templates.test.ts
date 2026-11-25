@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { Locale } from "../../i18n/locale";
+import { m } from "../../paraglide/messages";
 import { SafeError } from "../observability";
 import { renderOtpSms, renderSms, SMS_TEMPLATES, validateSmsParams } from "./templates";
 
@@ -8,8 +10,9 @@ import { renderOtpSms, renderSms, SMS_TEMPLATES, validateSmsParams } from "./tem
 const ONE_PART = 160;
 const PLAIN = /^[A-Za-z0-9 .,:'?!()/-]+$/;
 // SMS come from the shared MOBILESASA sender (D43), so every text opens with the church's name,
-// to identify us as the sender.
-const FROM = "ACK Emmanuel Freretown - Kengeleni: ";
+// to identify us as the sender: the same name as the website's (`site_name`), so a rename of one
+// can't leave the other behind (#65).
+const from = (locale: Locale) => `${m.site_name({}, { locale })}: `;
 
 describe("SMS templates (FR-8, NFR-5)", () => {
   for (const template of SMS_TEMPLATES) {
@@ -19,7 +22,7 @@ describe("SMS templates (FR-8, NFR-5)", () => {
         expect(text.length).toBeLessThanOrEqual(ONE_PART);
         expect(text).toMatch(PLAIN);
         expect(text).toContain("REG-7K3M9");
-        expect(text.slice(0, FROM.length)).toBe(FROM);
+        expect(text.slice(0, from(locale).length)).toBe(from(locale));
       });
     }
   }
@@ -56,7 +59,7 @@ describe("renderOtpSms", () => {
   it.each(["en", "sw"] as const)("names the church and fits one plain SMS in %s", (locale) => {
     const text = renderOtpSms("482913", locale);
     expect(text).toContain("482913");
-    expect(text.slice(0, FROM.length)).toBe(FROM);
+    expect(text.slice(0, from(locale).length)).toBe(from(locale));
     expect(text.length).toBeLessThanOrEqual(ONE_PART);
     expect(text).toMatch(PLAIN);
   });
