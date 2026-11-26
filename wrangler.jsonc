@@ -55,7 +55,13 @@
       "placement": { "mode": "smart" },
       // observability is inherited from the top level; vars are not. SENTRY_DSN is a secret.
       // TURNSTILE_SITE_KEY is public (it is sent to every visitor); its secret is a Wrangler secret.
-      "vars": { "SENTRY_ENVIRONMENT": "staging", "TURNSTILE_SITE_KEY": "0x4AAAAAAGSxdHaXpQTNGov4" },
+      // CF_ACCESS_AUD (the Access application's AUD tag) is set with `wrangler secret put`
+      // (environments.md §5); without it every staff request is refused.
+      "vars": {
+        "SENTRY_ENVIRONMENT": "staging",
+        "TURNSTILE_SITE_KEY": "0x4AAAAAAGSxdHaXpQTNGov4",
+        "CF_ACCESS_TEAM_DOMAIN": "ack-emmanuel.cloudflareaccess.com",
+      },
       "queues": {
         "producers": [{ "binding": "JOBS", "queue": "ack-jobs-staging" }],
         "consumers": [{ "queue": "ack-jobs-staging", "max_batch_size": 10, "max_retries": 4 }],
@@ -80,8 +86,10 @@
       "placement": { "mode": "smart" },
       // observability is inherited from the top level; vars are not. SENTRY_DSN is a secret.
       // TURNSTILE_SITE_KEY is public (it is sent to every visitor); its secret is a Wrangler secret.
+      // CF_ACCESS_AUD is a Wrangler secret, as in staging.
       "vars": {
         "SENTRY_ENVIRONMENT": "production",
+        "CF_ACCESS_TEAM_DOMAIN": "ack-emmanuel.cloudflareaccess.com",
         "TURNSTILE_SITE_KEY": "0x4AAAAAAGSw6xC2FNX6wX0k",
       },
       "queues": {

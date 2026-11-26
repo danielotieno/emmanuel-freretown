@@ -413,7 +413,7 @@ describe("readonly_ops privileges", () => {
   it("can read the registry but never staff credentials", async () => {
     await db.query("SET LOCAL ROLE readonly_ops");
     expect(await pgErrorCode(db, "SELECT count(*) FROM member")).toBeUndefined();
-    for (const table of ["account", "session", "verification", "two_factor", "passkey"]) {
+    for (const table of ["account", "session", "verification", "two_factor"]) {
       expect(await pgErrorCode(db, `SELECT count(*) FROM ${table}`)).toBe(PG.insufficientPrivilege);
     }
   });
@@ -439,7 +439,7 @@ describe("privilege coverage", () => {
     "account",
     "verification",
     "two_factor",
-    "passkey",
+    "staff_rate_limit",
   ]);
   const RUNTIME_DELETE = new Set([
     "phone_challenge",
@@ -449,9 +449,9 @@ describe("privilege coverage", () => {
     "verification",
     "account",
     "two_factor",
-    "passkey",
+    "staff_rate_limit",
   ]);
-  const CREDENTIALS = new Set(["account", "session", "verification", "two_factor", "passkey"]);
+  const CREDENTIALS = new Set(["account", "session", "verification", "two_factor"]);
 
   it("matches the documented grants for every table", async () => {
     const { rows } = await db.query<{

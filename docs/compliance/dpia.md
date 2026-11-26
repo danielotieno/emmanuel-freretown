@@ -36,7 +36,7 @@ The parish is replacing an unreliable paper list (D5) with a verified register o
 | Who | Data | Notes |
 |---|---|---|
 | Registrants and members | Full name; FWO number; phone number (or "no personal phone"); HBC and HBC history; departments (declared); 18+ declaration; privacy-notice acknowledgement and version; consent to storage outside Kenya; preferred language; registration reference, channel and status; reasons for staff decisions; verification evidence (phone OTP, seen in person, FWO confirmed by Secretary) | Membership itself is sensitive data (religious affiliation). No date of birth, ID number, address or photo is collected |
-| Staff (Secretary, Wardens, Super Administrators) | Name, email, password hash, second factor (passkey or authenticator), sessions, roles, every action they take (audit log) | |
+| Staff (Secretary, Wardens, Super Administrators) | Name, email, password hash, second factor (authenticator app secret and backup codes, encrypted), sessions (with IP address and browser), roles, every action they take (audit log) | |
 | Anyone using a public page | IP address and browser signals for rate limiting and Cloudflare Turnstile; one-time codes (stored only as hashes and deleted after expiry) | |
 | SMS | Phone number and message text (reference and status only, FR-8) | Sent through Mobile Sasa (D43) |
 

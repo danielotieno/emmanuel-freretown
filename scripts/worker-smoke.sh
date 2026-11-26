@@ -45,8 +45,23 @@ check "saved language cookie" '<html lang="sw"' "$(curl -s -H 'Cookie: PARAGLIDE
 check "CSP header" "script-src 'self' 'nonce-" "$(curl -s -D - -o /dev/null "$BASE/")"
 check "request id header" "x-request-id:" "$(curl -s -D - -o /dev/null "$BASE/" | tr 'A-Z' 'a-z')"
 check "no /admin on public host" "404" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/admin")"
-check "admin host serves staff area" "Staff area" \
-  "$(curl -s --resolve "admin.localhost:${PORT}:127.0.0.1" "http://admin.localhost:${PORT}/")"
+# The staff portal (#17). Needs BETTER_AUTH_SECRET in .dev.vars.
+ADMIN="http://admin.localhost:${PORT}"
+admin_curl() { curl -s --resolve "admin.localhost:${PORT}:127.0.0.1" "$@"; }
+check "admin host sends visitors to sign-in" "307 ${ADMIN}/sign-in" \
+  "$(admin_curl -o /dev/null -w '%{http_code} %{redirect_url}' "$ADMIN/")"
+check "admin sign-in page renders" "Staff sign-in" "$(admin_curl "$ADMIN/sign-in")"
+# A wrong password goes through Better Auth, the database and password hashing in workerd.
+check "staff sign-in refuses a wrong password" "401" \
+  "$(admin_curl -o /dev/null -w '%{http_code}' -X POST -H "Origin: $ADMIN" \
+     -H 'Content-Type: application/json' \
+     -d '{"email":"nobody@example.org","password":"not-the-password"}' \
+     "$ADMIN/api/auth/sign-in/email")"
+check "unused auth endpoints answer 404" "404" \
+  "$(admin_curl -o /dev/null -w '%{http_code}' -X POST -H "Origin: $ADMIN" \
+     -H 'Content-Type: application/json' -d '{}' "$ADMIN/api/auth/sign-up/email")"
+check "no auth endpoints on public host" "404" \
+  "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/auth/get-session")"
 
 # The daily jobs (issue #10): wrangler dev runs the scheduled handler on /__scheduled.
 check "cron trigger runs" "200" \

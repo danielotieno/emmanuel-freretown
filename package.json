@@ -33,13 +33,13 @@
     "db:app-login": "node scripts/db-login.ts app",
     "db:backup-login": "node scripts/db-login.ts backup",
     "db:drift": "node scripts/db-drift.ts",
+    "staff:bootstrap": "node scripts/staff-bootstrap.ts",
     "auth:schema": "./scripts/generate-auth-schema.sh",
     "deploy:staging": "pnpm gen:i18n && opennextjs-cloudflare build && opennextjs-cloudflare deploy --env staging",
     "deploy:production": "pnpm gen:i18n && opennextjs-cloudflare build && opennextjs-cloudflare deploy --env production",
     "smoke:worker": "./scripts/worker-smoke.sh"
   },
   "dependencies": {
-    "@better-auth/passkey": "1.7.27",
     "@opennextjs/cloudflare": "1.20.18",
     "@sentry/cloudflare": "11.11.0",
     "better-auth": "1.7.27",
@@ -49,6 +49,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "0.0.1",
+    "uqr": "0.1.2",
     "zod": "4.6.7"
   },
   "devDependencies": {

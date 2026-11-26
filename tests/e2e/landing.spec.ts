@@ -184,5 +184,6 @@ test("serves the staff portal on the admin host", async ({ page, browserName, ba
   const adminURL = new URL(baseURL!);
   adminURL.hostname = `admin.${adminURL.hostname}`;
   await page.goto(adminURL.toString());
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Staff area");
+  // Without a session the staff home redirects to sign-in (#17).
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Staff sign-in");
 });

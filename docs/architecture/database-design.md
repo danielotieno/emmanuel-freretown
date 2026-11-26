@@ -210,7 +210,11 @@ CREATE TABLE verification_evidence (
 CREATE INDEX verification_evidence_reg_idx ON verification_evidence (registration_id);
 
 -- ---------------------------------------------------------------- access
--- Better Auth generates: "user", session, account, verification, two_factor, passkey.
+-- Better Auth generates: "user", session, account, verification, two_factor, staff_rate_limit
+-- (pnpm auth:schema, from src/modules/access/auth.ts). session.two_factor_verified is ours: true
+-- only for a session created after an authenticator or backup code, and requireStaff refuses
+-- any other (#17). staff_rate_limit is Better Auth's rate-limit store (key = IP and path).
+-- No passkey table: the second factor is an authenticator app (FR-10, #17).
 -- Self sign-up is disabled in Better Auth config; Super Administrators create staff users.
 
 CREATE TABLE role_assignment (
@@ -320,8 +324,8 @@ OTP codes are never stored, only `code_hash` (HMAC-SHA256 with a server secret).
 | `app_owner` | Migrations only (CI deploy step) | Owns all objects |
 | `ack_app` (login) | The application, through Hyperdrive, and local development | Member of `app_runtime` only; owns nothing; not superuser, no `CREATEROLE` or `CREATEDB`. Created or rotated with `pnpm db:app-login` (`docs/operations/environments.md`) |
 | `ack_backup` (login) | Nightly backup and weekly drift check (GitHub Actions) | Member of `pg_read_all_data` only: reads every table, including staff credentials so a restore is complete; writes nothing; owns nothing. Created or rotated with `pnpm db:backup-login` (`docs/operations/backups-and-rollback.md`) |
-| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only (including `sms_setting` and `sms_daily_usage`, migration 0005); no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `passkey` (expired sessions and second-factor resets); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`) |
-| `readonly_ops` | Super Administrators for investigations | `SELECT` only, except staff credentials (`account`, `session`, `verification`, `two_factor`, `passkey`); every session is logged by the provider |
+| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only (including `sms_setting` and `sms_daily_usage`, migration 0005); no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `staff_rate_limit` (expired sessions, second-factor resets and expired rate-limit rows); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`) |
+| `readonly_ops` | Super Administrators for investigations | `SELECT` only, except staff credentials (`account`, `session`, `verification`, `two_factor`); every session is logged by the provider |
 
 ```sql
 REVOKE UPDATE, DELETE ON audit_entry, registration_revision,
@@ -330,7 +334,7 @@ REVOKE INSERT ON audit_entry, registration_decision FROM app_runtime;
 GRANT INSERT (actor_type, actor_id, action, entity_type, entity_id, before, after, request_id)
   ON audit_entry TO app_runtime;
 GRANT INSERT (registration_id, action, reason, actor_user_id) ON registration_decision TO app_runtime;
-REVOKE SELECT ON account, session, verification, two_factor, passkey FROM readonly_ops;
+REVOKE SELECT ON account, session, verification, two_factor FROM readonly_ops;
 ```
 
 The full set of grants is in `src/db/migrations/0002_privileges_and_redaction.sql`.
@@ -401,7 +405,7 @@ INSERT INTO department (name, sort_order) VALUES
 ON CONFLICT ((lower(name))) DO NOTHING;
 ```
 
-Seeds for staff users are never committed. The first Super Administrator is created with a one-off CLI command on the server.
+Seeds for staff users are never committed. The first Super Administrator is created with a one-off command run with the owner's connection string, `pnpm staff:bootstrap` (`docs/operations/environments.md` §8); it refuses once an active Super Administrator exists.
 
 ## 6. Housekeeping jobs (Cloudflare Cron Triggers and Queues, ADR 0002)
 
