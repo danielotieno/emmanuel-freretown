@@ -29,7 +29,7 @@ Required. The registry records who is a member of the church, so every record re
 
 ### 3. Project outline
 
-The parish is replacing an unreliable paper list (D5) with a verified register of adult members (18+, D4), about 600 people (D15) across 11 Home Based Churches (HBCs) and 8 departments. Members register themselves online, or are registered by a church officer at a desk (for example at an HBC AGM). A Membership Administrator reviews and approves each registration. Members can check their own status from their phone. The register is the basis for future member services and for HBC, department and parish elections (Release 2).
+The parish is replacing an unreliable paper list (D5) with a verified register of adult members (18+, D4), about 600 people (D15) across 11 Home Based Cells (HBCs) and 8 departments. Members register themselves online, or are registered by a church officer at a desk (for example at an HBC AGM). A Membership Administrator reviews and approves each registration. Members can check their own status from their phone. The register is the basis for future member services and for HBC, department and parish elections (Release 2).
 
 ### 4. Personal data
 
