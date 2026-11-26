@@ -83,7 +83,7 @@ export function SignInForm() {
   }
 
   const errorBox = error ? (
-    <p id="sign-in-error" role="alert" className="rounded-xl bg-sand p-4 text-error">
+    <p id="sign-in-error" role="alert" className="rounded-xl bg-cloud p-4 text-error">
       {error}
     </p>
   ) : null;

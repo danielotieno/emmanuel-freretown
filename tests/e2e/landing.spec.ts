@@ -149,6 +149,38 @@ for (const [locale, messages] of [
   });
 }
 
+for (const [locale, messages] of [
+  ["en", en],
+  ["sw", sw],
+] as const) {
+  test(`every Sunday time range stays on one line, without scrolling sideways (#96, ${locale})`, async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([{ name: "PARAGLIDE_LOCALE", value: locale, url: baseURL! }]);
+    await page.goto("/");
+    for (const time of [
+      messages.home_time_english1,
+      messages.home_time_english2,
+      messages.home_time_kiswahili,
+      messages.home_time_revival,
+    ]) {
+      const fit = await page
+        .locator("#services")
+        .getByText(time, { exact: true })
+        .evaluate((el) => ({
+          lines: el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight),
+          clipped: el.scrollWidth > el.clientWidth,
+        }));
+      expect(fit.lines).toBeLessThan(1.5);
+      expect(fit.clipped).toBe(false);
+    }
+    const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(pageWidth).toBeLessThanOrEqual(page.viewportSize()!.width);
+  });
+}
+
 test("shows service times, the theme of the year and the HBCs from the register", async ({
   page,
 }) => {

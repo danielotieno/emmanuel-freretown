@@ -50,6 +50,20 @@ export function registrationText(locale: Locale) {
     doneReference: m.reg_done_reference({}, o),
     doneSms: m.reg_done_sms({}, o),
     doneNext: m.reg_done_next({}, o),
+    stepsLabel: m.reg_steps_label({}, o),
+    /** The short name of each step, for the progress rail. */
+    stepNames: {
+      name: m.reg_step_name({}, o),
+      fwo: m.reg_step_fwo({}, o),
+      hbc: m.reg_step_hbc({}, o),
+      departments: m.reg_step_departments({}, o),
+      phone: m.reg_step_phone({}, o),
+      declarations: m.reg_step_declarations({}, o),
+      review: m.reg_step_review({}, o),
+      code: m.reg_step_code({}, o),
+    },
+    helpTitle: m.reg_help_title({}, o),
+    helpBody: m.reg_help_body({}, o),
     /** "Step {current} of {total}", with placeholders for the form to fill. */
     progress: m.reg_progress({ current: "{current}", total: "{total}" }, o),
     /** "We sent a code to {phone}", with a placeholder. */

@@ -36,7 +36,7 @@ export function LegalPage(props: {
         <p className="mt-3 text-sm text-ink-muted tabular-nums">
           {m.legal_version({ version: props.version }, { locale })}
         </p>
-        {englishOnly && <p className="mt-6 rounded-xl bg-lagoon p-4">{englishOnly}</p>}
+        {englishOnly && <p className="mt-6 rounded-xl bg-mist p-4">{englishOnly}</p>}
         <div lang="en" className="mt-8 space-y-10">
           <p className="text-lg text-ink-muted">{props.intro}</p>
           {props.sections.map((section) => (

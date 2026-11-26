@@ -3,6 +3,7 @@ import { getDb } from "@/app/_lib/db";
 import { cachedJson, defaultEdgeCache } from "@/app/_lib/edge-cache";
 import { getLocale } from "@/app/_lib/i18n";
 import { getLogger } from "@/app/_lib/log";
+import { PendingLink } from "@/components/pending-link";
 import { SiteHeader } from "@/components/site-header";
 import { Wave } from "@/components/wave";
 import { listActiveHbcs } from "@/modules/organisation";
@@ -70,161 +71,183 @@ export default async function HomePage() {
     <>
       <SiteHeader locale={locale} />
       <main id="main">
-        {/* Welcome: on wide screens the photo is the stage and the welcome sits on it; on phones
-            the welcome comes first and the photo follows, so the words are never over a crop. */}
-        <section className="mx-auto max-w-content px-4 pt-6 sm:px-6 md:pt-8">
-          <div className="relative flex flex-col md:overflow-hidden md:rounded-[2rem] md:bg-brand-deep">
-            <div className="pt-4 pb-8 md:absolute md:inset-x-0 md:bottom-0 md:z-10 md:p-12 lg:p-16">
-              <h1 className="max-w-[13ch] text-[clamp(3rem,9vw,5.75rem)] leading-[0.98] tracking-[-0.03em] md:text-paper">
-                {m.landing_welcome({}, o)}
-              </h1>
-              <p className="mt-5 max-w-[46ch] text-lg text-ink-muted md:text-xl md:text-paper/90">
-                {m.home_lead({}, o)}
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <a
-                  href="#services"
-                  className="btn-primary md:bg-paper md:text-brand-deep md:hover:bg-lagoon"
-                >
-                  {m.home_cta_sunday({}, o)}
-                </a>
-                {/* A plain link, not <Link>: Turnstile's CSP is set per page load (src/lib/csp.ts). */}
-                <a
-                  href="/registration"
-                  className="btn-secondary md:border-paper/60 md:bg-transparent md:text-paper md:hover:border-paper"
-                >
-                  {m.reg_title({}, o)}
-                </a>
-              </div>
-            </div>
-            <figure className="relative overflow-hidden rounded-3xl bg-lagoon md:rounded-none">
-              {/* One photo, sized per screen (D46): phones always get the small file, whatever
-                  their pixel density. A plain <img>: no image optimiser on Cloudflare. */}
-              <picture>
-                <source media="(max-width: 600px)" srcSet={church640.src} />
-                <source media="(max-width: 1100px)" srcSet={church960.src} />
-                <img
-                  src={church1440.src}
-                  width={church1440.width}
-                  height={church1440.height}
-                  alt={m.home_photo_alt({}, o)}
-                  fetchPriority="high"
-                  className="aspect-[4/3] w-full object-cover sm:aspect-[16/10] md:aspect-auto md:h-[min(86svh,47rem)] md:min-h-[38rem]"
-                />
-              </picture>
-              {/* Shade under the welcome so paper text stays readable on the white walls. */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 hidden bg-linear-to-t from-brand-deep from-10% via-brand-deep/80 via-45% to-brand-deep/0 to-80% md:block"
-              />
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 hidden bg-linear-to-r from-brand-deep/60 to-brand-deep/0 to-65% md:block"
-              />
-              <figcaption className="absolute bottom-4 left-4 rounded-full bg-paper/95 px-4 py-2 text-sm text-ink md:top-6 md:right-6 md:bottom-auto md:left-auto">
-                {m.home_photo_badge({}, o)}
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
-        {/* Theme of the year: the year's one big sentence */}
-        <section
-          aria-labelledby="theme-heading"
-          className="relative mt-20 overflow-hidden bg-brand-deep text-paper md:mt-28"
-        >
-          <div className="mx-auto max-w-content px-4 py-20 text-center sm:px-6 md:py-32">
-            <h2
-              id="theme-heading"
-              className="mx-auto max-w-[19ch] text-[clamp(2.25rem,5.6vw,4.5rem)] leading-[1.04] tracking-[-0.025em] text-paper"
+        {/* The parish board (#96): one wide tiled grid that answers "when do I come?" and "how do
+            I join?" on the first screen. On phones the tiles stack: welcome, photo, Sunday. */}
+        <div className="mx-auto max-w-content px-4 pt-5 sm:px-6 md:pt-8 lg:px-10">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-12">
+            {/* Welcome: on wide screens the photo is the stage and the welcome sits on it; on
+                phones the words come first on Midnight and the photo follows, never under text. */}
+            <section
+              aria-labelledby="welcome-heading"
+              className="tile-rise relative flex flex-col overflow-hidden rounded-[1.75rem] bg-night md:col-span-2 md:min-h-[36rem] lg:col-span-7 lg:row-span-2 lg:min-h-[clamp(38rem,calc(100svh-8rem),46rem)]"
             >
-              <span aria-hidden="true" className="text-gold">
-                “
-              </span>
-              {m.home_theme_title({}, o)}
-              <span aria-hidden="true" className="text-gold">
-                ”
-              </span>
-            </h2>
-            <p className="mt-8 text-lagoon">
-              {m.home_theme_verse({}, o)}
-              <span aria-hidden="true" className="mx-3 text-gold">
-                ·
-              </span>
-              {m.home_theme_label({}, o)}
-            </p>
-          </div>
-          <Wave className="pointer-events-none absolute inset-x-0 bottom-0 h-10 w-full text-paper/[0.06] md:h-16" />
-        </section>
-
-        {/* Services and the week */}
-        <section
-          id="services"
-          aria-labelledby="services-heading"
-          className="mx-auto max-w-content scroll-mt-4 px-4 pt-20 sm:px-6 md:pt-32"
-        >
-          <div className="grid gap-8 md:grid-cols-[1fr_1.9fr] md:gap-16">
-            <SectionHeading id="services-heading" title={m.home_services_title({}, o)}>
-              {m.home_services_intro({}, o)}
-            </SectionHeading>
-            <ul className="divide-y divide-line border-y border-line">
-              {services.map(([time, name, language]) => (
-                <li
-                  key={name}
-                  className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-2 py-6 sm:grid-cols-[minmax(0,16rem)_1fr_auto]"
+              <div className="on-dark relative z-10 px-6 pt-8 pb-7 sm:px-10 sm:pt-12 md:absolute md:inset-x-0 md:bottom-0 md:p-12 lg:p-11">
+                <h1
+                  id="welcome-heading"
+                  className="max-w-[12ch] text-[clamp(2.75rem,8.4vw,5.5rem)] leading-[0.96] tracking-[-0.03em] text-paper"
                 >
-                  <p className="col-span-2 font-display text-[clamp(1.875rem,3.4vw,2.625rem)] leading-[1.05] tracking-[-0.02em] text-balance text-ink tabular-nums sm:col-span-1">
-                    {time}
-                  </p>
-                  <p className="text-lg text-ink">{name}</p>
-                  <p className="rounded-full border border-line px-3 py-0.5 text-sm text-ink-muted">
-                    {language}
-                  </p>
-                </li>
-              ))}
-            </ul>
+                  {m.landing_welcome({}, o)}
+                </h1>
+                <p className="mt-5 max-w-[44ch] text-lg text-sky md:text-paper/90">
+                  {m.home_lead({}, o)}
+                </p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <a href="#visit" className="btn-on-dark">
+                    {m.home_cta_sunday({}, o)}
+                    <ArrowIcon />
+                  </a>
+                  {/* A plain link, not <Link>: Turnstile's CSP is set per page load. */}
+                  <PendingLink href="/registration" className="btn-outline-on-dark">
+                    {m.reg_title({}, o)}
+                  </PendingLink>
+                </div>
+              </div>
+              <figure className="relative mx-3 mb-3 overflow-hidden rounded-[1.25rem] md:absolute md:inset-0 md:m-0 md:rounded-none">
+                {/* One photo, sized per screen (D46): phones always get the small file, whatever
+                    their pixel density. A plain <img>: no image optimiser on Cloudflare. */}
+                <picture>
+                  <source media="(max-width: 600px)" srcSet={church640.src} />
+                  <source media="(max-width: 1100px)" srcSet={church960.src} />
+                  <img
+                    src={church1440.src}
+                    width={church1440.width}
+                    height={church1440.height}
+                    alt={m.home_photo_alt({}, o)}
+                    fetchPriority="high"
+                    className="photo-settle aspect-[4/3] w-full object-cover sm:aspect-[16/10] md:aspect-auto md:h-full"
+                  />
+                </picture>
+                {/* Shade under the welcome so paper text stays readable on the white walls. */}
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 hidden bg-linear-to-t from-night from-15% via-night/75 via-45% to-night/0 to-80% md:block"
+                />
+                <figcaption className="absolute bottom-3 left-3 rounded-full bg-paper/95 px-3.5 py-1.5 text-sm text-ink md:top-6 md:right-6 md:bottom-auto md:left-auto">
+                  {m.home_photo_badge({}, o)}
+                </figcaption>
+              </figure>
+            </section>
+
+            {/* Sunday: every time range sits on one line of its own, sized to the tile, so no
+                row ever breaks a time (#96). Kiswahili times are longer; the type scales down. */}
+            <section
+              id="services"
+              aria-labelledby="services-heading"
+              className="tile-rise on-dark @container scroll-mt-4 flex flex-col rounded-[1.75rem] bg-night p-6 text-paper [--rise-delay:60ms] sm:p-8 lg:col-span-5 lg:p-7"
+            >
+              <h2
+                id="services-heading"
+                className="text-[clamp(1.875rem,2.6vw,2.25rem)] leading-none text-paper"
+              >
+                {m.home_services_title({}, o)}
+              </h2>
+              <p className="mt-2 text-base text-sky">{m.home_services_intro({}, o)}</p>
+              <ul className="mt-5 flex flex-1 flex-col justify-between divide-y divide-night-soft border-t border-night-soft">
+                {services.map(([time, name, language]) => (
+                  <li
+                    key={name}
+                    className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-0.5 py-2.5"
+                  >
+                    <p className="col-span-2 font-display text-[clamp(1.375rem,8cqi,1.75rem)] leading-tight whitespace-nowrap tabular-nums">
+                      {time}
+                    </p>
+                    <p className="text-paper">{name}</p>
+                    <p className="rounded-full border border-night-soft px-2.5 text-sm text-sky">
+                      {language}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* Theme of the year: the year's one big sentence, on the board's one blue tile */}
+            <section
+              aria-labelledby="theme-heading"
+              className="tile-rise on-dark flex flex-col justify-between gap-6 rounded-[1.75rem] bg-brand p-6 text-paper [--rise-delay:120ms] sm:p-8 lg:col-span-5 lg:p-7"
+            >
+              <h2
+                id="theme-heading"
+                className="text-[clamp(1.625rem,2.2vw,2rem)] leading-[1.08] tracking-[-0.02em] text-paper"
+              >
+                <span aria-hidden="true" className="text-mist">
+                  “
+                </span>
+                {m.home_theme_title({}, o)}
+                <span aria-hidden="true" className="text-mist">
+                  ”
+                </span>
+              </h2>
+              <p className="flex flex-wrap gap-x-3 text-sm text-mist">
+                <span className="text-paper">{m.home_theme_verse({}, o)}</span>
+                <span>{m.home_theme_label({}, o)}</span>
+              </p>
+            </section>
           </div>
 
-          <div className="mt-14 rounded-3xl bg-sand p-6 sm:p-10 md:mt-20">
-            <h3 className="text-3xl">{m.home_week_title({}, o)}</h3>
-            <dl className="mt-6 divide-y divide-line border-t border-line">
+          {/* The week, read like a parish calendar's pad: Sunday first (its times are in the
+              Sunday tile above), then Monday to Saturday as hairline rows. Times never wrap. */}
+          <section
+            aria-labelledby="week-heading"
+            className="mt-3 grid gap-6 rounded-[1.75rem] bg-cloud p-6 sm:mt-4 sm:p-8 lg:grid-cols-12 lg:gap-8 lg:p-10"
+          >
+            <h2
+              id="week-heading"
+              className="text-[clamp(1.875rem,3vw,2.375rem)] leading-none lg:col-span-3"
+            >
+              {m.home_week_title({}, o)}
+            </h2>
+            <dl className="divide-y divide-line border-y border-line lg:col-span-9">
+              <div className={WEEK_ROW}>
+                <dt className="font-display text-2xl leading-tight">{m.home_day_sun({}, o)}</dt>
+                <dd>
+                  <a
+                    href="#services"
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    {m.home_services_title({}, o)}
+                    <ArrowIcon className="size-4 -rotate-90" />
+                  </a>
+                </dd>
+                <dd className="text-ink-muted">{services.map(([, name]) => name).join(", ")}</dd>
+              </div>
               {week.map(([day, time, what]) => (
-                <div key={day} className="grid gap-1 py-4 sm:grid-cols-[9rem_13rem_1fr] sm:gap-4">
-                  <dt className="text-ink">{day}</dt>
-                  <dd className="text-ink-muted tabular-nums">{time}</dd>
-                  <dd className="text-ink">{what}</dd>
+                <div key={day} className={WEEK_ROW}>
+                  <dt className="font-display text-2xl leading-tight">{day}</dt>
+                  <dd className="whitespace-nowrap text-brand tabular-nums">{time}</dd>
+                  <dd className="text-ink-muted">{what}</dd>
                 </div>
               ))}
             </dl>
-          </div>
-        </section>
+          </section>
+        </div>
 
         {/* About */}
         <section
           id="about"
           aria-labelledby="about-heading"
-          className="mx-auto max-w-content scroll-mt-4 px-4 pt-20 sm:px-6 md:pt-32"
+          className="mx-auto max-w-content scroll-mt-4 px-4 pt-20 sm:px-6 md:pt-32 lg:px-10"
         >
-          <div className="grid gap-10 md:grid-cols-[1.35fr_1fr] md:gap-16">
-            <div>
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-8">
+            <div className="lg:col-span-7">
               <h2
                 id="about-heading"
-                className="max-w-[16ch] text-[clamp(2.25rem,5.4vw,3.75rem)] leading-[1.02] tracking-[-0.025em]"
+                className="max-w-[15ch] text-[clamp(2.5rem,5.6vw,4.5rem)] leading-[0.98] tracking-[-0.03em]"
               >
                 {m.home_about_title({}, o)}
               </h2>
               <p className="mt-8 max-w-[52ch] text-xl text-ink">{m.home_about_p1({}, o)}</p>
-              <div className="mt-5 max-w-[62ch] space-y-4 text-ink-muted">
+              <div className="mt-6 grid max-w-[62ch] gap-4 text-ink-muted lg:max-w-none lg:grid-cols-2 lg:gap-8">
                 <p>{m.home_about_p2({}, o)}</p>
                 <p>{m.home_about_p3({}, o)}</p>
               </div>
             </div>
-            <aside className="relative self-end overflow-hidden rounded-3xl bg-lagoon p-7 pb-14 sm:p-10 sm:pb-16">
-              <h3 className="text-[clamp(1.875rem,3.6vw,2.5rem)] leading-[1.05]">
+            <aside className="on-dark relative flex flex-col overflow-hidden rounded-[1.75rem] bg-night p-7 pb-16 text-paper sm:p-10 sm:pb-20 lg:col-span-5 lg:self-end">
+              <BellIcon className="h-16 w-auto text-gold" />
+              <h3 className="mt-8 text-[clamp(1.875rem,3.4vw,2.625rem)] leading-[1.05] text-paper">
                 {m.home_bell_title({}, o)}
               </h3>
-              <p className="mt-4 text-ink-muted">{m.home_bell_body({}, o)}</p>
-              <Wave className="pointer-events-none absolute inset-x-0 bottom-0 h-8 w-full text-brand/15" />
+              <p className="mt-4 text-sky">{m.home_bell_body({}, o)}</p>
+              <Wave className="pointer-events-none absolute inset-x-0 bottom-0 h-10 w-full text-night-soft" />
             </aside>
           </div>
         </section>
@@ -233,34 +256,62 @@ export default async function HomePage() {
         <section
           id="ministries"
           aria-labelledby="ministries-heading"
-          className="mx-auto max-w-content scroll-mt-4 px-4 pt-20 sm:px-6 md:pt-32"
+          className="mx-auto max-w-content scroll-mt-4 px-4 pt-20 sm:px-6 md:pt-32 lg:px-10"
         >
-          <SectionHeading id="ministries-heading" title={m.home_ministries_title({}, o)}>
-            {m.home_ministries_intro({}, o)}
-          </SectionHeading>
-          <ul className="mt-10 grid gap-x-12 sm:grid-cols-2">
-            {ministries.map(([name, body, verse]) => (
-              <li key={name} className="flex flex-col border-t border-line pt-6 pb-10">
-                <h3 className="text-[clamp(1.875rem,3.4vw,2.5rem)] leading-[1.05]">{name}</h3>
-                <p className="mt-3 max-w-[44ch] flex-1 text-ink-muted">{body}</p>
-                <p className="mt-4 text-sm text-brand">{verse}</p>
-              </li>
-            ))}
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between md:gap-10">
+            <h2
+              id="ministries-heading"
+              className="text-[clamp(2.5rem,5.6vw,4.5rem)] leading-[0.98] tracking-[-0.03em]"
+            >
+              {m.home_ministries_title({}, o)}
+            </h2>
+            <p className="max-w-[34ch] text-lg text-ink-muted md:pb-2">
+              {m.home_ministries_intro({}, o)}
+            </p>
+          </div>
+          {/* Four tiles of different widths and colours, so the four fellowships read as four
+              distinct groups rather than a list. */}
+          <ul className="mt-10 grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-12">
+            {ministries.map(([name, body, verse], i) => {
+              const tone = MINISTRY_TONES[i % MINISTRY_TONES.length]!;
+              return (
+                <li
+                  key={name}
+                  className={`flex flex-col justify-between gap-8 md:min-h-[19rem] md:gap-10 rounded-[1.75rem] p-7 sm:p-9 ${tone.tile}`}
+                >
+                  <div>
+                    <h3
+                      className={`text-[clamp(2.5rem,5vw,4rem)] leading-[0.95] tracking-[-0.03em] ${tone.heading}`}
+                    >
+                      {name}
+                    </h3>
+                    <p className={`mt-5 max-w-[40ch] text-lg ${tone.body}`}>{body}</p>
+                  </div>
+                  <p className={`flex items-center gap-3 text-sm ${tone.verse}`}>
+                    <span aria-hidden="true" className="h-px w-8 bg-current" />
+                    {verse}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
 
           {/* Home Based Churches, from the register's own list */}
-          <div className="mt-6 grid gap-6 rounded-3xl bg-sand p-6 sm:p-10 md:grid-cols-[1fr_1.2fr] md:gap-12">
-            <div>
-              <h3 className="text-3xl">{m.home_hbc_title({}, o)}</h3>
-              <p className="mt-3 max-w-[52ch] text-ink-muted">{m.home_hbc_intro({}, o)}</p>
+          <div className="mt-3 grid gap-8 rounded-[1.75rem] bg-cloud p-7 sm:mt-4 sm:p-10 lg:grid-cols-12 lg:gap-8">
+            <div className="lg:col-span-4">
+              <h3 className="text-[clamp(1.875rem,3vw,2.375rem)] leading-[1.05]">
+                {m.home_hbc_title({}, o)}
+              </h3>
+              <p className="mt-4 max-w-[48ch] text-ink-muted">{m.home_hbc_intro({}, o)}</p>
             </div>
             {hbcs.length > 0 && (
-              <ul className="flex flex-wrap content-start gap-2">
+              <ul className="grid content-start gap-x-8 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] lg:col-span-8">
                 {hbcs.map((hbc) => (
                   <li
                     key={hbc.id}
-                    className="rounded-full border border-line bg-paper px-4 py-1.5 text-ink"
+                    className="flex min-h-12 items-center gap-3 border-b border-line whitespace-nowrap text-ink"
                   >
+                    <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-brand" />
                     {hbc.name}
                   </li>
                 ))}
@@ -272,38 +323,43 @@ export default async function HomePage() {
         {/* Registration */}
         <section
           aria-labelledby="register-heading"
-          className="mx-auto max-w-content px-4 pt-20 sm:px-6 md:pt-32"
+          className="mx-auto max-w-content px-4 pt-20 sm:px-6 md:pt-32 lg:px-10"
         >
-          <div className="relative grid gap-10 overflow-hidden rounded-[2rem] bg-lagoon p-7 pb-14 sm:p-12 sm:pb-16 md:grid-cols-2 md:items-center md:gap-16">
-            <div>
+          <div className="on-dark relative grid gap-12 overflow-hidden rounded-[2rem] bg-brand p-7 pb-16 text-paper sm:p-12 sm:pb-20 lg:grid-cols-12 lg:items-center lg:gap-8 lg:p-16">
+            <div className="lg:col-span-5">
               <h2
                 id="register-heading"
-                className="max-w-[16ch] text-[clamp(2.25rem,4.6vw,3.5rem)] leading-[1.02] tracking-[-0.025em]"
+                className="max-w-[14ch] text-[clamp(2.5rem,5vw,4.25rem)] leading-[0.98] tracking-[-0.03em] text-paper"
               >
                 {m.home_register_title({}, o)}
               </h2>
-              <p className="mt-5 max-w-[44ch] text-ink-muted">{m.reg_intro({}, o)}</p>
-              <a href="/registration" className="btn-primary mt-8">
+              <p className="mt-5 max-w-[42ch] text-lg text-mist">{m.reg_intro({}, o)}</p>
+              {/* A plain link, not <Link>: Turnstile's CSP is set per page load (src/lib/csp.ts). */}
+              <PendingLink href="/registration" className="btn-on-dark mt-9 w-full sm:w-auto">
                 {m.reg_title({}, o)}
-              </a>
+                <ArrowIcon />
+              </PendingLink>
             </div>
-            <ol className="divide-y divide-brand/15 border-y border-brand/15">
+            <ol className="lg:col-span-6 lg:col-start-7">
               {steps.map(([title, body], i) => (
-                <li key={title} className="flex gap-5 py-5">
+                <li
+                  key={title}
+                  className="grid grid-cols-[3.5rem_1fr] gap-4 border-t border-paper/25 py-6 last:border-b"
+                >
                   <span
                     aria-hidden="true"
-                    className="font-display text-3xl leading-none text-brand tabular-nums"
+                    className="font-display text-5xl leading-none text-paper tabular-nums"
                   >
-                    {String(i + 1).padStart(2, "0")}
+                    {i + 1}
                   </span>
                   <span>
-                    <span className="block text-lg text-ink">{title}</span>
-                    <span className="mt-1 block text-ink-muted">{body}</span>
+                    <span className="block text-xl text-paper">{title}</span>
+                    <span className="mt-1 block text-mist">{body}</span>
                   </span>
                 </li>
               ))}
             </ol>
-            <Wave className="pointer-events-none absolute inset-x-0 bottom-0 h-8 w-full text-brand/15" />
+            <Wave className="pointer-events-none absolute inset-x-0 bottom-0 h-10 w-full text-paper/10" />
           </div>
         </section>
 
@@ -311,24 +367,28 @@ export default async function HomePage() {
         <section
           id="visit"
           aria-labelledby="visit-heading"
-          className="mx-auto max-w-content scroll-mt-4 px-4 pt-20 sm:px-6 md:pt-32"
+          className="mx-auto max-w-content scroll-mt-4 px-4 pt-20 sm:px-6 md:pt-32 lg:px-10"
         >
-          <div className="grid gap-10 md:grid-cols-2 md:gap-16">
-            <div>
-              <SectionHeading id="visit-heading" title={m.home_visit_title({}, o)} />
-              <h3 className="mt-8 text-xl text-ink-muted">{m.home_visit_where({}, o)}</h3>
-              <p className="mt-2 max-w-[28ch] font-display text-[clamp(1.75rem,3vw,2.25rem)] leading-[1.15] text-ink">
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-8">
+            <div className="lg:col-span-6">
+              <h2
+                id="visit-heading"
+                className="text-[clamp(2.5rem,5.6vw,4.5rem)] leading-[0.98] tracking-[-0.03em]"
+              >
+                {m.home_visit_title({}, o)}
+              </h2>
+              <p className="mt-6 max-w-[24ch] font-display text-[clamp(1.875rem,3.4vw,2.75rem)] leading-[1.1] text-ink">
                 {m.home_visit_address({}, o)}
               </p>
               <a
                 href="https://www.google.com/maps/search/?api=1&query=ACK+Emmanuel+Kengeleni+Church"
-
                 className="btn-secondary mt-8"
               >
                 {m.home_visit_map({}, o)}
+                <ArrowIcon />
               </a>
             </div>
-            <div className="divide-y divide-line self-end border-y border-line">
+            <div className="divide-y divide-line self-end border-y border-line lg:col-span-5 lg:col-start-8">
               <div className="py-6">
                 <h3 className="text-2xl">{m.home_visit_office({}, o)}</h3>
                 <ul className="mt-3 space-y-2 text-ink-muted">
@@ -400,16 +460,78 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-function SectionHeading(props: { id: string; title: string; children?: string }) {
+/**
+ * The ministries' tiles, in order: KAMA on Midnight, Mothers' Union on Signal Blue, KAYO on Mist,
+ * Children's Ministry on Cloud. Widths alternate 7/5 and 5/7 on the 12-column grid. Every text
+ * colour here meets AA on its tile (DESIGN.md §2).
+ */
+/** A row of the week: day, time, what happens; one column on phones, three from md. */
+const WEEK_ROW = "grid gap-1 py-4 md:grid-cols-[9rem_13rem_1fr] md:items-baseline md:gap-6";
+
+const MINISTRY_TONES = [
+  {
+    tile: "on-dark bg-night lg:col-span-7",
+    heading: "text-paper",
+    body: "text-sky",
+    verse: "text-sky",
+  },
+  {
+    tile: "on-dark bg-brand lg:col-span-5",
+    heading: "text-paper",
+    body: "text-mist",
+    verse: "text-mist",
+  },
+  {
+    tile: "bg-mist lg:col-span-5",
+    heading: "text-ink",
+    body: "text-ink-muted",
+    verse: "text-brand",
+  },
+  {
+    tile: "bg-cloud lg:col-span-7",
+    heading: "text-ink",
+    body: "text-ink-muted",
+    verse: "text-brand",
+  },
+] as const;
+
+/** A right arrow for links that move on. Decorative: the link's words carry its meaning. */
+function ArrowIcon({ className = "size-5" }: { className?: string }) {
   return (
-    <div className="max-w-2xl">
-      <h2
-        id={props.id}
-        className="text-[clamp(2.25rem,5.4vw,3.75rem)] leading-[1.02] tracking-[-0.025em]"
-      >
-        {props.title}
-      </h2>
-      {props.children && <p className="mt-3 text-lg text-ink-muted">{props.children}</p>}
-    </div>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={`shrink-0 ${className}`}
+    >
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+/** The bell that gave Kengeleni its name, drawn as a single line. Decorative. */
+function BellIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 48 52"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path d="M16 4h16M24 4v6" />
+      <path d="M24 10c-8 0-12 7-12 17v7l-4 6h32l-4-6v-7c0-10-4-17-12-17Z" />
+      <path d="M18 18c1.5-2 3.5-3 6-3" />
+      <circle cx="24" cy="45" r="3.5" />
+    </svg>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
 import { registrationStep } from "./actions";
 import {
   COUNTED_STEPS,
@@ -29,16 +30,23 @@ interface Props {
 
 const INITIAL: RegistrationState = { step: "name", values: EMPTY_VALUES, errors: {}, attempt: 0 };
 
+/** The steps the progress rail lists: every step but "done". */
+const RAIL_STEPS = STEPS.filter((s): s is Exclude<Step, "done"> => s !== "done");
+
 /**
  * Self-registration (FR-1): one question per step, with a progress indicator and "Why we ask"
  * notes (DESIGN.md). A plain form posting to a server action, so it works without JavaScript
  * until the code step, where Turnstile needs it.
+ *
+ * Layout (#96): the question sits on a card; beside it on wide screens, a rail lists every step
+ * with its state, and a panel says where to get help. Each button shows a spinner while its post
+ * is on the way, and the question dims, so a tap is answered at once on a slow connection.
  */
 export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: Props) {
   const [state, formAction, pending] = useActionState(registrationStep, INITIAL);
   const firstRender = useRef(true);
   const scripted = useScripted();
-  const { step, values, errors } = state;
+  const { step } = state;
 
   // Move focus to the new step's heading, so screen readers announce it (not on first load).
   useEffect(() => {
@@ -49,25 +57,71 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
     document.getElementById("step-heading")?.focus();
   }, [state]);
 
-  if (step === "done") {
-    return (
-      <section aria-labelledby="step-heading" className="space-y-5">
-        <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
-          {text.doneTitle}
-        </h2>
-        <div className="rounded-2xl bg-lagoon p-6">
-          <p className="text-sm text-ink-muted">{text.doneReference}</p>
-          <p className="mt-1 font-display text-4xl tracking-wide text-brand tabular-nums">
-            {state.reference}
-          </p>
-          <p className="mt-3 text-ink-muted">{text.doneSms}</p>
-        </div>
-        <p>{text.doneNext}</p>
-      </section>
-    );
-  }
+  const done = step === "done";
+  const index = done ? COUNTED_STEPS : STEPS.indexOf(step) + 1;
 
-  const index = STEPS.indexOf(step) + 1;
+  return (
+    <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
+      <div className="lg:col-span-7">
+        <h1 className="text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.02] tracking-[-0.03em]">
+          {text.title}
+        </h1>
+        <p className="mt-3 max-w-[52ch] text-lg text-pretty text-ink-muted">{text.intro}</p>
+
+        <div className="-mx-4 mt-8 border-y border-line bg-paper px-4 py-7 shadow-[0_1px_2px_rgb(10_20_51/0.04),0_16px_40px_-20px_rgb(10_20_51/0.18)] sm:mx-0 sm:rounded-[1.75rem] sm:border sm:p-10">
+          {done ? (
+            <Done text={text} reference={state.reference} />
+          ) : (
+            <StepForm
+              text={text}
+              state={state}
+              index={index}
+              pending={pending}
+              formAction={formAction}
+              hbcs={hbcs}
+              departments={departments}
+              turnstileSiteKey={turnstileSiteKey}
+              scripted={scripted}
+            />
+          )}
+        </div>
+      </div>
+
+      <aside className="space-y-4 lg:col-span-4 lg:col-start-9 lg:pt-3">
+        <div className="sticky top-6 space-y-4">
+          <StepRail text={text} current={done ? null : step} index={index} />
+          <div className="on-dark rounded-[1.75rem] bg-night p-6 text-paper sm:p-7">
+            <h2 className="text-2xl leading-tight text-paper">{text.helpTitle}</h2>
+            <p className="mt-2 text-sky">
+              {text.helpBody}{" "}
+              <a
+                href="tel:+254790255515"
+                className="whitespace-nowrap text-paper underline tabular-nums decoration-sky underline-offset-4 hover:decoration-paper"
+              >
+                +254 790 255515
+              </a>
+              .
+            </p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function StepForm(props: {
+  text: RegistrationText;
+  state: RegistrationState;
+  index: number;
+  pending: boolean;
+  formAction: (payload: FormData) => void;
+  hbcs: Option[];
+  departments: Option[];
+  turnstileSiteKey: string;
+  scripted: boolean;
+}) {
+  const { text, state, index, pending, formAction, hbcs, departments, turnstileSiteKey } = props;
+  const { step, values, errors } = state;
   const hidden = hiddenFields(step, values);
   const hbcName = hbcs.find((h) => h.id === values.hbcId)?.name ?? "";
   const departmentNames = departments
@@ -75,238 +129,374 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
     .map((d) => d.name);
 
   return (
-    <form action={formAction} noValidate className="space-y-7">
-      <div className="space-y-2">
-        <p className="text-sm text-ink-muted tabular-nums" aria-live="polite">
-          {text.progress
-            .replace("{current}", String(index))
-            .replace("{total}", String(COUNTED_STEPS))}
-        </p>
-        <progress
-          value={index}
-          max={COUNTED_STEPS}
-          aria-hidden="true"
-          className="block h-1.5 w-full overflow-hidden rounded-full [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-brand [&::-webkit-progress-bar]:bg-sand [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-brand"
-        />
-      </div>
+    <form action={formAction} noValidate aria-busy={pending || undefined} className="group">
+      <Progress text={text} index={index} />
 
       <input type="hidden" name="step" value={step} />
       {state.challengeId && <input type="hidden" name="challengeId" value={state.challengeId} />}
       {hidden}
 
-      {state.notice && (
-        <p role="alert" className="rounded-xl border border-error/30 bg-error/5 p-4 text-error">
-          <span aria-hidden="true">⚠ </span>
-          {state.notice}
-        </p>
-      )}
-
-      {step === "name" && (
-        <Question id="fullName" label={text.nameLabel} hint={text.nameHint} error={errors.fullName}>
-          <input
-            id="fullName"
-            name="fullName"
-            defaultValue={values.fullName}
-            autoComplete="name"
-            maxLength={120}
-            {...invalid("fullName", errors)}
-            className={INPUT}
-          />
-        </Question>
-      )}
-
-      {step === "fwo" && (
-        <Question id="fwoNumber" label={text.fwoLabel} hint={text.fwoHint} error={errors.fwoNumber}>
-          <input
-            id="fwoNumber"
-            name="fwoNumber"
-            defaultValue={values.fwoNumber}
-            inputMode="numeric"
-            autoComplete="off"
-            {...invalid("fwoNumber", errors)}
-            className={`${INPUT} tabular-nums`}
-          />
-          <Tick
-            name="isNewMember"
-            checked={values.isNewMember}
-            label={text.newMemberLabel}
-            hint={text.newMemberHint}
-          />
-        </Question>
-      )}
-
-      {step === "hbc" && (
-        <Question id="hbcId" label={text.hbcLabel} error={errors.hbcId}>
-          <select
-            id="hbcId"
-            name="hbcId"
-            defaultValue={values.hbcId}
-            {...invalid("hbcId", errors)}
-            className={INPUT}
+      {/* While a post is on the way the question dims, so the tap is visibly answered. */}
+      <div className="mt-8 space-y-7 transition-opacity duration-200 lg:mt-0 group-aria-busy:opacity-55">
+        {state.notice && (
+          <p
+            role="alert"
+            className="flex gap-3 rounded-xl border border-error/40 bg-error/5 p-4 text-error"
           >
-            <option value="">{text.hbcChoose}</option>
-            {hbcs.map((h) => (
-              <option key={h.id} value={h.id}>
-                {h.name}
-              </option>
-            ))}
-          </select>
-        </Question>
-      )}
-
-      {step === "departments" && (
-        <fieldset aria-describedby="departments-hint departments-error" className="space-y-3">
-          <legend>
-            <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
-              {text.departmentsLabel}
-            </h2>
-          </legend>
-          <p id="departments-hint" className="text-ink-muted">
-            {text.departmentsHint}
+            <AlertIcon className="mt-1" />
+            <span>{state.notice}</span>
           </p>
-          <FieldError id="departments-error" message={errors.departmentIds} />
-          {departments.map((d) => (
-            <label key={d.id} className="option items-center">
-              <input
-                type="checkbox"
-                name="departmentIds"
-                value={d.id}
-                defaultChecked={values.departmentIds.includes(d.id)}
-                className="size-5 shrink-0 accent-brand"
-              />
-              {d.name}
-            </label>
-          ))}
-        </fieldset>
-      )}
+        )}
 
-      {step === "phone" && (
-        <Question id="phone" label={text.phoneLabel} hint={text.phoneHint} error={errors.phone}>
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            defaultValue={values.phone}
-            inputMode="tel"
-            autoComplete="tel-national"
-            maxLength={20}
-            {...invalid("phone", errors)}
-            className={`${INPUT} tabular-nums`}
-          />
-          <p className="rounded-xl bg-lagoon p-4 text-ink">{text.phoneOwn}</p>
-          <WhyWeAsk title={text.whyWeAsk}>{text.phoneWhy}</WhyWeAsk>
-        </Question>
-      )}
+        {step === "name" && (
+          <Question
+            id="fullName"
+            label={text.nameLabel}
+            hint={text.nameHint}
+            error={errors.fullName}
+          >
+            <input
+              id="fullName"
+              name="fullName"
+              defaultValue={values.fullName}
+              autoComplete="name"
+              maxLength={120}
+              {...invalid("fullName", errors)}
+              className={INPUT}
+            />
+          </Question>
+        )}
 
-      {step === "declarations" && (
-        <fieldset className="space-y-4">
-          <legend>
-            <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
-              {text.declarationsTitle}
+        {step === "fwo" && (
+          <Question
+            id="fwoNumber"
+            label={text.fwoLabel}
+            hint={text.fwoHint}
+            error={errors.fwoNumber}
+          >
+            <input
+              id="fwoNumber"
+              name="fwoNumber"
+              defaultValue={values.fwoNumber}
+              inputMode="numeric"
+              autoComplete="off"
+              {...invalid("fwoNumber", errors)}
+              className={`${INPUT} tabular-nums`}
+            />
+            <Tick
+              name="isNewMember"
+              checked={values.isNewMember}
+              label={text.newMemberLabel}
+              hint={text.newMemberHint}
+            />
+          </Question>
+        )}
+
+        {step === "hbc" && (
+          <Question id="hbcId" label={text.hbcLabel} error={errors.hbcId}>
+            <div className="relative">
+              <select
+                id="hbcId"
+                name="hbcId"
+                defaultValue={values.hbcId}
+                {...invalid("hbcId", errors)}
+                className={`${INPUT} cursor-pointer appearance-none pr-12`}
+              >
+                <option value="">{text.hbcChoose}</option>
+                {hbcs.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronIcon className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-ink-muted" />
+            </div>
+          </Question>
+        )}
+
+        {step === "departments" && (
+          <fieldset aria-describedby="departments-hint departments-error" className="space-y-3">
+            <legend className="mb-3">
+              <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+                {text.departmentsLabel}
+              </h2>
+            </legend>
+            <p id="departments-hint" className="text-ink-muted">
+              {text.departmentsHint}
+            </p>
+            <FieldError id="departments-error" message={errors.departmentIds} />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {departments.map((d) => (
+                <label key={d.id} className="option items-center">
+                  <input
+                    type="checkbox"
+                    name="departmentIds"
+                    value={d.id}
+                    defaultChecked={values.departmentIds.includes(d.id)}
+                    className="size-5 shrink-0 accent-brand"
+                  />
+                  {d.name}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        {step === "phone" && (
+          <Question id="phone" label={text.phoneLabel} hint={text.phoneHint} error={errors.phone}>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              defaultValue={values.phone}
+              inputMode="tel"
+              autoComplete="tel-national"
+              maxLength={20}
+              {...invalid("phone", errors)}
+              className={`${INPUT} tabular-nums`}
+            />
+            <p className="flex gap-3 rounded-xl bg-mist p-4 text-ink">
+              <InfoIcon className="mt-1 text-brand" />
+              <span>{text.phoneOwn}</span>
+            </p>
+            <WhyWeAsk title={text.whyWeAsk}>{text.phoneWhy}</WhyWeAsk>
+          </Question>
+        )}
+
+        {step === "declarations" && (
+          <fieldset className="space-y-3">
+            <legend className="mb-3">
+              <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+                {text.declarationsTitle}
+              </h2>
+            </legend>
+            <Tick
+              name="adultDeclared"
+              checked={values.adultDeclared}
+              label={text.adultLabel}
+              error={errors.adultDeclared}
+            />
+            <Tick
+              name="privacyAcknowledged"
+              checked={values.privacyAcknowledged}
+              label={text.privacyLabel}
+              error={errors.privacyAcknowledged}
+              extra={
+                <a href="/privacy" target="_blank" rel="noopener">
+                  {text.privacyLink}
+                </a>
+              }
+            />
+            <Tick
+              name="transferConsent"
+              checked={values.transferConsent}
+              label={text.consentLabel}
+              error={errors.transferConsent}
+            />
+            <WhyWeAsk title={text.whyWeAsk}>{text.consentWhy}</WhyWeAsk>
+          </fieldset>
+        )}
+
+        {step === "review" && (
+          <section aria-labelledby="step-heading" className="space-y-5">
+            <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+              {text.reviewTitle}
             </h2>
-          </legend>
-          <Tick
-            name="adultDeclared"
-            checked={values.adultDeclared}
-            label={text.adultLabel}
-            error={errors.adultDeclared}
-          />
-          <Tick
-            name="privacyAcknowledged"
-            checked={values.privacyAcknowledged}
-            label={text.privacyLabel}
-            error={errors.privacyAcknowledged}
-            extra={
-              <a href="/privacy" target="_blank" rel="noopener">
-                {text.privacyLink}
-              </a>
-            }
-          />
-          <Tick
-            name="transferConsent"
-            checked={values.transferConsent}
-            label={text.consentLabel}
-            error={errors.transferConsent}
-          />
-          <WhyWeAsk title={text.whyWeAsk}>{text.consentWhy}</WhyWeAsk>
-        </fieldset>
-      )}
+            <dl className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
+              <Row term={text.nameLabel}>{values.fullName}</Row>
+              <Row term={text.fwoLabel}>
+                {values.isNewMember ? (
+                  text.newMemberValue
+                ) : (
+                  <span className="tabular-nums">{values.fwoNumber}</span>
+                )}
+              </Row>
+              <Row term={text.hbcLabel}>{hbcName}</Row>
+              <Row term={text.departmentsLabel}>
+                {departmentNames.length ? departmentNames.join(", ") : text.none}
+              </Row>
+              <Row term={text.phoneLabel}>
+                <span className="tabular-nums">{values.phone}</span>
+              </Row>
+            </dl>
+            <p className="text-ink-muted">{text.reviewHint}</p>
+            {/* A fresh widget after every answer from the server: a spent token is never reused. */}
+            {turnstileSiteKey && <Turnstile key={state.attempt} siteKey={turnstileSiteKey} />}
+            {/* Shown until JavaScript runs (no Turnstile without it, so no code), and wherever
+                Turnstile isn't configured: the church office can still register the member. */}
+            {(!props.scripted || !turnstileSiteKey) && (
+              <p className="flex gap-3 rounded-xl bg-mist p-4">
+                <InfoIcon className="mt-1 text-brand" />
+                <span>{text.jsNeeded}</span>
+              </p>
+            )}
+          </section>
+        )}
 
-      {step === "review" && (
-        <section aria-labelledby="step-heading" className="space-y-4">
-          <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
-            {text.reviewTitle}
-          </h2>
-          <dl className="divide-y divide-line rounded-2xl border border-line">
-            <Row term={text.nameLabel}>{values.fullName}</Row>
-            <Row term={text.fwoLabel}>
-              {values.isNewMember ? (
-                text.newMemberValue
-              ) : (
-                <span className="tabular-nums">{values.fwoNumber}</span>
-              )}
-            </Row>
-            <Row term={text.hbcLabel}>{hbcName}</Row>
-            <Row term={text.departmentsLabel}>
-              {departmentNames.length ? departmentNames.join(", ") : text.none}
-            </Row>
-            <Row term={text.phoneLabel}>
-              <span className="tabular-nums">{values.phone}</span>
-            </Row>
-          </dl>
-          <p>{text.reviewHint}</p>
-          {/* A fresh widget after every answer from the server: a spent token is never reused. */}
-          {turnstileSiteKey && <Turnstile key={state.attempt} siteKey={turnstileSiteKey} />}
-          {/* Shown until JavaScript runs (no Turnstile without it, so no code), and wherever
-              Turnstile isn't configured: the church office can still register the member. */}
-          {(!scripted || !turnstileSiteKey) && (
-            <p className="rounded-xl bg-lagoon p-4">{text.jsNeeded}</p>
-          )}
-        </section>
-      )}
-
-      {step === "code" && (
-        <Question
-          id="code"
-          label={text.codeLabel}
-          hint={`${text.codeSent.replace("{phone}", values.phone)} ${text.codeHint}`}
-          error={errors.code}
-        >
-          <input
+        {step === "code" && (
+          <Question
             id="code"
-            name="code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            {...invalid("code", errors)}
-            className={`${INPUT} max-w-[11ch] text-center text-2xl tracking-[0.3em] tabular-nums`}
-          />
-        </Question>
-      )}
+            label={text.codeLabel}
+            hint={`${text.codeSent.replace("{phone}", values.phone)} ${text.codeHint}`}
+            error={errors.code}
+          >
+            <input
+              id="code"
+              name="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              {...invalid("code", errors)}
+              className={`${INPUT} max-w-[12ch] text-center font-display text-3xl tracking-[0.3em] tabular-nums`}
+            />
+          </Question>
+        )}
+      </div>
 
       {/* The primary button comes first in the markup: pressing Enter submits the first one. */}
-      <div className="flex flex-col gap-3 pt-2 sm:flex-row-reverse sm:justify-between">
-        <button type="submit" name="intent" value="next" disabled={pending} className={PRIMARY}>
+      <div className="mt-10 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row-reverse sm:items-center sm:justify-between">
+        <SubmitButton intent="next" className={PRIMARY}>
           {step === "review" ? text.sendCode : step === "code" ? text.verify : text.continue}
-        </button>
+          <ArrowIcon />
+        </SubmitButton>
         {step !== "name" && step !== "code" && (
-          <button type="submit" name="intent" value="back" disabled={pending} className={SECONDARY}>
+          <SubmitButton intent="back" className={BACK}>
+            <ArrowIcon className="rotate-180" />
             {text.back}
-          </button>
+          </SubmitButton>
         )}
         {step === "code" && (
-          <button
-            type="submit"
-            name="intent"
-            value="new-code"
-            disabled={pending}
-            className={SECONDARY}
-          >
+          <SubmitButton intent="new-code" className={SECONDARY}>
             {text.newCode}
-          </button>
+          </SubmitButton>
         )}
       </div>
     </form>
+  );
+}
+
+/**
+ * A submit button that knows when its own post is on the way: it shows a spinner and aria-busy,
+ * while every button in the form is disabled so nothing is sent twice. Without JavaScript it is a
+ * plain submit button.
+ */
+function SubmitButton(props: { intent: string; className: string; children: ReactNode }) {
+  const { pending, data } = useFormStatus();
+  const mine = pending && data?.get("intent") === props.intent;
+  return (
+    <button
+      type="submit"
+      name="intent"
+      value={props.intent}
+      disabled={pending}
+      aria-busy={mine || undefined}
+      className={props.className}
+    >
+      {mine ? (
+        <>
+          <span aria-hidden="true" className="spinner" />
+          {/* The label stays, so the button keeps its name and size; the arrow gives way. */}
+          {onlyText(props.children)}
+        </>
+      ) : (
+        props.children
+      )}
+    </button>
+  );
+}
+
+/** The step header: "Step 3 of 8", over a bar of eight segments on phones and tablets. */
+function Progress(props: { text: RegistrationText; index: number }) {
+  const { text, index } = props;
+  return (
+    <div>
+      {/* From lg the rail beside the card marks the step, so the count is kept for screen
+          readers only (it still announces each step). */}
+      <p className="text-sm text-brand tabular-nums lg:sr-only" aria-live="polite">
+        {text.progress
+          .replace("{current}", String(index))
+          .replace("{total}", String(COUNTED_STEPS))}
+      </p>
+      {/* On wide screens the rail beside the card shows progress, so the bar is for phones. */}
+      <ol aria-hidden="true" className="mt-3 grid grid-flow-col gap-1.5 lg:hidden">
+        {RAIL_STEPS.map((s, i) => (
+          <li
+            key={s}
+            className={`h-1.5 rounded-full transition-colors duration-300 ${
+              i < index ? "bg-brand" : "bg-line"
+            }`}
+          />
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** Every step by name, with its state: done, current or still to come. Wide screens only. */
+function StepRail(props: { text: RegistrationText; current: Step | null; index: number }) {
+  const { text, current, index } = props;
+  return (
+    <section
+      aria-labelledby="steps-heading"
+      className="hidden rounded-[1.75rem] border border-line bg-paper p-7 lg:block"
+    >
+      <h2 id="steps-heading" className="text-2xl leading-tight">
+        {text.stepsLabel}
+      </h2>
+      <ol className="mt-5 space-y-1">
+        {RAIL_STEPS.map((s, i) => {
+          const isCurrent = s === current;
+          const isDone = current === null || i + 1 < index;
+          return (
+            <li
+              key={s}
+              aria-current={isCurrent ? "step" : undefined}
+              className={`flex min-h-11 items-center gap-3.5 rounded-xl px-2 ${
+                isCurrent ? "bg-mist text-ink" : isDone ? "text-ink" : "text-ink-muted"
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`grid size-7 shrink-0 place-items-center rounded-full text-sm tabular-nums ${
+                  isDone
+                    ? "bg-brand text-paper"
+                    : isCurrent
+                      ? "border-2 border-brand text-brand"
+                      : "border border-line-strong"
+                }`}
+              >
+                {isDone ? <CheckIcon size="size-4" /> : i + 1}
+              </span>
+              {text.stepNames[s]}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function Done({ text, reference }: { text: RegistrationText; reference?: string }) {
+  return (
+    <section aria-labelledby="step-heading" className="space-y-6">
+      <span
+        aria-hidden="true"
+        className="grid size-14 place-items-center rounded-full bg-success text-paper"
+      >
+        <CheckIcon size="size-7" />
+      </span>
+      <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+        {text.doneTitle}
+      </h2>
+      <div className="rounded-2xl bg-mist p-6 sm:p-7">
+        <p className="text-sm text-ink-muted">{text.doneReference}</p>
+        <p className="mt-1 font-display text-[clamp(2.5rem,8vw,3.5rem)] leading-none tracking-wide text-brand tabular-nums">
+          {reference}
+        </p>
+        <p className="mt-4 text-ink-muted">{text.doneSms}</p>
+      </div>
+      <p>{text.doneNext}</p>
+    </section>
   );
 }
 
@@ -321,8 +511,17 @@ function useScripted(): boolean {
 
 // Shared control styles live in globals.css (@layer components).
 const INPUT = "field";
-const PRIMARY = "btn-primary w-full sm:w-auto";
+const PRIMARY = "btn-primary w-full sm:w-auto sm:min-w-44";
 const SECONDARY = "btn-secondary w-full sm:w-auto";
+const BACK = "btn-text w-full justify-center sm:w-auto sm:justify-start sm:px-0";
+const QUESTION = "text-[clamp(1.875rem,4vw,2.5rem)] leading-[1.08] outline-none";
+
+/** The text parts of a button's children, without its icons. */
+function onlyText(children: ReactNode): ReactNode {
+  return (Array.isArray(children) ? children : [children]).filter(
+    (child) => typeof child === "string",
+  );
+}
 
 function invalid(field: ErrorField, errors: RegistrationState["errors"]) {
   return {
@@ -361,15 +560,17 @@ function Question(props: {
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-3">
-      <h2 id="step-heading" tabIndex={-1} className="text-3xl outline-none">
-        <label htmlFor={props.id}>{props.label}</label>
-      </h2>
-      {props.hint && (
-        <p id={`${props.id}-hint`} className="text-ink-muted">
-          {props.hint}
-        </p>
-      )}
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+          <label htmlFor={props.id}>{props.label}</label>
+        </h2>
+        {props.hint && (
+          <p id={`${props.id}-hint`} className="text-ink-muted">
+            {props.hint}
+          </p>
+        )}
+      </div>
       <FieldError id={`${props.id}-error`} message={props.error} />
       {props.children}
     </div>
@@ -378,11 +579,11 @@ function Question(props: {
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   return (
-    <p id={id} className="text-error empty:hidden">
+    <p id={id} className="flex gap-2 text-error empty:hidden">
       {message && (
         <>
-          <span aria-hidden="true">⚠ </span>
-          {message}
+          <AlertIcon className="mt-1" />
+          <span>{message}</span>
         </>
       )}
     </p>
@@ -398,7 +599,7 @@ function Tick(props: {
   extra?: ReactNode;
 }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <FieldError id={`${props.name}-error`} message={props.error} />
       <label className="option">
         <input
@@ -425,23 +626,91 @@ function Tick(props: {
 
 function WhyWeAsk({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <details className="group rounded-xl border border-line p-4">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-ink [&::-webkit-details-marker]:hidden">
+    <details className="group/why rounded-xl border border-line bg-cloud px-4">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 text-ink [&::-webkit-details-marker]:hidden">
         {title}
-        <span aria-hidden="true" className="text-xl leading-none text-brand group-open:rotate-45">
-          +
-        </span>
+        <PlusIcon className="text-brand transition-transform duration-200 group-open/why:rotate-45" />
       </summary>
-      <p className="mt-3 text-ink-muted">{children}</p>
+      <p className="pb-4 text-ink-muted">{children}</p>
     </details>
   );
 }
 
 function Row({ term, children }: { term: string; children: ReactNode }) {
   return (
-    <div className="grid gap-1 px-5 py-4 sm:grid-cols-3">
+    <div className="grid gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4">
       <dt className="text-sm text-ink-muted sm:text-base">{term}</dt>
       <dd className="sm:col-span-2">{children}</dd>
     </div>
+  );
+}
+
+/* Icons: one 24px grid, 1.75 stroke, drawn here so the page loads no icon library. */
+
+function Icon(props: { className?: string; size?: string; children: ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={`shrink-0 ${props.size ?? "size-5"} ${props.className ?? ""}`}
+    >
+      {props.children}
+    </svg>
+  );
+}
+
+function ArrowIcon({ className }: { className?: string }) {
+  return (
+    <Icon className={className}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </Icon>
+  );
+}
+
+function CheckIcon({ size }: { size: string }) {
+  return (
+    <Icon size={size}>
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </Icon>
+  );
+}
+
+function ChevronIcon({ className }: { className?: string }) {
+  return (
+    <Icon className={className}>
+      <path d="m6 9 6 6 6-6" />
+    </Icon>
+  );
+}
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <Icon className={className}>
+      <path d="M12 5v14M5 12h14" />
+    </Icon>
+  );
+}
+
+function AlertIcon({ className }: { className?: string }) {
+  return (
+    <Icon size="size-[1.1em]" className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5.5M12 16.5v.01" />
+    </Icon>
+  );
+}
+
+function InfoIcon({ className }: { className?: string }) {
+  return (
+    <Icon size="size-[1.1em]" className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5M12 7.5v.01" />
+    </Icon>
   );
 }

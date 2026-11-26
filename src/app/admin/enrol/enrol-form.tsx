@@ -84,7 +84,7 @@ export function EnrolForm() {
   }
 
   const errorBox = error ? (
-    <p id="enrol-error" role="alert" className="rounded-xl bg-sand p-4 text-error">
+    <p id="enrol-error" role="alert" className="rounded-xl bg-cloud p-4 text-error">
       {error}
     </p>
   ) : null;
@@ -140,7 +140,7 @@ export function EnrolForm() {
           If you lose your phone, each of these codes signs you in once. Write them down and keep
           them somewhere safe and private. They won&apos;t be shown again.
         </p>
-        <ul className="grid grid-cols-2 gap-2 rounded-xl bg-sand p-4 font-mono tabular-nums sm:grid-cols-3">
+        <ul className="grid grid-cols-2 gap-2 rounded-xl bg-cloud p-4 font-mono tabular-nums sm:grid-cols-3">
           {setup.backupCodes.map((code) => (
             <li key={code}>{code}</li>
           ))}

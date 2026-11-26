@@ -1,29 +1,173 @@
+---
+name: ACK Emmanuel Freretown - Kengeleni
+description: The parish noticeboard online. White and Cloud pages, Signal Blue for action, Midnight fields.
+colors:
+  paper: "#FFFFFF"
+  cloud: "#F5F7FB"
+  mist: "#EDF2FF"
+  brand: "#0B5CFF"
+  brand-deep: "#0841B8"
+  night: "#0A1433"
+  night-soft: "#14224F"
+  sky: "#A9C1FF"
+  gold: "#E0A63A"
+  ink: "#0E1525"
+  ink-muted: "#535B6B"
+  line: "#E4E7EE"
+  line-strong: "#80889A"
+  error: "#B42318"
+  success: "#1E7A46"
+typography:
+  display:
+    fontFamily: "Instrument Serif, Georgia, Times New Roman, serif"
+    fontSize: "clamp(2.75rem, 8.4vw, 5.5rem)"
+    fontWeight: 400
+    lineHeight: 0.96
+    letterSpacing: "-0.03em"
+  headline:
+    fontFamily: "Instrument Serif, Georgia, Times New Roman, serif"
+    fontSize: "clamp(2.5rem, 5.6vw, 4.5rem)"
+    fontWeight: 400
+    lineHeight: 0.98
+    letterSpacing: "-0.03em"
+  title:
+    fontFamily: "Instrument Serif, Georgia, Times New Roman, serif"
+    fontSize: "clamp(1.875rem, 3vw, 2.375rem)"
+    fontWeight: 400
+    lineHeight: 1.05
+    letterSpacing: "-0.02em"
+  body:
+    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontSize: "1.0625rem"
+    fontWeight: 400
+    lineHeight: 1.6
+  label:
+    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.5
+rounded:
+  field: "12px"
+  list: "16px"
+  inset: "20px"
+  tile: "28px"
+  band: "32px"
+  pill: "9999px"
+spacing:
+  gutter-sm: "16px"
+  gutter-md: "24px"
+  gutter-lg: "40px"
+  tile-gap: "12px"
+  tile-gap-sm: "16px"
+  section: "80px"
+  section-md: "128px"
+components:
+  button-primary:
+    backgroundColor: "{colors.brand}"
+    textColor: "{colors.paper}"
+    rounded: "{rounded.pill}"
+    padding: "0 28px"
+    height: "48px"
+  button-primary-hover:
+    backgroundColor: "{colors.brand-deep}"
+    textColor: "{colors.paper}"
+  button-secondary:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    padding: "0 28px"
+    height: "48px"
+  button-on-dark:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.night}"
+    rounded: "{rounded.pill}"
+    padding: "0 28px"
+    height: "48px"
+  button-on-dark-hover:
+    backgroundColor: "{colors.mist}"
+    textColor: "{colors.night}"
+  button-outline-on-dark:
+    textColor: "{colors.paper}"
+    rounded: "{rounded.pill}"
+    padding: "0 28px"
+    height: "48px"
+  button-text:
+    textColor: "{colors.ink}"
+    padding: "0 8px"
+    height: "48px"
+  header-register:
+    backgroundColor: "{colors.brand}"
+    textColor: "{colors.paper}"
+    typography: "{typography.label}"
+    rounded: "{rounded.pill}"
+    padding: "0 20px"
+    height: "44px"
+  field:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.field}"
+    padding: "12px 16px"
+    height: "56px"
+  option:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.field}"
+    padding: "16px"
+    height: "56px"
+  option-checked:
+    backgroundColor: "{colors.mist}"
+    textColor: "{colors.ink}"
+  tile-night:
+    backgroundColor: "{colors.night}"
+    textColor: "{colors.paper}"
+    rounded: "{rounded.tile}"
+    padding: "24px"
+  tile-brand:
+    backgroundColor: "{colors.brand}"
+    textColor: "{colors.paper}"
+    rounded: "{rounded.tile}"
+    padding: "24px"
+  tile-cloud:
+    backgroundColor: "{colors.cloud}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.tile}"
+    padding: "24px"
+  notice:
+    backgroundColor: "{colors.mist}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.field}"
+    padding: "16px"
+---
+
 # Design System
 
-Visual rules for ackemmanuelfreretown.org. Read with `PRODUCT.md`. Reference files are in `docs/design/references/`.
+Visual rules for ackemmanuelfreretown.org. Read with `PRODUCT.md`. Reference files are in `docs/design/references/`. The frontmatter above carries the same tokens in machine-readable form; `.impeccable/design.json` carries the extras (tonal ramps, motion, breakpoints, component snippets). The tables below and the frontmatter must always agree.
 
 ## 1. Identity
 
 - **Crest.** The Diocese of Mombasa coat of arms: bishop's mitre with gold lappets above a shield with the red cross of St George on silver, over a blue sea bearing a gold anchor and crozier. The scan in `docs/design/references/diocese-crest-scan.jpg` is a placeholder only: its colours are faded and the edges are soft. Obtain the official vector (SVG or high-resolution PNG) from the Diocese office and confirm the parish may use it. Do not trace, redraw or recolour the crest. The one exception is the placeholder below, whose faded colour was lifted slightly until the official file replaces it (#87).
-- **Parish lockup.** Crest at small size beside "ACK Emmanuel" in the display face, with "Freretown - Kengeleni" beneath in small muted text (`src/components/site-header.tsx`). Until the official file arrives, the site uses `src/components/crest.webp`, cut from the scan with its colour lifted slightly (#80). If the parish has its own emblem, it takes this place and the crest moves to the footer.
-- **Motifs drawn from the crest**, used sparingly as lightweight SVG: a single wave line (the sea) as a section divider; the anchor as a small mark for "hope" and for the Freretown coast. Never use the cross or mitre as decoration.
+- **Parish lockup.** Crest at small size beside "ACK Emmanuel" in the display face, with "Freretown - Kengeleni" beneath in small muted text (`src/components/site-header.tsx`). The footer repeats it larger on Midnight, with the full parish name (`src/components/site-footer.tsx`). Until the official file arrives, the site uses `src/components/crest.webp`, cut from the scan with its colour lifted slightly (#80). If the parish has its own emblem, it takes this place and the crest moves to the footer.
+- **Motifs drawn from the crest**, used sparingly as lightweight SVG: a single wave line (the sea, `src/components/wave.tsx`) along the foot of a dark or blue tile; the bell that gave Kengeleni its name, drawn as one gold line on Midnight; the anchor as a small mark for "hope" and for the Freretown coast. Never use the cross or mitre as decoration.
 
 ## 2. Colour
 
-Clean white pages, Ocean Blue for action, and two calm panel tints: the coast at Mombasa. Agreed with the technical lead on 25 Nov 2026 (#80). It replaces the first palette (Persian Blue, Vista Blue, Cornsilk; `docs/design/references/palette.jpeg`), which no longer appears in the interface.
+White and Cloud pages, one bright blue for every action, and Midnight for dark fields. Chosen by the user on 26 Nov 2026 (#96), who found the earlier coastal palette (Ocean Blue, Sand, Lagoon; #80) too quiet: Signal Blue is Zoom's blue. Kurax stays the clean-UI reference (§7), with Signal Blue in place of its purple. The first palette of all (Persian Blue, Vista Blue, Cornsilk; `docs/design/references/palette.jpeg`) no longer appears in the interface.
 
 | Token | Hex | Name | Role |
 |---|---|---|---|
-| `--color-paper` | `#FFFFFF` | Paper | Page background |
-| `--color-sand` | `#F7F5F0` | Sand | Warm neutral panels, the footer, progress track |
-| `--color-lagoon` | `#E8F4F8` | Lagoon | Ocean-tinted panels, notices, selected options |
-| `--color-brand` | `#0A5F86` | Ocean Blue | The crest's sea, deepened. Primary buttons, links, active states, accents in headings |
-| `--color-brand-deep` | `#083F5A` | Deep Ocean | Hover on primary buttons; dark bands with paper text |
-| `--color-gold` | `#E0A63A` | Crest gold | Small highlights and icons on dark backgrounds. **Never text on light backgrounds** |
-| `--color-ink` | `#0F1A24` | Ink | Body text and headings |
-| `--color-ink-muted` | `#55606B` | Muted ink | Secondary text, hints, captions |
-| `--color-line` | `#E3E0D9` | Hairline | Card borders and dividers (decorative) |
-| `--color-line-strong` | `#8A939C` | Control line | Input, checkbox-card and outline-button borders |
+| `--color-paper` | `#FFFFFF` | Paper | Page background; the question card; text and fills on Midnight and Signal Blue |
+| `--color-cloud` | `#F5F7FB` | Cloud | Cool neutral tiles (the week, HBCs), the registration page ground, nav hover |
+| `--color-mist` | `#EDF2FF` | Mist | Blue-tinted tiles, notices, selected options, the current step, focus halo on fields; secondary text on Signal Blue |
+| `--color-brand` | `#0B5CFF` | Signal Blue | Primary buttons, links, active and done states, the board's one blue tile and the registration band |
+| `--color-brand-deep` | `#0841B8` | Deep Signal | Hover and pressed primary; a primary button while its post is on the way |
+| `--color-night` | `#0A1433` | Midnight | Dark tiles, the help panel, and the footer on every public page |
+| `--color-night-soft` | `#14224F` | Midnight soft | Hairlines, chip outlines and the wave on Midnight |
+| `--color-sky` | `#A9C1FF` | Sky | Secondary text and links on Midnight. **Never on light grounds** |
+| `--color-gold` | `#E0A63A` | Crest gold | The bell and small crest details on Midnight. **Never text on light grounds; never off Midnight** |
+| `--color-ink` | `#0E1525` | Ink | Body text and headings; the current language in the switch |
+| `--color-ink-muted` | `#535B6B` | Muted ink | Secondary text, hints, captions |
+| `--color-line` | `#E4E7EE` | Hairline | Dividers and list rules (decorative) |
+| `--color-line-strong` | `#80889A` | Control line | Input, option, language-switch and outline-button borders |
 | `--color-error` | `#B42318` | | Validation errors |
 | `--color-success` | `#1E7A46` | | Confirmations |
 
@@ -31,26 +175,33 @@ Measured contrast (WCAG 2.2):
 
 | Pair | Ratio | Use |
 |---|---|---|
-| Ink on Paper / Sand / Lagoon | 17.6 / 16.2 / 15.7 | Body text ✓ |
-| Muted ink on Paper / Sand / Lagoon | 6.4 / 5.9 / 5.7 | Secondary text ✓ |
-| Ocean Blue on Paper / Sand / Lagoon | 7.0 / 6.4 / 6.3 | Links, accents ✓ |
-| Paper on Ocean Blue | 7.0 | Button labels ✓ |
-| Paper on Deep Ocean | 11.2 | Text on dark bands ✓ |
-| Gold on Deep Ocean | 5.2 | Highlights on dark bands ✓ |
-| Error on Paper / Lagoon | 6.6 / 5.9 | ✓ |
-| Success on Paper | 5.4 | ✓ |
-| Control line on Paper | 3.1 | Input boundaries (WCAG 1.4.11) ✓ |
-| Hairline on Paper | 1.3 | ✗ Decoration only, never the only boundary of a control |
+| Ink on Paper / Cloud / Mist | 18.2 / 17.0 / 16.3 | Body text ✓ |
+| Muted ink on Paper / Cloud / Mist | 6.8 / 6.4 / 6.1 | Secondary text ✓ |
+| Signal Blue on Paper / Cloud / Mist | 5.3 / 4.9 / 4.7 | Links, times, accents ✓ |
+| Paper on Signal Blue | 5.3 | Button labels, blue tiles ✓ |
+| Paper on Deep Signal | 8.5 | Hover and busy labels ✓ |
+| Paper on Midnight / Midnight soft | 18.1 / 15.3 | Text on dark tiles and the footer ✓ |
+| Sky on Midnight / Midnight soft | 10.1 / 8.6 | Secondary text and links on dark ✓ |
+| Gold on Midnight | 8.3 | Crest details on dark ✓ |
+| Mist on Signal Blue | 4.7 | Secondary text on blue ✓ |
+| Error on Paper / Mist | 6.6 / 5.9 | ✓ |
+| Success on Paper | 5.3 | ✓ |
+| Control line on Paper / Cloud / Mist | 3.6 / 3.3 / 3.2 | Control boundaries (WCAG 1.4.11) ✓ |
+| Hairline on Paper | 1.2 | ✗ Decoration only, never the only boundary of a control |
+| Signal Blue on Midnight | 3.4 | ✗ Never text on Midnight: use Sky or Paper |
 
 Rules:
-- One primary action per screen: a solid Ocean Blue pill. Secondary actions are outlined pills or text links with an arrow.
+- **The Committed Field Rule.** Colour arrives as whole fields at page scale, Midnight and Signal Blue tiles and bands, not as scattered accents on white. A board carries one Signal Blue tile; Midnight carries the rest of the weight.
+- **The One Blue Pill Rule.** One solid Signal Blue pill per screen: on public pages it is the header's Register; on `/registration` it is the form's `btn-primary`, and the header's Register turns into an outlined pill marked as the current page. Secondary actions are outlined pills or text links with an arrow. On Midnight, Signal Blue or the photo, actions are paper pills (`btn-on-dark`) and paper outlines (`btn-outline-on-dark`), never blue on blue or blue on Midnight.
+- **The Midnight Text Rule.** On Midnight, text is Paper or Sky and details are Gold. Signal Blue is never text there (3.4:1). Sky and Gold never appear on light grounds.
+- **The Always-Dark Footer Rule.** The footer is Midnight on every public page, registration included.
 - Status is never shown by colour alone: always an icon and words.
-- Light theme only in Release 1 (outdoor readability). Tokens are CSS variables in `src/app/globals.css`, so a dark theme can be added later.
+- Light theme only in Release 1 (outdoor readability). Tokens are CSS variables in `src/app/globals.css` (`@theme`, with Tailwind's default palette removed), so a dark theme can be added later.
 - Automated contrast checks (axe in Playwright) run on every public page.
 
 ## 3. Typography
 
-- **Headings:** Instrument Serif, regular (400), slightly tight tracking (−0.02em). Editorial and calm; large sizes carry the personality, never bold weights.
+- **Headings:** Instrument Serif, regular (400), slightly tight tracking (−0.02em; display and section headings −0.03em). Editorial and calm; large sizes carry the personality, never bold weights.
 - **Body and controls:** Instrument Sans, regular (400) only. The variable 400–600 file is nearly twice the size and took the pages over the 200 KB budget, so hierarchy comes from size, colour and the serif, never bold. Faked bold is turned off (`font-synthesis-weight: none`).
 - Both are self-hosted with `next/font/local` (`src/app/(public)/fonts.ts`), subset to the characters English and Kiswahili use, about 27 KB together, preloaded with `font-display: swap` and a size-matched fallback. Licences in `src/app/fonts/README.md`.
 - Body text 17px on mobile and 18px from `sm` (never below 16px), line height 1.6, line length 60–70 characters on wide screens.
@@ -63,16 +214,18 @@ Mobile first: design at **360 × 800** before anything else.
 
 | Breakpoint | Width | Changes |
 |---|---|---|
-| Base | 0–599px | Single column; full-width buttons; sticky primary action on long forms |
-| `sm` | 600px | Larger phones and small tablets; more generous spacing |
-| `md` | 900px | Landing page may use two columns; the navigation row under the lockup moves inline beside it |
-| `lg` | 1200px | Content max width about 1120px, centred |
+| Base | 0–599px | Single column; tiles stack; full-width buttons; side gutter 16px |
+| `sm` | 600px | Larger phones and small tablets; side gutter 24px, tile gap 16px, more generous padding |
+| `md` | 900px | Tiles pair in two columns; the navigation row under the lockup moves inline beside it, with the header's Register pill |
+| `lg` | 1200px | The 12-column grid; side gutter 40px; content max width 85rem (1360px), centred |
 
-- **Forms stay single column at every size**, max width about 34rem, even on desktop.
-- Use container queries for cards (departments, HBCs, programmes) so they adapt to their column, not just the viewport.
+- **The board.** Pages are built from 28px-radius tiles on the 12-column grid, 12px apart (16px from `sm`). The homepage's first screen is one tiled board: the photo with the welcome over 7 columns and two rows, the Midnight Sunday-services tile and the board's one Signal Blue tile (the theme of the year) beside it in 5, then the week as a Cloud tile across the full width. On phones the welcome comes first on Midnight, the photo follows inset in the same tile (never under text), then the Sunday tile.
+- Sections after the board are 80px apart (128px from `md`); a section heading and its tiles share the grid, usually 7/5 or 5/7 splits.
+- **The Unbreakable Time Rule.** Service and weekly times never wrap (`whitespace-nowrap`). The Sunday tile is a container and sizes its times with container units (`cqi`) so the longest Kiswahili time fits on one line at 360px; the week is hairline rows (day, time, what happens), never a seven-column strip. Test both languages at 360px.
+- **Forms stay single column at every size.** The question sits in a white card (28px radius from `sm`) on a Cloud page that runs down to the footer. From `lg` the card takes 7 columns and a sticky side column takes 4: the step rail (every step by name, done, current or still to come) and the Midnight help panel. Below `lg` the step rail gives way to a segmented progress bar under "Step N of M". Staff pages and narrow forms keep the 34rem form width; legal pages the 42rem prose width.
 - Touch targets at least 44 × 44px, and primary controls (buttons, inputs, options) at least 48px tall. A small control may look smaller if its tap area still reaches 44px: the language switch is a 32px pill whose buttons each take 44 × 44px. Leave 8px between separate targets.
-- Shapes: pill buttons (`rounded-full`), 12px radius on inputs and options, 16–24px on panels. Shared classes `btn-primary`, `btn-secondary`, `btn-text`, `field` and `option` live in `globals.css`.
-- Respect `prefers-reduced-motion`; motion is subtle and never blocks input.
+- Shapes: pill buttons (`rounded-full`); 12px on inputs, options and notices; 16px on review lists and the reference panel; 20px on the inset photo on phones; 28px on tiles and the question card; 32px on the registration band.
+- Respect `prefers-reduced-motion`; motion is subtle and never blocks input (§8).
 - Safe-area padding for phones with notches (`viewport-fit=cover`).
 - Test viewports in Playwright: 360×800 (low-end Android), 375×667 (small iPhone), 768×1024 (tablet), 1280×800 (laptop).
 
@@ -80,6 +233,7 @@ Mobile first: design at **360 × 800** before anything else.
 
 - Real photographs of this congregation, the church building and Mombasa, used with consent. No stock photos of strangers.
 - The homepage may carry one hero photograph, of the church building with no people in it, on top of the 200 KB budget (D46). WebP, one file per screen class chosen by CSS width: at most 35 KB on phones (up to 600px), 60 KB on tablets (up to 1100px) and 110 KB on laptops and larger. Serve it with `<picture>` and `media` sources, not `srcset` width descriptors, so a high-density phone still gets the phone file. It is the only large image on the site.
+- Where text sits on the photo, a Midnight gradient shades the lower part so paper text keeps its contrast on the white walls.
 - Registration and voting pages carry no large images.
 - Images are pre-optimised and served as static files (no `next/image` on Cloudflare).
 
@@ -96,29 +250,39 @@ Mobile first: design at **360 × 800** before anything else.
 ## 7. Inspiration and what we take from it
 
 - **tihada.com.** Kenyan identity through a local skyline silhouette; "how it works" as short numbered steps; plain promises such as "no account needed"; FAQ in everyday language. *Take:* a Mombasa coastline or Freretown silhouette, "Register in 3 steps", plain reassurances.
-- **ardia.dev.** Warm paper-toned background; one painterly illustration that gives the site a personality; an honest FAQ ("Fair questions") and plainly written privacy notes. *Take:* the warmth of its sand-toned panels and a "Fair questions" section on registration: why we need your phone number, where your details are stored, who can see them. Not its illustration: the homepage photo is our one large image (D46, §5).
-- **kurax.vercel.app** (the main reference, #80). Clean white space, editorial serif headings over a plain sans, pill buttons, hairline borders, calm tinted panels, numbered steps (01, 02, 03). *Take:* that restraint and rhythm, with Ocean Blue in place of its purple. Not its fintech imagery, mock-ups or copy.
+- **ardia.dev.** Warm paper-toned background; one painterly illustration that gives the site a personality; an honest FAQ ("Fair questions") and plainly written privacy notes. *Take:* the honesty of its notes and a "Fair questions" section on registration: why we need your phone number, where your details are stored, who can see them. Not its illustration: the homepage photo is our one large image (D46, §5).
+- **kurax.vercel.app** (the main reference, #80, kept in #96). Clean white space, editorial serif headings over a plain sans, pill buttons, hairline borders, bold coloured tiles. *Take:* that restraint and rhythm, with Signal Blue in place of its purple. Plain numerals (1, 2, 3) only where the sequence matters, such as the registration steps; never zero-padded counters as decoration. Not its fintech imagery, mock-ups or copy.
 - **siteinspire.com.** A gallery to browse. When a site is used as a reference, add it here with one line on what specifically to take from it.
 
 Take ideas, not assets: no copying another site's illustrations, layouts or copy.
 
 ## 8. Components
 
-The shared controls are classes in `src/app/globals.css` (`@layer components`). Use them; don't restyle a control locally. The rules they follow are in §2 (one primary action per screen) and §4 (shapes and target sizes); this section records what each looks like and its states.
+The shared controls are classes in `src/app/globals.css` (`@layer components`). Use them; don't restyle a control locally. The rules they follow are in §2 (one blue pill per screen, Midnight text) and §4 (shapes and target sizes); this section records what each looks like and its states.
 
 | Class | What it is | States |
 |---|---|---|
-| `btn-primary` | Solid Ocean Blue pill with a paper label: the action the page exists for | Hover: Brand Deep. Disabled: 60% opacity, not-allowed cursor. Focus: the 3px brand outline |
-| `btn-secondary` | Paper pill with a `line-strong` border and an ink label | Hover: ink border. Disabled and focus as primary |
-| `btn-text` | Label only, 48px tall, for "Back" and low-stakes actions | Hover: Ocean Blue |
-| `field` | Text input: 52px tall, `line-strong` border, ink text, muted placeholder | Hover: ink border. Focus: brand border plus the outline. `aria-invalid="true"`: error border, with the message below in error red |
-| `option` | Radio or checkbox card: the whole card is the target | Hover: ink border. Checked: brand border on lagoon |
+| `btn-primary` | Solid Signal Blue pill, 48px tall, with a paper label: the action the step exists for | Hover and pressed: Deep Signal. Busy: Deep Signal at full strength with a spinner. Disabled: 60% opacity, not-allowed cursor. Focus: the 3px brand outline |
+| `btn-secondary` | Paper pill with a Control line border and an ink label | Hover: ink border. Disabled and focus as primary |
+| `btn-on-dark` | Paper pill with a Midnight label, for Midnight, Signal Blue and the photo | Hover: Mist fill. Focus: the outline turns paper |
+| `btn-outline-on-dark` | Paper outline (70%) with a paper label, beside `btn-on-dark` | Hover: full paper border and a faint paper wash |
+| `btn-text` | Label only, 48px tall, for "Back" and low-stakes actions | Hover: Signal Blue |
+| `field` | Text input: 56px tall, 12px radius, Control line border, ink text, muted placeholder | Hover: ink border. Focus: brand border, a 4px Mist halo and the outline. `aria-invalid="true"`: error border, with the message below in error red |
+| `option` | Radio or checkbox card: the whole card is the target | Hover: ink border. Checked: brand border on Mist |
+| `spinner` | A ring in the current colour with one clear quarter, about 1.1em | Spins; holds still at 60% under reduced motion |
 
-- **Buttons on Brand Deep or over the photo** swap to a paper fill with a Brand Deep label (primary) and a paper outline (secondary), as on the homepage welcome. Contrast stays at least 4.5:1.
-- **Language switch** (`src/components/language-switch.tsx`): a small two-part pill that looks 32px tall, while each button's tap area reaches 44 × 44px (§4). The current language is an ink fill with paper text. The visible codes "EN"/"SW" stay in each button's accessible name with the full name ("SW Kiswahili"), so voice control can say what it sees.
-- **Notices:** lagoon panels with ink text. A field's error is a message in error red under the field; an error for the whole form is a lightly red-tinted panel with a red border and `role="alert"`. The words always say what went wrong, never colour alone.
-- **Panels:** sand or lagoon, no shadow, rounded as in §4 (notices inside a form 12px). Lists inside a section use hairlines (`line`), not nested cards.
-- **Header navigation** (`src/components/site-header.tsx`): plain links with no JavaScript. On phones they sit in a row under the lockup rather than behind a menu button. Links to `/registration` are plain `<a>`, never `<Link>` (Turnstile's CSP, see CLAUDE.md).
+- **The Answered Press Rule.** Every button settles by 2% while pressed (150ms). A submit button shows a spinner and `aria-busy` while its own server action posts; the other buttons are disabled and the question dims to 55% so nothing is sent twice. Links into `/registration` use `PendingLink` (`src/components/pending-link.tsx`), still a plain `<a>` for Turnstile's CSP, which shows a spinner until the next page arrives and clears it on Back. The language switch shows a spinner in place of the chosen code, keeping the pill's width. Without JavaScript all of these are ordinary links and buttons.
+- **Header Register pill** (`src/components/site-header.tsx`): from `md`, the site's one solid Signal Blue pill, 44px tall (a navigation control, so the 44px target rule applies rather than the 48px primary-control height), beside the navigation. On `/registration` (`onRegistration`) it is outlined in Signal Blue with `aria-current="page"`. On phones it is a blue underlined link at the end of the navigation row.
+- **Header navigation:** plain links with no JavaScript, in muted ink, turning ink with a Cloud pill behind on hover from `md`. On phones they sit in a row under the lockup that wraps rather than scrolls. Links to `/registration` are plain `<a>`, never `<Link>` (Turnstile's CSP, see CLAUDE.md).
+- **Language switch** (`src/components/language-switch.tsx`): a small two-part pill with a Control line border that looks 32px tall, while each button's tap area reaches 44 × 44px (§4). The current language is an ink fill with paper text. The visible codes "EN"/"SW" stay in each button's accessible name with the full name ("SW Kiswahili"), so voice control can say what it sees.
+- **Tiles:** 28px radius, padding 24px (32px from `sm`), no border. Midnight tiles carry paper headings and Sky text, with Midnight soft hairlines; Signal Blue tiles carry paper headings and Mist text; Mist and Cloud tiles carry ink and muted ink, with Signal Blue for a verse or detail. Lists inside a tile use hairlines, not nested cards. A wave may run along the foot of a Midnight or blue tile.
+- **Sunday services tile:** Midnight, with each service as a hairline row: the time in the display face on its own unbreakable line, then the service name and a small outlined language chip in Sky.
+- **Question card:** the one raised surface: Paper on Cloud with a hairline border and a soft, Midnight-tinted two-layer shadow. Everything else is flat; depth comes from field colour, not shadow.
+- **Step rail and progress:** the rail is a Paper panel listing every step; done steps show a check on a Signal Blue disc, the current step a Signal Blue ring on a Mist row, later steps a Control line ring. Phones and tablets get a segmented bar (Signal Blue done, Hairline to come) under "Step N of M" in Signal Blue.
+- **Help panel:** Midnight, beside the card from `lg`, with the church office's number as a paper link underlined in Sky.
+- **Notices:** Mist panels with ink text and a Signal Blue info icon. A field's error is a message in error red under the field with an alert icon; an error for the whole form is a lightly red-tinted panel with a red border and `role="alert"`. "Why we ask" notes are disclosures on Cloud with a hairline border and a blue plus that turns to a cross. The words always say what went wrong, never colour alone.
+- **Icons:** drawn by hand as inline SVG on a 24px grid with a 1.75 stroke, round caps and joins, in the current colour, `aria-hidden` beside words that carry the meaning. No icon library, no icon font, no emoji or unicode glyphs as icons.
+- **Motion:** the homepage's one authored moment is the board settling: its tiles rise 14px into place in turn (700ms, 60ms apart, `cubic-bezier(0.16, 1, 0.3, 1)`) while the photo eases from a 6% zoom (1400ms). Transform only, so nothing ever starts hidden; all of it, spinners included, stops under reduced motion. Elsewhere motion is state feedback only (150–300ms colour and press transitions).
 
 ## 9. Design tools
 

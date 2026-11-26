@@ -73,7 +73,6 @@
   "home_hbc_intro": "Ushirika wetu unaendelea majumbani kote Freretown na maeneo jirani, katika vikundi vidogo vya ibada, mafunzo ya Biblia na maombi. Kila kimoja kimepewa jina la mahali katika Biblia. Hukutana Jumatatu, saa 11:30–12:30 jioni.",
   "home_register_title": "Je, wewe ni mshiriki? Jiunge na daftari la parokia",
   "home_visit_title": "Tutembelee",
-  "home_visit_where": "Mahali tulipo",
   "home_visit_address": "Kengeleni, Freretown, Mombasa. Kongowea, karibu na Daraja la Nyali.",
   "home_visit_map": "Fungua kwenye Google Maps",
   "home_visit_office": "Ofisi ya kanisa",
@@ -162,5 +161,17 @@
   "terms_title": "Masharti ya matumizi",
   "cookies_title": "Vidakuzi",
   "footer_nav_label": "Faragha na masharti",
-  "footer_tagline": "Parokia ya Kianglikana mjini Mombasa, sehemu ya Kanisa la Kianglikana Kenya."
+  "footer_tagline": "Parokia ya Kianglikana mjini Mombasa, sehemu ya Kanisa la Kianglikana Kenya.",
+  "reg_steps_label": "Hatua zako",
+  "reg_step_name": "Jina lako",
+  "reg_step_fwo": "Nambari ya FWO",
+  "reg_step_hbc": "HBC yako",
+  "reg_step_departments": "Idara",
+  "reg_step_phone": "Nambari ya simu",
+  "reg_step_declarations": "Kabla ya kujisajili",
+  "reg_step_review": "Hakiki taarifa zako",
+  "reg_step_code": "Nambari kutoka SMS",
+  "reg_help_title": "Unahitaji msaada?",
+  "reg_help_body": "Ofisi ya kanisa inaweza kukusajili. Piga simu",
+  "home_day_sun": "Jumapili"
 }

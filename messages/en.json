@@ -73,7 +73,6 @@
   "home_hbc_intro": "Our fellowship continues in homes across Freretown and nearby, in small groups for worship, Bible study and prayer. Each is named after a place in the Bible. They meet on Mondays, 5:30–6:30 pm.",
   "home_register_title": "Are you a member? Join the parish register",
   "home_visit_title": "Visit us",
-  "home_visit_where": "Where to find us",
   "home_visit_address": "Kengeleni, Freretown, Mombasa. In Kongowea, near Nyali Bridge.",
   "home_visit_map": "Open in Google Maps",
   "home_visit_office": "Church office",
@@ -204,5 +203,17 @@
   "cookies_control_heading": "Turning cookies off",
   "cookies_control_body": "You can delete or block cookies in your browser settings. If you do, the site may forget your language, and the check that you are not a robot may not work, so you may not be able to get a code.",
   "footer_nav_label": "Privacy and terms",
-  "footer_tagline": "An Anglican parish in Mombasa, part of the Anglican Church of Kenya."
+  "footer_tagline": "An Anglican parish in Mombasa, part of the Anglican Church of Kenya.",
+  "reg_steps_label": "Your progress",
+  "reg_step_name": "Your name",
+  "reg_step_fwo": "FWO number",
+  "reg_step_hbc": "Your HBC",
+  "reg_step_departments": "Departments",
+  "reg_step_phone": "Mobile number",
+  "reg_step_declarations": "Before you register",
+  "reg_step_review": "Check your details",
+  "reg_step_code": "Code from the SMS",
+  "reg_help_title": "Need help?",
+  "reg_help_body": "The church office can register you. Call",
+  "home_day_sun": "Sunday"
 }

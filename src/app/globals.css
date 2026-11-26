@@ -7,19 +7,22 @@
 @theme {
   --color-*: initial;
 
-  /* Palette (DESIGN.md §2): clean white, Ocean Blue for action, sand and lagoon for calm panels */
+  /* Palette (DESIGN.md §2): white and cloud, one bright blue for action, midnight for dark fields */
   --color-paper: #ffffff; /* page background */
-  --color-sand: #f7f5f0; /* warm neutral panels and the footer */
-  --color-lagoon: #e8f4f8; /* ocean-tinted panels, notices, selected options */
-  --color-brand: #0a5f86; /* Ocean Blue: primary buttons, links, active states (7.0:1 on paper) */
-  --color-brand-deep: #083f5a; /* hover, and dark bands with paper text (11.2:1) */
-  --color-gold: #e0a63a; /* crest accent. Never text on light backgrounds */
+  --color-cloud: #f5f7fb; /* cool neutral panels, the registration page ground */
+  --color-mist: #edf2ff; /* blue-tinted panels, notices, selected options */
+  --color-brand: #0b5cff; /* Signal Blue: primary buttons, links, active states (5.3:1 on paper) */
+  --color-brand-deep: #0841b8; /* hover and pressed primary (paper text 8.5:1) */
+  --color-night: #0a1433; /* Midnight: dark tiles, bands and the footer (paper text 18.1:1) */
+  --color-night-soft: #14224f; /* raised surfaces and hairlines on Midnight */
+  --color-sky: #a9c1ff; /* secondary text and links on Midnight (10.1:1). Never on light grounds */
+  --color-gold: #e0a63a; /* crest accent on Midnight only (8.3:1). Never text on light grounds */
 
   /* Text and lines */
-  --color-ink: #0f1a24; /* body text and headings */
-  --color-ink-muted: #55606b; /* secondary text (5.7:1 or better on every panel) */
-  --color-line: #e3e0d9; /* hairlines: cards, dividers (decorative) */
-  --color-line-strong: #8a939c; /* input and control borders (3.1:1, WCAG 1.4.11) */
+  --color-ink: #0e1525; /* body text and headings */
+  --color-ink-muted: #535b6b; /* secondary text (6.1:1 or better on every light panel) */
+  --color-line: #e4e7ee; /* hairlines: dividers (decorative) */
+  --color-line-strong: #80889a; /* input and control borders (3.2:1 or better, WCAG 1.4.11) */
   --color-error: #b42318;
   --color-success: #1e7a46;
 
@@ -36,7 +39,7 @@
   --breakpoint-lg: 75rem;
 
   /* Layout */
-  --container-content: 70rem; /* ~1120px */
+  --container-content: 85rem; /* 1360px: the 12-column grid on wide screens */
   --container-form: 34rem;
   --container-prose: 42rem;
 }
@@ -44,9 +47,12 @@
 @layer base {
   :root {
     color-scheme: light; /* Release 1 is light only (DESIGN.md §2) */
+    accent-color: var(--color-brand);
+    caret-color: var(--color-brand);
   }
 
   html {
+    scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
@@ -92,7 +98,21 @@
   }
 
   ::selection {
-    background-color: var(--color-lagoon);
+    background-color: var(--color-mist);
+    color: var(--color-ink);
+  }
+
+  .bg-night ::selection,
+  .bg-brand ::selection {
+    background-color: var(--color-paper);
+    color: var(--color-night);
+  }
+
+  /* On dark and blue fields the focus ring turns paper, so it stays visible (WCAG 2.4.7). */
+  .bg-night :focus-visible,
+  .bg-brand :focus-visible,
+  .on-dark :focus-visible {
+    outline-color: var(--color-paper);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -108,27 +128,100 @@
 }
 
 /*
- * Shared controls (DESIGN.md §2 and §4): pill buttons, quiet inputs. Primary actions are Ocean
- * Blue and at least 48px tall; there is one per screen.
+ * Shared controls (DESIGN.md §2, §4 and §8): pill buttons, quiet inputs. Primary actions are
+ * Signal Blue and at least 48px tall; there is one solid blue pill per screen.
  */
 @layer components {
+  /* Every button answers the press at once: it settles by 2% while held. */
+  .btn-primary,
+  .btn-secondary,
+  .btn-on-dark,
+  .btn-outline-on-dark {
+    @apply inline-flex min-h-12 items-center justify-center gap-2.5 rounded-full px-7 no-underline transition-[background-color,border-color,color,transform] duration-150 ease-out select-none active:scale-[0.98] disabled:cursor-not-allowed;
+  }
+
   .btn-primary {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-paper no-underline transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60;
+    @apply bg-brand text-paper hover:bg-brand-deep active:bg-brand-deep disabled:opacity-60;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-line-strong bg-paper px-7 text-ink no-underline transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-60;
+    @apply border border-line-strong bg-paper text-ink hover:border-ink disabled:opacity-60;
+  }
+
+  /* On Midnight, Signal Blue or over the photo: a paper fill, or a paper outline. */
+  .btn-on-dark {
+    @apply bg-paper text-night hover:bg-mist;
+  }
+
+  .btn-outline-on-dark {
+    @apply border border-paper/70 text-paper hover:border-paper hover:bg-paper/10;
   }
 
   .btn-text {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 px-2 text-ink no-underline hover:text-brand;
+    @apply inline-flex min-h-12 items-center justify-center gap-2 px-2 text-ink no-underline transition-colors hover:text-brand;
   }
 
   .field {
-    @apply block min-h-13 w-full rounded-xl border border-line-strong bg-paper px-4 py-3 text-ink transition-colors placeholder:text-ink-muted hover:border-ink focus-visible:border-brand aria-[invalid=true]:border-error;
+    @apply block min-h-14 w-full rounded-xl border border-line-strong bg-paper px-4 py-3 text-lg text-ink transition-[border-color,box-shadow] placeholder:text-ink-muted hover:border-ink focus-visible:border-brand focus-visible:shadow-[0_0_0_4px_var(--color-mist)] aria-[invalid=true]:border-error;
   }
 
   .option {
-    @apply flex min-h-13 cursor-pointer items-start gap-3 rounded-xl border border-line-strong bg-paper p-4 transition-colors hover:border-ink has-checked:border-brand has-checked:bg-lagoon;
+    @apply flex min-h-14 cursor-pointer items-start gap-3 rounded-xl border border-line-strong bg-paper p-4 transition-colors hover:border-ink has-checked:border-brand has-checked:bg-mist;
   }
+
+  /* The button whose post is on the way stays at full strength while the others dim. */
+  :is(
+    .btn-primary,
+    .btn-secondary,
+    .btn-text,
+    .btn-on-dark,
+    .btn-outline-on-dark
+  )[aria-busy="true"] {
+    opacity: 1;
+    cursor: progress;
+  }
+
+  .btn-primary[aria-busy="true"] {
+    background-color: var(--color-brand-deep);
+  }
+
+  /* A spinner for pending buttons and links: a ring with one bright quarter. */
+  .spinner {
+    @apply inline-block size-[1.1em] shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent;
+  }
+}
+
+/* Under reduced motion the spinner holds still; the busy label and aria-busy still say "working". */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-right-color: currentColor;
+    opacity: 0.6;
+  }
+}
+
+/*
+ * The homepage's one authored moment (#96): the board's tiles settle into place in turn and the
+ * photo eases from a slight zoom. Transform only, so nothing is ever hidden; off under reduced
+ * motion (the base layer's rule above).
+ */
+@keyframes tile-rise {
+  from {
+    transform: translateY(14px);
+  }
+}
+
+@keyframes photo-settle {
+  from {
+    transform: scale(1.06);
+  }
+}
+
+.tile-rise {
+  animation: tile-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--rise-delay, 0ms);
+}
+
+.photo-settle {
+  animation: photo-settle 1400ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
