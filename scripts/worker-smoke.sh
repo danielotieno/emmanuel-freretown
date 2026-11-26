@@ -74,6 +74,16 @@ done
 summary="$(grep -A8 "jobs.daily_finished" "$LOG" | tr -d '\n' || true)"
 check "daily jobs all succeed" "failed: 0" "$summary"
 
+# Next.js prints a rejected promise nobody handled as "unhandledRejection" (#94: the database
+# socket's close error did this on every request). None should ever appear.
+# workerd reports one outside Next.js (the cron or queue handlers) as "Uncaught (in promise)".
+UNHANDLED='unhandledRejection|Uncaught \(in promise\)'
+if grep -Eq "$UNHANDLED" "$LOG"; then
+  echo "FAIL worker logged unhandled rejections:"
+  { grep -E -A4 "$UNHANDLED" "$LOG" || true; } | head -20
+  fail=1
+fi
+
 if grep -q "wrangler:error" "$LOG"; then
   echo "FAIL worker logged errors:"
   grep -A5 "wrangler:error" "$LOG"
