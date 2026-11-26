@@ -5,7 +5,7 @@ import { hmacSha256Hex, timingSafeEqual } from "../../lib/crypto";
 import * as audit from "../audit";
 import { sendOtpSms, type SmsProvider } from "../notifications";
 import { normalizeKenyanPhone } from "./phone";
-import { checkOtpSendLimits } from "./rate-limit";
+import { checkDeskSmsLimits, checkOtpSendLimits } from "./rate-limit";
 import { verifyTurnstile } from "./turnstile";
 
 /** FR-2: a code is valid for 5 minutes and allows 5 attempts. */
@@ -100,9 +100,9 @@ export type OtpRequestResult =
 /**
  * Sends an OTP (FR-2, rule 8). In order: the phone must be a Kenyan mobile; Turnstile must pass;
  * the rate limits (20 per IP per hour, or 60 per officer per hour at the desk; a resend after 60
- * seconds; 3 per phone per hour) must have room. Then a new challenge is created and its code goes out by SMS; once it is sent, it
- * replaces any earlier unverified one for the same phone and purpose, so only the latest code
- * works.
+ * seconds; 3 per phone per hour) must have room. Then a new challenge is created and its code
+ * goes out by SMS; once it is sent, it replaces any earlier unverified one for the same phone and
+ * purpose, so only the latest code works.
  *
  * Nothing here looks at the registry: the answer never says whether a phone belongs to anyone
  * (rule 3). The code exists only in memory and in the SMS; the database holds its HMAC. Pass a
@@ -370,4 +370,26 @@ export async function recordInPersonVerification(
     after: { evidence: "IN_PERSON" },
     requestId,
   });
+}
+
+/**
+ * Rule 8 for an assisted registration whose phone wasn't at the desk (FR-3, #18): its
+ * confirmation SMS goes to a number no code has checked, so the submission passes the same
+ * protections as sending a code. Turnstile first, then the officer's and the phone's hourly
+ * limits (`checkDeskSmsLimits`). Call it before storing the registration; nothing is counted
+ * if Turnstile fails.
+ */
+export async function checkDeskSms(
+  db: DbOrTx,
+  request: { phoneE164: string; staffUserId: string; ip: string; turnstileToken: string },
+  deps: { rateLimitSecret: string; turnstileSecret: string; fetch?: typeof fetch },
+): Promise<{ ok: true } | { ok: false; reason: "turnstile" | "staff" | "phone_hourly" }> {
+  const human = await verifyTurnstile(request.turnstileToken, {
+    secret: deps.turnstileSecret,
+    ip: request.ip,
+    fetch: deps.fetch,
+  });
+  if (!human) return { ok: false, reason: "turnstile" };
+  const limits = await checkDeskSmsLimits(db, request, deps.rateLimitSecret);
+  return limits.allowed ? { ok: true } : { ok: false, reason: limits.reason };
 }

@@ -264,6 +264,8 @@ test("a half-filled form survives a reload and a dropped connection", async ({ p
   await confirmAll(page);
   await expect(page.getByText("Test Person")).toBeVisible();
   await expect(page.getByText(en.desk_verification_unverified)).toBeVisible();
+  // The confirmation goes to a number no code has checked: Turnstile first (rule 8).
+  await expect(page.locator('input[name="cf-turnstile-response"]')).toHaveValue(/.+/);
   await page.getByRole("button", { name: en.desk_submit }).click();
   await expect(page.getByRole("heading", { name: en.desk_done_title })).toBeVisible({
     timeout: 30_000,

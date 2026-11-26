@@ -272,7 +272,7 @@
   "desk_done_sms": "The member will also get it by SMS.",
   "desk_done_no_sms": "Write it down for the member: they get no SMS.",
   "desk_done_new_member": "Remind them to see the Church Secretary for an FWO number.",
-  "desk_err_limit_staff": "You have sent 60 codes in the last hour. Wait a few minutes, or record the phone as not here.",
-  "desk_err_limit_hourly": "This phone has had 3 codes in the last hour. Try later, or record the phone as not here.",
+  "desk_err_limit_staff": "You have sent 60 SMS from the desk in the last hour. Please wait a few minutes.",
+  "desk_err_limit_hourly": "This phone has had 3 SMS in the last hour. Please try again later.",
   "desk_err_verification": "The code check has expired. Please send a new code."
 }

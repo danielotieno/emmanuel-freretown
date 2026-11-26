@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../../src/db";
+import { hmacSha256Hex } from "../../src/lib/crypto";
 import type { SmsProvider } from "../../src/modules/notifications";
 import {
   checkAssistedRegistration,
@@ -9,7 +10,11 @@ import {
   submitAssistedRegistration,
   type AssistedRegistrationFields,
 } from "../../src/modules/registration";
-import { requestPhoneChallenge, verifyPhoneChallenge } from "../../src/modules/verification";
+import {
+  checkDeskSms,
+  requestPhoneChallenge,
+  verifyPhoneChallenge,
+} from "../../src/modules/verification";
 import { connectTestDrizzle, rolledBack } from "./db";
 
 // Assisted registration at the officer desk (issue #18, FR-3) against real Postgres, as
@@ -229,6 +234,13 @@ describe("submitAssistedRegistration (FR-3)", () => {
           },
         ],
       });
+      // The code was counted against the officer, never against the desk's IP (#18).
+      const staffKey = `otp:staff:${await hmacSha256Hex("rl-secret", OFFICER.userId)}`;
+      const ipKey = `otp:ip:${await hmacSha256Hex("rl-secret", "198.51.100.80")}`;
+      const { rows: buckets } = await tx.execute<{ key: string }>(
+        sql`SELECT DISTINCT key FROM rate_limit_bucket WHERE key IN (${staffKey}, ${ipKey})`,
+      );
+      expect(buckets.map((b) => b.key)).toEqual([staffKey]);
       // The member's SMS in the member's language, which the officer chose (NFR-5).
       expect(await outbox(tx, smsId!)).toEqual({
         phone_e164: "+254700000081",
@@ -367,6 +379,42 @@ describe("only an officer records 'no personal phone' (database CHECK)", () => {
                     ${PRIVACY_NOTICE_VERSION})`),
         ),
       ).rejects.toThrow();
+    });
+  });
+});
+
+describe("checkDeskSms: the confirmation to an unchecked number (rule 8, #18)", () => {
+  const turnstile = (success: boolean) =>
+    (async () => new Response(JSON.stringify({ success }))) as unknown as typeof globalThis.fetch;
+  const request = {
+    phoneE164: "+254700000091",
+    staffUserId: OFFICER.userId,
+    ip: "198.51.100.90",
+    turnstileToken: "t",
+  };
+
+  it("refuses without Turnstile and counts nothing", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const before = await count(tx, "rate_limit_bucket");
+      expect(
+        await checkDeskSms(tx, request, {
+          rateLimitSecret: "rl-secret",
+          turnstileSecret: "ts",
+          fetch: turnstile(false),
+        }),
+      ).toEqual({ ok: false, reason: "turnstile" });
+      expect(await count(tx, "rate_limit_bucket")).toBe(before);
+    });
+  });
+
+  it("allows three SMS to one phone an hour", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const deps = { rateLimitSecret: "rl-secret", turnstileSecret: "ts", fetch: turnstile(true) };
+      for (let i = 0; i < 3; i++)
+        expect(await checkDeskSms(tx, request, deps)).toEqual({ ok: true });
+      expect(await checkDeskSms(tx, request, deps)).toEqual({ ok: false, reason: "phone_hourly" });
     });
   });
 });

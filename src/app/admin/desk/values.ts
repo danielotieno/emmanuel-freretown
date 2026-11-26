@@ -140,7 +140,7 @@ export interface DeskDraft {
   challengeId?: string;
 }
 
-export const DESK_STORAGE_PREFIX = "desk:";
+const DESK_STORAGE_PREFIX = "desk:";
 
 const draftKey = (userId: string) => `${DESK_STORAGE_PREFIX}draft:${userId}`;
 const eventKey = (userId: string) => `${DESK_STORAGE_PREFIX}event:${userId}`;

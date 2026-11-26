@@ -3,18 +3,15 @@
  * Public API of this module. Other code imports only from here.
  */
 export {
-  ASSISTED_VERIFICATIONS,
   checkAccepted,
   checkAssistedRegistration,
   checkChosen,
-  checkEventLabel,
   checkFullName,
   checkFwoNumber,
   checkPhone,
   checkSelfRegistration,
   type AssistedFieldName,
   type AssistedRegistrationFields,
-  type AssistedVerification,
   type FieldError,
   type FieldName,
   type FieldResult,

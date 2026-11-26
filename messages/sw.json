@@ -230,7 +230,7 @@
   "desk_done_sms": "Mshiriki ataipata pia kwa SMS.",
   "desk_done_no_sms": "Mwandikie mshiriki: hapati SMS.",
   "desk_done_new_member": "Mkumbushe amwone Katibu wa Kanisa ili apate nambari ya FWO.",
-  "desk_err_limit_staff": "Umetuma nambari 60 katika saa moja iliyopita. Subiri dakika chache, au rekodi kwamba simu haiko hapa.",
-  "desk_err_limit_hourly": "Simu hii imepata nambari 3 katika saa moja iliyopita. Jaribu baadaye, au rekodi kwamba simu haiko hapa.",
+  "desk_err_limit_staff": "Umetuma SMS 60 kutoka dawati katika saa moja iliyopita. Tafadhali subiri dakika chache.",
+  "desk_err_limit_hourly": "Simu hii imepata SMS 3 katika saa moja iliyopita. Tafadhali jaribu tena baadaye.",
   "desk_err_verification": "Uthibitisho wa nambari umeisha muda. Tafadhali tuma nambari mpya."
 }

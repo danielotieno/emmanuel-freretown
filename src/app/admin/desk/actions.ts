@@ -25,7 +25,7 @@ import {
   type FieldError,
   type ValidAssistedRegistration,
 } from "@/modules/registration";
-import { requestPhoneChallenge, verifyPhoneChallenge } from "@/modules/verification";
+import { checkDeskSms, requestPhoneChallenge, verifyPhoneChallenge } from "@/modules/verification";
 import { m } from "@/paraglide/messages";
 import {
   DESK_STEP_FIELDS,
@@ -199,18 +199,20 @@ export async function sendDeskCode(input: unknown, turnstileToken: unknown): Pro
 
 /**
  * Stores the registration (FR-3). With the phone at the desk, the code the member read out is
- * checked first and spent in the same transaction. The confirmation SMS goes out after the
- * response, except to a member with no personal phone.
+ * checked first and spent in the same transaction. With a phone that isn't at the desk, the
+ * confirmation SMS goes to a number no code has checked, so the submission first passes
+ * Turnstile and the officer's and the phone's hourly limits (rule 8). The confirmation SMS goes
+ * out after the response, except to a member with no personal phone.
  */
 export async function submitDeskRegistration(
   input: unknown,
-  verification?: { challengeId?: unknown; code?: unknown },
+  proof: { challengeId?: unknown; code?: unknown; turnstileToken?: unknown } = {},
 ): Promise<DeskAnswer> {
   const staff = await requireStaff("REGISTRATION_OFFICER");
   const locale = await getLocale();
   const o = { locale };
   const log = await getLogger();
-  const here: DeskStep = verification ? "code" : "confirm";
+  const here: DeskStep = proof.challengeId === undefined ? "confirm" : "code";
   try {
     const values = readDeskValues(input);
     const checked = check(values, locale);
@@ -218,10 +220,34 @@ export async function submitDeskRegistration(
 
     const env = await getEnv();
     const otpSecret = secret(env, "OTP_SECRET");
+    if (checked.value.verification === "IN_PERSON" && checked.value.phoneE164) {
+      const guarded = await checkDeskSms(
+        await getDb(),
+        {
+          phoneE164: checked.value.phoneE164,
+          staffUserId: staff.userId,
+          ip: await clientIp(),
+          turnstileToken: typeof proof.turnstileToken === "string" ? proof.turnstileToken : "",
+        },
+        {
+          rateLimitSecret: secret(env, "RATE_LIMIT_SECRET"),
+          turnstileSecret: secret(env, "TURNSTILE_SECRET_KEY"),
+        },
+      );
+      if (!guarded.ok) {
+        log.info("desk.sms_refused", { reason: guarded.reason });
+        const notice = {
+          turnstile: m.err_turnstile({}, o),
+          staff: m.desk_err_limit_staff({}, o),
+          phone_hourly: m.desk_err_limit_hourly({}, o),
+        }[guarded.reason];
+        return { errors: {}, step: "confirm", notice };
+      }
+    }
+
     let verificationToken: string | undefined;
     if (checked.value.verification === "PHONE_OTP") {
-      const challengeId = verification?.challengeId;
-      const code = verification?.code;
+      const { challengeId, code } = proof;
       const verified = await verifyPhoneChallenge(
         await getDb(),
         {

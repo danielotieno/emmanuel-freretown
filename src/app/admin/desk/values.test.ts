@@ -47,7 +47,8 @@ describe("desk server actions (CLAUDE.md rule 1, NFR-8)", () => {
   const source = readFileSync(new URL("./actions.ts", import.meta.url), "utf8");
   const actions = [...source.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{\n\s*(.*)/g)];
 
-  it("exports the three desk actions", () => {
+  it("exports the three desk actions, and nothing else the regex could miss", () => {
+    expect(source.match(/^export /gm)).toHaveLength(3);
     expect(actions.map((a) => a[1])).toEqual([
       "checkDeskStep",
       "sendDeskCode",

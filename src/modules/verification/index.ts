@@ -5,6 +5,7 @@
  * Public API of this module. Other code imports only from here.
  */
 export {
+  checkDeskSms,
   recordInPersonVerification,
   redeemRegistrationVerification,
   redeemStatusCheckVerification,
@@ -20,12 +21,13 @@ export {
 export { purgeExpiredChallenges } from "./purge";
 export { KENYAN_MOBILE_E164, normalizeKenyanPhone } from "./phone";
 export {
+  checkDeskSmsLimits,
   checkOtpSendLimits,
   consumeRateLimit,
   OTP_LIMITS,
   purgeExpiredRateLimits,
+  type DeskSmsCheck,
   type OtpSendCheck,
-  type OtpSender,
   type RateLimit,
 } from "./rate-limit";
 export { TURNSTILE_VERIFY_URL, verifyTurnstile, type TurnstileOptions } from "./turnstile";

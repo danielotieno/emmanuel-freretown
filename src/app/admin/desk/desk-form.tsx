@@ -91,6 +91,7 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
   const [attempt, setAttempt] = useState(0);
   const [, startTransition] = useTransition();
   const firstRender = useRef(true);
+  const inFlight = useRef(false);
 
   const { step, values } = draft;
 
@@ -119,6 +120,9 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
 
   /** Calls the server; a dropped connection or a failure keeps every answer where it is. */
   function run(intent: string, call: () => Promise<DeskAnswer>) {
+    // A ref, not state: two quick taps or Enter presses land before React re-renders.
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(intent);
     setAlert(undefined);
     setInfo(undefined);
@@ -131,6 +135,7 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
         const offline = !navigator.onLine || error instanceof TypeError;
         setAlert(offline ? text.offline : text.generic);
       } finally {
+        inFlight.current = false;
         setBusy(null);
         // Turnstile accepts each token once: a fresh widget after every answer.
         setAttempt((a) => a + 1);
@@ -166,12 +171,12 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
 
   function primary(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (inFlight.current) return;
+    const turnstileToken = new FormData(event.currentTarget).get("cf-turnstile-response");
     if (step === "confirm" && values.phoneMode === "otp") {
-      const token = new FormData(event.currentTarget).get("cf-turnstile-response");
-      run("send", () => sendDeskCode(values, token));
+      run("send", () => sendDeskCode(values, turnstileToken));
     } else if (step === "confirm") {
-      run("submit", () => submitDeskRegistration(values));
+      run("submit", () => submitDeskRegistration(values, { turnstileToken }));
     } else if (step === "code") {
       run("submit", () => submitDeskRegistration(values, { challengeId: draft.challengeId, code }));
     } else {
@@ -524,8 +529,10 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
                   error={errors.transferConsent}
                 />
               </div>
-              {/* A fresh widget after every answer from the server: a spent token is never reused. */}
-              {values.phoneMode === "otp" && turnstileSiteKey && (
+              {/* Every SMS the desk sends passes Turnstile (rule 8): the code, or the confirmation
+                  to a number no code has checked. A fresh widget after every answer from the
+                  server: a spent token is never reused. */}
+              {values.phoneMode !== "none" && turnstileSiteKey && (
                 <Turnstile key={attempt} siteKey={turnstileSiteKey} />
               )}
             </section>

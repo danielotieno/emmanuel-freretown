@@ -17,7 +17,9 @@ export interface RateLimit {
  *
  * At the officer desk (FR-3, #18) the per-IP limit gives way to one per officer: an officer
  * registers about 20 people an hour (requirements §12), and several officers may share one
- * church Wi-Fi. 60 an hour leaves room for resends; the per-phone limits still apply.
+ * church Wi-Fi. 60 an hour leaves room for resends; the per-phone limits still apply. The
+ * officer's and the phone's hourly limits also count the confirmation SMS the desk sends to a
+ * number no code has checked (`checkDeskSmsLimits`).
  */
 export const OTP_LIMITS = {
   ip: { scope: "otp:ip", limit: 20, windowSeconds: 3600 },
@@ -157,6 +159,32 @@ export async function checkOtpSendLimits(
     allowed: false,
     reason: ([sender.reason, "phone_resend", "phone_hourly"] as const)[refused]!,
   };
+}
+
+export type DeskSmsCheck = { allowed: true } | { allowed: false; reason: "staff" | "phone_hourly" };
+
+/**
+ * Rule 8 for the officer desk's other SMS (FR-3, #18): a registration whose phone wasn't at the
+ * desk gets its confirmation SMS at a number no code has checked. Each one counts against the
+ * officer's hourly limit and the phone's hourly limit, shared with the codes, so a desk can't
+ * send more SMS an hour than it could send codes: no flood of texts to one number, and no drain
+ * on the daily cap (D25). Counted together, all or nothing, like `checkOtpSendLimits`.
+ */
+export async function checkDeskSmsLimits(
+  db: DbOrTx,
+  request: { phoneE164: string; staffUserId: string },
+  secret: string,
+): Promise<DeskSmsCheck> {
+  const refused = await consumeAll(
+    db,
+    [
+      { limit: OTP_LIMITS.staff, subject: request.staffUserId },
+      { limit: OTP_LIMITS.phoneHourly, subject: request.phoneE164 },
+    ],
+    secret,
+  );
+  if (refused === -1) return { allowed: true };
+  return { allowed: false, reason: refused === 0 ? "staff" : "phone_hourly" };
 }
 
 /**
