@@ -24,6 +24,10 @@ import {
  * and only then looks the record up. Nothing in an answer before the code depends on whether a
  * phone, FWO number or reference is known, and every non-match gets the same answer (rule 3).
  * Logs carry outcomes only, never what was typed (rule 2).
+ *
+ * The code is bound to the phone (through its token), not to the FWO number or reference, which
+ * travel in hidden fields and can be changed before the code is entered. That is deliberate and
+ * safe: only a record matching the verified phone is ever shown, and one code buys one answer.
  */
 export async function statusStep(previous: StatusState, form: FormData): Promise<StatusState> {
   const locale = await getLocale();
@@ -150,11 +154,18 @@ async function verifyAndCheck(
     return at("review", { notice });
   }
 
-  const result = await checkRegistrationStatus(
-    await getDb(),
-    { phoneE164: details.phoneE164, key: details.key, verificationToken: verified.token },
-    otpSecret,
-  );
+  let result: Awaited<ReturnType<typeof checkRegistrationStatus>>;
+  try {
+    result = await checkRegistrationStatus(
+      await getDb(),
+      { phoneE164: details.phoneE164, key: details.key, verificationToken: verified.token },
+      otpSecret,
+    );
+  } catch (error) {
+    // The code is already used up: ask for a new one rather than the same code again.
+    log.error("status_check.lookup_failed", error);
+    return at("review", { notice: m.err_verification({}, o) });
+  }
   if (!result.ok) {
     log.info("status_check.refused", { reason: result.reason });
     return at("review", { notice: m.err_verification({}, o) });

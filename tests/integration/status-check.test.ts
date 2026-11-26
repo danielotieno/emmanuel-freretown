@@ -309,6 +309,45 @@ describe("checkRegistrationStatus (FR-7)", { timeout: 120_000 }, () => {
     });
   });
 
+  it("shows the member record when a member and a registration both match, by FWO or reference", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const phone = nextPhone();
+      // An imported member (D47), and a duplicate registration with the same FWO and phone,
+      // accepted and flagged (BR-03), with a name typed differently.
+      await asOwner(tx, () =>
+        tx.execute(sql`
+          WITH m AS (
+            INSERT INTO member (fwo_number, full_name, phone_e164, language)
+            VALUES ('0077', 'Test Member Of Record', ${phone}, 'en') RETURNING id)
+          INSERT INTO member_hbc_assignment (member_id, hbc_id)
+          SELECT m.id, (SELECT id FROM hbc WHERE name = 'Jordan') FROM m`),
+      );
+      const { id, reference } = await registered(tx, phone, {
+        fwoNumber: "0077",
+        fullName: "Test Typed Name",
+      });
+      const expected = {
+        ok: true,
+        status: "REGISTERED_MEMBER",
+        fullName: "Test Member Of Record",
+        hbcName: "Jordan",
+      };
+      expect(await check(tx, phone, "0077")).toEqual(expected);
+      expect(await check(tx, phone, reference)).toEqual(expected);
+
+      // Still the member once the duplicate is rejected (D33).
+      await rejectRegistration(tx, {
+        registrationId: id,
+        version: await versionOf(tx, id),
+        reason: "Duplicate",
+        actor: ADMIN,
+      });
+      expect(await check(tx, phone, "0077")).toEqual(expected);
+      expect(await check(tx, phone, reference)).toEqual(expected);
+    });
+  });
+
   it("gives every non-match the same answer (rule 3, BR-13)", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);

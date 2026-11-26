@@ -46,7 +46,11 @@ const NOT_FOUND = { ok: true, status: "NOT_FOUND" } as const;
  *
  * 1. An ACTIVE member with this phone and FWO number, approved or imported (D47): REGISTERED_MEMBER.
  * 2. Otherwise the newest registration whose current revision has this phone and this FWO number
- *    or reference:
+ *    or reference. Given a reference, the member check of step 1 runs first with that
+ *    registration's FWO number, so a member always sees their member record, whichever number
+ *    they give (FR-7: when a member and a registration both match, the member is shown; for
+ *    example an imported member whose duplicate registration is pending or was rejected).
+ *    Then:
  *    - SUBMITTED: RECEIVED, with the name and HBC from that revision;
  *    - CORRECTION_REQUESTED, REJECTED or WITHDRAWN: CONTACT_OFFICE (WITHDRAWN is a staff
  *      decision the member should hear about from the office, like a rejection);
@@ -80,6 +84,7 @@ export async function checkRegistrationStatus(
           .select({
             status: registration.status,
             memberId: registration.memberId,
+            fwoNumber: registrationRevision.fwoNumber,
             fullName: registrationRevision.fullName,
             hbcName: hbc.name,
           })
@@ -91,7 +96,8 @@ export async function checkRegistrationStatus(
               eq(registrationRevision.revisionNo, registration.currentRevisionNo),
             ),
           )
-          .leftJoin(hbc, eq(hbc.id, registrationRevision.hbcId))
+          // A revision that isn't redacted always has an HBC (registration_revision_complete_check).
+          .innerJoin(hbc, eq(hbc.id, registrationRevision.hbcId))
           .where(
             and(
               eq(registrationRevision.phoneE164, phoneE164),
@@ -106,9 +112,18 @@ export async function checkRegistrationStatus(
       );
       if (!latest) return NOT_FOUND;
 
+      if (key.kind === "reference" && latest.fwoNumber) {
+        const found = await findActiveMemberForStatusCheck(tx, {
+          phoneE164,
+          fwoNumber: latest.fwoNumber,
+        });
+        if (found) return { ok: true, status: "REGISTERED_MEMBER", ...found };
+      }
+
       switch (latest.status) {
         case "SUBMITTED":
-          if (!latest.fullName || !latest.hbcName) return NOT_FOUND;
+          // Never null here (the revision isn't redacted); the check only narrows the type.
+          if (!latest.fullName) return NOT_FOUND;
           return {
             ok: true,
             status: "RECEIVED",
