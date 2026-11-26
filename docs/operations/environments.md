@@ -15,6 +15,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 | 7 | Cloudflare Access in front of `admin.` and `admin-staging.` | Done 24 Nov 2026: team `ack-emmanuel`; apps `ACK staff portal (production)` and `(staging)` with reusable policies `ACK staff (production)` and `(staging)`; One-time PIN only, instant auth, 24-hour sessions |
 | 8 | Secrets in Cloudflare; local ones documented in `.dev.vars.example` | Example done; secrets added as each feature lands |
 | 9 | Job queues `ack-jobs-staging` and `ack-jobs-production` (#10) | Done 24 Nov 2026: both created with `wrangler queues create`. A Worker bound to a missing queue fails to deploy, so a new environment needs its queue first |
+| 10 | `CF_ACCESS_AUD` secret in staging and production (§5); first Super Administrator in each (§8) | Secrets done 26 Nov 2026: `BETTER_AUTH_SECRET` and `CF_ACCESS_AUD` set in staging and production. First Super Administrator: staging done 26 Nov 2026 (before the #17 deploy; signing in needs it); production to do after #17 is deployed |
 
 ## The rules
 
@@ -92,6 +93,21 @@ In Cloudflare Zero Trust → Access → Applications, add a **self-hosted** appl
 
 Access is a gate in front of the staff portal, not its security boundary. Staff still sign in to the app with a password and a second factor, and authorisation stays in the modules and server actions (CLAUDE.md rule 1).
 
+**The app checks Access's JWT too (#17).** Every staff page, action and auth endpoint verifies the `Cf-Access-Jwt-Assertion` header Access adds: signed by the team's current key, issued by `https://ack-emmanuel.cloudflareaccess.com`, for this environment's application, not expired. So a request that reaches the Worker without passing Access is still refused. It needs two settings per environment:
+
+- `CF_ACCESS_TEAM_DOMAIN`: `ack-emmanuel.cloudflareaccess.com`, already in `wrangler.jsonc` `vars` for staging and production.
+- `CF_ACCESS_AUD`: the application's **Application Audience (AUD) tag**, from Zero Trust → Access → Applications → the app → Overview (Basic information). It isn't secret; it's a Wrangler secret only so it can be set without a code change:
+
+  ```bash
+  pnpm exec wrangler secret put CF_ACCESS_AUD --env staging
+  ```
+
+  ```bash
+  pnpm exec wrangler secret put CF_ACCESS_AUD --env production
+  ```
+
+Without both, staging and production refuse **every** staff request (the staff host answers 404), so set them before the first deploy that includes #17. Recreating an Access application gives it a new AUD tag; update the secret when that happens. Locally, with neither set, the check is skipped.
+
 ## 6. Secrets
 
 Each feature adds its own secret when it lands; `.dev.vars.example` lists the expected names. For staging and production:
@@ -105,7 +121,8 @@ Secrets in use:
 
 | Name | Issue | What |
 |---|---|---|
-| `BETTER_AUTH_SECRET` | #17 | Staff session signing |
+| `BETTER_AUTH_SECRET` | #17 | Staff sessions: signs cookies and encrypts authenticator secrets and backup codes. 32+ random characters. Changing it signs every staff member out and makes their authenticator apps unusable (each must be reset), so don't rotate it casually |
+| `CF_ACCESS_AUD` | #17 | The Access application's AUD tag (§5). Staff requests are refused without it |
 | `TURNSTILE_SECRET_KEY` | #13 | Turnstile server-side verification (the widget's secret key) |
 | `RATE_LIMIT_SECRET` | #13 | HMAC key for rate-limit keys (phone numbers, IPs); 32+ random characters |
 | `OTP_SECRET` | #15 | HMAC key for OTP codes and verification tokens; 32+ random characters. Changing it invalidates codes and tokens issued in the last few minutes, nothing else |
@@ -132,3 +149,17 @@ pnpm exec wrangler queues create ack-jobs-production
 Queues are included in Workers Paid (ADR 0002). Messages carry a job type and a row id only, never personal data. `pnpm dev` and `pnpm preview` use a local simulated queue (`ack-jobs-local`); nothing needs creating for them.
 
 The daily Cron Trigger (`0 1 * * *`) needs no setup: `wrangler deploy` registers it. To see recent runs, open the Worker in the Cloudflare dashboard → Settings → Trigger events, or filter Workers Logs on `event = "jobs.daily_finished"`.
+
+## 8. The first Super Administrator
+
+Staff users are never seeded from the repository (database-design.md §5). Once per environment, after the migrations, create the first Super Administrator on a trusted machine with the owner's connection string:
+
+```bash
+DATABASE_URL='<owner connection string, direct endpoint>' pnpm staff:bootstrap --email <their address> --name "<their name>"
+```
+
+It asks twice for their password (not shown; at least 12 characters), then creates the staff user, their password login and a GLOBAL Super Administrator grant, with audit entries, in one transaction. It refuses if an active Super Administrator already exists. Run it with the person beside you so they type their own password, or have them run it.
+
+Then the Super Administrator opens the staff host (`admin.` or `admin-staging.`), passes Cloudflare Access (their email must be on the environment's allow-list, §5), signs in with the password and sets up an authenticator app. They can reach nothing else until they do. The 30-minute idle timeout applies to them (D32).
+
+Locally, `pnpm dev` serves the staff portal on `http://admin.localhost:3000`; put a `BETTER_AUTH_SECRET` in `.dev.vars` first.

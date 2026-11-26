@@ -1,14 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { contentSecurityPolicy, usesTurnstile } from "./lib/csp";
+import { isAdminHost } from "./lib/hosts";
 
 const ADMIN_PREFIX = "/admin";
-
-/** Hostnames that serve the staff portal. Exact matches only (ADR 0002 amendment). */
-const ADMIN_HOSTNAMES = new Set([
-  "admin.ackemmanuelfreretown.org",
-  "admin-staging.ackemmanuelfreretown.org",
-  "admin.localhost",
-]);
 
 /**
  * Edge middleware, not Next 16's proxy.ts: proxy.ts always runs on the Node runtime, which
@@ -36,7 +30,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   let response: NextResponse;
 
-  if (ADMIN_HOSTNAMES.has(hostnameOf(request))) {
+  if (isAdminHost(request.headers.get("host"))) {
     const url = request.nextUrl.clone();
     url.pathname = pathname === "/" ? ADMIN_PREFIX : `${ADMIN_PREFIX}${pathname}`;
     response = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
@@ -58,11 +52,6 @@ export function middleware(request: NextRequest) {
 function requestIdOf(request: NextRequest): string {
   const ray = request.headers.get("cf-ray");
   return ray && /^[0-9a-f]{16}(-[A-Z]{3})?$/.test(ray) ? ray : crypto.randomUUID();
-}
-
-function hostnameOf(request: NextRequest): string {
-  const host = (request.headers.get("host") ?? "").toLowerCase();
-  return host.replace(/:\d+$/, "");
 }
 
 export const config = {

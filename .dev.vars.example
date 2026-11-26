@@ -8,8 +8,16 @@
 # Secrets the app will read, each added by the issue that first uses it. Local values are
 # throwaway test values only.
 
-# Better Auth session signing (#17). Any random string of 32+ characters locally.
+# Better Auth (#17): signs staff session cookies and encrypts authenticator secrets. Any random
+# string of 32+ characters locally; the staff portal (http://admin.localhost:3000) won't start
+# without it.
 BETTER_AUTH_SECRET=
+
+# Cloudflare Access (#17). Staging and production verify Access's JWT on every staff request;
+# locally the check is skipped unless both are set. CF_ACCESS_TEAM_DOMAIN is a var in
+# wrangler.jsonc; CF_ACCESS_AUD is the Access application's AUD tag.
+# CF_ACCESS_TEAM_DOMAIN=ack-emmanuel.cloudflareaccess.com
+# CF_ACCESS_AUD=
 
 # Mobile Sasa SMS (#14, D43). An mbs_ token with the "send messages" scope (a trial account
 # sends only to its own registered number). The webhook secret is in the portal under

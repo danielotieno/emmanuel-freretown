@@ -93,6 +93,7 @@ jobs:
             echo "OTP_SECRET=ci-e2e-otp-secret-$(openssl rand -hex 16)"
             echo "RATE_LIMIT_SECRET=ci-e2e-rate-limit-secret-$(openssl rand -hex 16)"
             echo "TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA"
+            echo "BETTER_AUTH_SECRET=ci-e2e-auth-secret-$(openssl rand -hex 16)"
           } > .dev.vars
       - run: pnpm e2e
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -136,4 +137,6 @@ jobs:
           url="$(pnpm -s db:app-login)"
           echo "::add-mask::$url"
           echo "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=$url" >> "$GITHUB_ENV"
+      - name: Staff sign-in secret (throwaway)
+        run: echo "BETTER_AUTH_SECRET=ci-smoke-auth-secret-$(openssl rand -hex 16)" > .dev.vars
       - run: pnpm smoke:worker

@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
-import { isSecureCookieHost } from "@/app/_lib/secure-cookie";
+import { isSecureCookieHost } from "@/lib/hosts";
 import { LOCALE_COOKIE } from "@/i18n/locale";
 import { isLocale } from "@/paraglide/runtime";
 
