@@ -19,7 +19,8 @@ const ADMIN_PREFIX = "/admin";
  */
 export function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
-  const csp = contentSecurityPolicy(nonce, usesTurnstile(request.nextUrl.pathname));
+  const adminHost = isAdminHost(request.headers.get("host"));
+  const csp = contentSecurityPolicy(nonce, usesTurnstile(request.nextUrl.pathname, adminHost));
   const requestId = requestIdOf(request);
 
   const requestHeaders = new Headers(request.headers);
@@ -30,7 +31,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   let response: NextResponse;
 
-  if (isAdminHost(request.headers.get("host"))) {
+  if (adminHost) {
     const url = request.nextUrl.clone();
     url.pathname = pathname === "/" ? ADMIN_PREFIX : `${ADMIN_PREFIX}${pathname}`;
     response = NextResponse.rewrite(url, { request: { headers: requestHeaders } });

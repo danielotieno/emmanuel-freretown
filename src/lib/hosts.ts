@@ -40,3 +40,22 @@ export function adminOrigin(host: string | null | undefined): string | null {
   const value = (host ?? "").trim().toLowerCase();
   return `${isSecureCookieHost(value) ? "https" : "http"}://${value}`;
 }
+
+/** The public site that goes with each staff host. */
+const PUBLIC_HOSTNAME_OF: Readonly<Record<string, string>> = {
+  "admin.ackemmanuelfreretown.org": "ackemmanuelfreretown.org",
+  "admin-staging.ackemmanuelfreretown.org": "staging.ackemmanuelfreretown.org",
+  "admin.localhost": "localhost",
+};
+
+/**
+ * The public site's origin for a request to the staff host `host` (keeping a local port), for
+ * links from staff pages to public ones such as the privacy notice. Null on any other host.
+ */
+export function publicOrigin(host: string | null | undefined): string | null {
+  const name = PUBLIC_HOSTNAME_OF[hostnameOf(host)];
+  if (!name) return null;
+  const port = /:(\d+)$/.exec((host ?? "").trim())?.[1];
+  const value = port ? `${name}:${port}` : name;
+  return `${isSecureCookieHost(value) ? "https" : "http"}://${value}`;
+}

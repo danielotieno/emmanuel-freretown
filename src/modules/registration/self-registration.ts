@@ -1,24 +1,10 @@
-import { and, eq, inArray } from "drizzle-orm";
-import { isUniqueViolation, safeQuery, type DbOrTx, type Transaction } from "../../db";
-import {
-  registration,
-  registrationRevision,
-  registrationRevisionDepartment,
-} from "../../db/schema";
+import { safeQuery, type DbOrTx } from "../../db";
 import * as audit from "../audit";
-import { fwoBelongsToMember, phoneBelongsToMember } from "../membership";
 import { enqueueSms } from "../notifications";
-import { SafeError } from "../observability";
 import { checkUnitsForRegistration } from "../organisation";
 import { redeemRegistrationVerification } from "../verification";
 import type { ValidSelfRegistration } from "./fields";
-import { generateReference } from "./reference";
-
-/**
- * The privacy notice the member acknowledges, recorded with every revision (BR-15). Raise it
- * whenever the notice at /privacy changes (#27).
- */
-export const PRIVACY_NOTICE_VERSION = "2026-11-26";
+import { conflictFlags, insertFirstRevision, insertRegistration } from "./intake";
 
 export interface SelfRegistrationSubmission {
   registration: ValidSelfRegistration;
@@ -71,42 +57,14 @@ export async function submitSelfRegistration(
           };
         }
 
-        // Both FWO checks always run: skipping the second when the first matches would make the
-        // answer measurably faster exactly when the FWO is a member's (rule 3).
-        let fwoConflict = false;
-        if (details.fwoNumber !== null) {
-          const heldByMember = await fwoBelongsToMember(tx, details.fwoNumber);
-          const inOpenRegistration = await fwoInOpenRegistration(tx, details.fwoNumber);
-          fwoConflict = heldByMember || inOpenRegistration;
-        }
-        const phoneConflict = await phoneBelongsToMember(tx, details.phoneE164);
-
+        const { fwoConflict, phoneConflict } = await conflictFlags(tx, details);
         const { id: registrationId, reference } = await insertRegistration(tx, {
+          channel: "SELF",
           language,
           fwoConflict,
           phoneConflict,
         });
-        await tx.insert(registrationRevision).values({
-          registrationId,
-          revisionNo: 1,
-          fullName: details.fullName,
-          fwoNumber: details.fwoNumber,
-          phoneE164: details.phoneE164,
-          hbcId: details.hbcId,
-          adultDeclared: true,
-          transferConsent: true,
-          isNewMember: details.isNewMember,
-          privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
-        });
-        if (details.departmentIds.length > 0) {
-          await tx.insert(registrationRevisionDepartment).values(
-            details.departmentIds.map((departmentId) => ({
-              registrationId,
-              revisionNo: 1,
-              departmentId,
-            })),
-          );
-        }
+        await insertFirstRevision(tx, registrationId, { ...details, submittedByUserId: null });
 
         const verified = await redeemRegistrationVerification(
           tx,
@@ -155,53 +113,4 @@ export async function submitSelfRegistration(
     if (error instanceof VerificationRefused) return { ok: false, reason: "verification" };
     throw error;
   }
-}
-
-/** BR-03: another registration still open for review with this FWO on its current revision. */
-async function fwoInOpenRegistration(tx: Transaction, fwoNumber: string): Promise<boolean> {
-  const rows = await tx
-    .select({ id: registration.id })
-    .from(registration)
-    .innerJoin(
-      registrationRevision,
-      and(
-        eq(registrationRevision.registrationId, registration.id),
-        eq(registrationRevision.revisionNo, registration.currentRevisionNo),
-      ),
-    )
-    .where(
-      and(
-        eq(registrationRevision.fwoNumber, fwoNumber),
-        inArray(registration.status, ["SUBMITTED", "CORRECTION_REQUESTED"]),
-      ),
-    )
-    .limit(1);
-  return rows.length > 0;
-}
-
-/**
- * Inserts the registration with a new random reference, drawing another if it is taken. Each
- * try runs in a savepoint, so a collision doesn't abort the surrounding transaction.
- */
-async function insertRegistration(
-  tx: Transaction,
-  values: { language: "en" | "sw"; fwoConflict: boolean; phoneConflict: boolean },
-): Promise<{ id: string; reference: string }> {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const reference = generateReference();
-    try {
-      const [row] = await safeQuery(() =>
-        tx.transaction((savepoint) =>
-          savepoint
-            .insert(registration)
-            .values({ reference, channel: "SELF", ...values })
-            .returning({ id: registration.id }),
-        ),
-      );
-      return { id: row!.id, reference };
-    } catch (error) {
-      if (!isUniqueViolation(error, "registration_reference_uq")) throw error;
-    }
-  }
-  throw new SafeError("reference_exhausted", "Could not draw an unused registration reference");
 }

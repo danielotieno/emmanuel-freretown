@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminOrigin, isAdminHost, isSecureCookieHost } from "./hosts";
+import { adminOrigin, isAdminHost, isSecureCookieHost, publicOrigin } from "./hosts";
 
 describe("isSecureCookieHost", () => {
   it("is secure on the public and staff hosts", () => {
@@ -60,5 +60,21 @@ describe("adminOrigin", () => {
 
   it("is null on any other host", () => {
     expect(adminOrigin("ackemmanuelfreretown.org")).toBeNull();
+  });
+});
+
+describe("publicOrigin", () => {
+  it("pairs each staff host with its public site", () => {
+    expect(publicOrigin("admin.ackemmanuelfreretown.org")).toBe("https://ackemmanuelfreretown.org");
+    expect(publicOrigin("ADMIN-STAGING.ackemmanuelfreretown.org")).toBe(
+      "https://staging.ackemmanuelfreretown.org",
+    );
+    expect(publicOrigin("admin.localhost:3100")).toBe("http://localhost:3100");
+  });
+
+  it("is null on any other host", () => {
+    for (const host of ["ackemmanuelfreretown.org", "localhost:3000", "evil.example", "", null]) {
+      expect(publicOrigin(host)).toBeNull();
+    }
   });
 });

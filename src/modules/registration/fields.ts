@@ -104,3 +104,113 @@ export function checkSelfRegistration(
     },
   };
 }
+
+/**
+ * The event where the officer met the member (FR-3), e.g. "Judea HBC AGM, 17 Jan 2027". Shown
+ * to administrators and used to filter the review queue (FR-4). Same length rule as a name.
+ */
+export function checkEventLabel(input: string): FieldResult<string> {
+  return checkFullName(input);
+}
+
+/**
+ * How an assisted registration's details were checked (FR-3, requirements §6): the member's
+ * phone was at the desk and a code was entered (`PHONE_OTP`), or it wasn't, or they have no
+ * personal phone, and the officer records meeting them (`IN_PERSON`).
+ */
+export const ASSISTED_VERIFICATIONS = ["PHONE_OTP", "IN_PERSON"] as const;
+export type AssistedVerification = (typeof ASSISTED_VERIFICATIONS)[number];
+
+export interface AssistedRegistrationFields {
+  fullName: string;
+  isNewMember: boolean;
+  fwoNumber: string;
+  /** BR-06: the member has no phone of their own. Only an officer can record it. */
+  noPersonalPhone: boolean;
+  phone: string;
+  hbcId: string;
+  departmentIds: string[];
+  verification: string;
+  eventLabel: string;
+  /** The member declared they are 18 or older (BR-07). */
+  adultDeclared: boolean;
+  /** The member acknowledged the privacy notice (BR-07, FR-3). */
+  privacyAcknowledged: boolean;
+  /** The member gave their consent to storage outside Kenya, verbally (BR-15). */
+  transferConsent: boolean;
+  /** The officer read the details back and the member confirmed them (FR-3). */
+  readBackConfirmed: boolean;
+}
+
+export interface ValidAssistedRegistration {
+  fullName: string;
+  isNewMember: boolean;
+  fwoNumber: string | null;
+  /** Null when the member has no personal phone. */
+  phoneE164: string | null;
+  noPersonalPhone: boolean;
+  hbcId: string;
+  departmentIds: string[];
+  verification: AssistedVerification;
+  eventLabel: string;
+}
+
+export type AssistedFieldName = keyof AssistedRegistrationFields;
+
+function checkVerification(
+  input: string,
+  noPersonalPhone: boolean,
+): FieldResult<AssistedVerification> {
+  if (!(ASSISTED_VERIFICATIONS as readonly string[]).includes(input)) {
+    return { ok: false, error: "required" };
+  }
+  // Without a phone there is nothing to send a code to.
+  if (noPersonalPhone && input === "PHONE_OTP") return { ok: false, error: "invalid" };
+  return { ok: true, value: input as AssistedVerification };
+}
+
+/**
+ * Checks every field of an assisted registration (FR-3): FR-1's fields, the verification method
+ * and the event, and the officer's confirmations. A member with no personal phone has no phone
+ * number, and whatever was typed in the phone field is dropped. The errors are keyed by field.
+ */
+export function checkAssistedRegistration(
+  fields: AssistedRegistrationFields,
+):
+  | { ok: true; value: ValidAssistedRegistration }
+  | { ok: false; errors: Partial<Record<AssistedFieldName, FieldError>> } {
+  const results = {
+    fullName: checkFullName(fields.fullName),
+    fwoNumber: checkFwoNumber(fields.fwoNumber, fields.isNewMember),
+    phone: fields.noPersonalPhone
+      ? ({ ok: true, value: null } as FieldResult<string | null>)
+      : checkPhone(fields.phone),
+    hbcId: checkChosen(fields.hbcId),
+    verification: checkVerification(fields.verification, fields.noPersonalPhone),
+    eventLabel: checkEventLabel(fields.eventLabel),
+    adultDeclared: checkAccepted(fields.adultDeclared),
+    privacyAcknowledged: checkAccepted(fields.privacyAcknowledged),
+    transferConsent: checkAccepted(fields.transferConsent),
+    readBackConfirmed: checkAccepted(fields.readBackConfirmed),
+  };
+  const errors: Partial<Record<AssistedFieldName, FieldError>> = {};
+  for (const [name, result] of Object.entries(results)) {
+    if (!result.ok) errors[name as AssistedFieldName] = result.error;
+  }
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  const ok = <T>(r: FieldResult<T>) => (r as { ok: true; value: T }).value;
+  return {
+    ok: true,
+    value: {
+      fullName: ok(results.fullName),
+      isNewMember: fields.isNewMember,
+      fwoNumber: ok(results.fwoNumber),
+      phoneE164: ok(results.phone),
+      noPersonalPhone: fields.noPersonalPhone,
+      hbcId: ok(results.hbcId),
+      departmentIds: [...new Set(fields.departmentIds.map((d) => d.trim()).filter(Boolean))],
+      verification: ok(results.verification),
+      eventLabel: ok(results.eventLabel),
+    },
+  };
+}

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createDb, type Transaction } from "../../src/db";
 import { hmacSha256Hex } from "../../src/lib/crypto";
 import {
+  checkDeskSmsLimits,
   checkOtpSendLimits,
   consumeRateLimit,
   OTP_LIMITS,
@@ -142,6 +143,60 @@ describe("checkOtpSendLimits (FR-2)", () => {
       ).toEqual({ allowed: true });
     });
   }, 180_000); // ~60 limit checks; slow only against a remote test database
+});
+
+describe("checkOtpSendLimits at the officer desk (FR-3, #18)", () => {
+  it("counts the officer: 60 an hour, and the phone's limits still apply", async () => {
+    await rolledBack(db, async (tx) => {
+      const officerKey = `otp:staff:${await hmacSha256Hex(SECRET, "officer-a")}`;
+      // 59 codes already sent by officer A this hour.
+      await tx.execute(sql`
+        INSERT INTO rate_limit_bucket (key, window_start, count)
+        VALUES (${officerKey}, clock_timestamp() - interval '10 minutes', ${OTP_LIMITS.staff.limit - 1})`);
+      await asApp(tx);
+      const send = (staffUserId: string, phoneE164: string) =>
+        checkOtpSendLimits(tx, { phoneE164, staffUserId }, SECRET);
+
+      expect(await send("officer-a", "+254700000401")).toEqual({ allowed: true });
+      expect(await send("officer-a", "+254700000402")).toEqual({
+        allowed: false,
+        reason: "staff",
+      });
+      // Officer B is not held up by officer A.
+      expect(await send("officer-b", "+254700000402")).toEqual({ allowed: true });
+      expect(await send("officer-b", "+254700000402")).toEqual({
+        allowed: false,
+        reason: "phone_resend",
+      });
+    });
+  });
+});
+
+describe("checkDeskSmsLimits: the desk's SMS to an unchecked number (rule 8, #18)", () => {
+  it("shares the officer's and the phone's hourly limits with the codes", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const phone = "+254700000411";
+      const sms = (staffUserId: string, phoneE164 = phone) =>
+        checkDeskSmsLimits(tx, { phoneE164, staffUserId }, SECRET);
+      // One code, then confirmations: three SMS to one phone in the hour, whatever caused them.
+      expect(
+        await checkOtpSendLimits(tx, { phoneE164: phone, staffUserId: "officer-c" }, SECRET),
+      ).toEqual({ allowed: true });
+      expect(await sms("officer-c")).toEqual({ allowed: true });
+      expect(await sms("officer-d")).toEqual({ allowed: true });
+      expect(await sms("officer-d")).toEqual({ allowed: false, reason: "phone_hourly" });
+
+      // The officer's 60 an hour counts confirmations too.
+      await tx.execute(sql`RESET ROLE`);
+      await tx.execute(sql`
+        INSERT INTO rate_limit_bucket (key, window_start, count)
+        VALUES (${`otp:staff:${await hmacSha256Hex(SECRET, "officer-e")}`},
+                clock_timestamp() - interval '5 minutes', ${OTP_LIMITS.staff.limit})`);
+      await asApp(tx);
+      expect(await sms("officer-e", "+254700000412")).toEqual({ allowed: false, reason: "staff" });
+    });
+  });
 });
 
 describe("checkOtpSendLimits counts a request all or nothing (issue #60 review)", () => {

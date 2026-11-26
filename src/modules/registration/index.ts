@@ -4,20 +4,30 @@
  */
 export {
   checkAccepted,
+  checkAssistedRegistration,
   checkChosen,
   checkFullName,
   checkFwoNumber,
   checkPhone,
   checkSelfRegistration,
+  type AssistedFieldName,
+  type AssistedRegistrationFields,
   type FieldError,
   type FieldName,
   type FieldResult,
   type SelfRegistrationFields,
+  type ValidAssistedRegistration,
   type ValidSelfRegistration,
 } from "./fields";
+export {
+  findAssistedSubmission,
+  submitAssistedRegistration,
+  type AssistedRegistrationResult,
+  type AssistedRegistrationSubmission,
+} from "./assisted-registration";
+export { PRIVACY_NOTICE_VERSION } from "./intake";
 export { REFERENCE_PATTERN } from "./reference";
 export {
-  PRIVACY_NOTICE_VERSION,
   submitSelfRegistration,
   type SelfRegistrationResult,
   type SelfRegistrationSubmission,

@@ -14,9 +14,16 @@ export interface RateLimit {
  * FR-2: at most 3 codes per phone per hour, and a resend only after 60 seconds. Per IP (an IPv6
  * /64), 20 an hour: generous, because many phones share one address (mobile carriers, church
  * Wi-Fi), yet enough to stop one script from sending many codes. Turnstile runs before these.
+ *
+ * At the officer desk (FR-3, #18) the per-IP limit gives way to one per officer: an officer
+ * registers about 20 people an hour (requirements §12), and several officers may share one
+ * church Wi-Fi. 60 an hour leaves room for resends; the per-phone limits still apply. The
+ * officer's and the phone's hourly limits also count the confirmation SMS the desk sends to a
+ * number no code has checked (`checkDeskSmsLimits`).
  */
 export const OTP_LIMITS = {
   ip: { scope: "otp:ip", limit: 20, windowSeconds: 3600 },
+  staff: { scope: "otp:staff", limit: 60, windowSeconds: 3600 },
   phoneResend: { scope: "otp:phone:resend", limit: 1, windowSeconds: 60 },
   phoneHourly: { scope: "otp:phone", limit: 3, windowSeconds: 3600 },
 } as const satisfies Record<string, RateLimit>;
@@ -112,33 +119,72 @@ export function ipRateLimitSubject(ip: string): string {
 }
 
 export type OtpSendCheck =
-  { allowed: true } | { allowed: false; reason: "ip" | "phone_resend" | "phone_hourly" };
-
-const OTP_REASONS = ["ip", "phone_resend", "phone_hourly"] as const;
+  { allowed: true } | { allowed: false; reason: "ip" | "staff" | "phone_resend" | "phone_hourly" };
 
 /**
- * The rate limits for sending an OTP (FR-2): the IP's hourly limit, the phone's 60-second resend
- * and the phone's hourly limit, checked and counted together: a request refused by any of them
- * counts against none, so taps that send nothing don't use up a shared IP's quota. The reason
- * names the first limit that refused, in that order. Call it after Turnstile has passed and the
- * phone is known to be Kenyan, and before the daily SMS cap. The result concerns the request
- * only, never whether the phone is in the registry.
+ * Who is asking for the code: a member on a public page, counted by IP, or an officer at the
+ * desk (FR-3), counted by their staff user id.
+ */
+export type OtpSender = { ip: string } | { staffUserId: string };
+
+/**
+ * The rate limits for sending an OTP (FR-2): the sender's hourly limit (per IP on public pages,
+ * per officer at the desk), the phone's 60-second resend and the phone's hourly limit, checked
+ * and counted together: a request refused by any of them counts against none, so taps that send
+ * nothing don't use up a shared IP's quota. The reason names the first limit that refused, in
+ * that order. Call it after Turnstile has passed and the phone is known to be Kenyan, and before
+ * the daily SMS cap. The result concerns the request only, never whether the phone is in the
+ * registry.
  */
 export async function checkOtpSendLimits(
   db: DbOrTx,
-  request: { phoneE164: string; ip: string },
+  request: { phoneE164: string } & OtpSender,
   secret: string,
 ): Promise<OtpSendCheck> {
+  const sender =
+    "staffUserId" in request
+      ? { reason: "staff" as const, limit: OTP_LIMITS.staff, subject: request.staffUserId }
+      : { reason: "ip" as const, limit: OTP_LIMITS.ip, subject: ipRateLimitSubject(request.ip) };
   const refused = await consumeAll(
     db,
     [
-      { limit: OTP_LIMITS.ip, subject: ipRateLimitSubject(request.ip) },
+      { limit: sender.limit, subject: sender.subject },
       { limit: OTP_LIMITS.phoneResend, subject: request.phoneE164 },
       { limit: OTP_LIMITS.phoneHourly, subject: request.phoneE164 },
     ],
     secret,
   );
-  return refused === -1 ? { allowed: true } : { allowed: false, reason: OTP_REASONS[refused]! };
+  if (refused === -1) return { allowed: true };
+  return {
+    allowed: false,
+    reason: ([sender.reason, "phone_resend", "phone_hourly"] as const)[refused]!,
+  };
+}
+
+export type DeskSmsCheck = { allowed: true } | { allowed: false; reason: "staff" | "phone_hourly" };
+
+/**
+ * Rule 8 for the officer desk's other SMS (FR-3, #18): a registration whose phone wasn't at the
+ * desk gets its confirmation SMS at a number no code has checked. Each one counts against the
+ * officer's hourly limit and the phone's hourly limit, shared with the codes, so a desk can't
+ * send more SMS an hour than it could send codes: no flood of texts to one number, and no drain
+ * on the daily cap (D25). Counted together, all or nothing, like `checkOtpSendLimits`.
+ */
+export async function checkDeskSmsLimits(
+  db: DbOrTx,
+  request: { phoneE164: string; staffUserId: string },
+  secret: string,
+): Promise<DeskSmsCheck> {
+  const refused = await consumeAll(
+    db,
+    [
+      { limit: OTP_LIMITS.staff, subject: request.staffUserId },
+      { limit: OTP_LIMITS.phoneHourly, subject: request.phoneE164 },
+    ],
+    secret,
+  );
+  if (refused === -1) return { allowed: true };
+  return { allowed: false, reason: refused === 0 ? "staff" : "phone_hourly" };
 }
 
 /**
