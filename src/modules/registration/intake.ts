@@ -1,5 +1,5 @@
-import { and, eq, inArray } from "drizzle-orm";
-import { isUniqueViolation, safeQuery, type Transaction } from "../../db";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { isUniqueViolation, safeQuery, type DbOrTx, type Transaction } from "../../db";
 import {
   registration,
   registrationRevision,
@@ -44,24 +44,42 @@ export async function conflictFlags(
 
 /** BR-03: another registration still open for review with this FWO on its current revision. */
 async function fwoInOpenRegistration(tx: Transaction, fwoNumber: string): Promise<boolean> {
-  const rows = await tx
-    .select({ id: registration.id })
-    .from(registration)
-    .innerJoin(
-      registrationRevision,
-      and(
-        eq(registrationRevision.registrationId, registration.id),
-        eq(registrationRevision.revisionNo, registration.currentRevisionNo),
-      ),
-    )
-    .where(
-      and(
-        eq(registrationRevision.fwoNumber, fwoNumber),
-        inArray(registration.status, ["SUBMITTED", "CORRECTION_REQUESTED"]),
-      ),
-    )
-    .limit(1);
-  return rows.length > 0;
+  return (await openRegistrationsWithFwo(tx, fwoNumber)).length > 0;
+}
+
+/**
+ * BR-03 at review (FR-4): the references of other registrations still open (SUBMITTED or
+ * CORRECTION_REQUESTED) whose current revision has this FWO, oldest first, leaving out
+ * `exceptRegistrationId`. Staff screens only: an FWO collision blocks approval until the
+ * administrator rejects the duplicate (D33).
+ */
+export async function openRegistrationsWithFwo(
+  db: DbOrTx,
+  fwoNumber: string,
+  exceptRegistrationId?: string,
+): Promise<string[]> {
+  const rows = await safeQuery(() =>
+    db
+      .select({ reference: registration.reference })
+      .from(registration)
+      .innerJoin(
+        registrationRevision,
+        and(
+          eq(registrationRevision.registrationId, registration.id),
+          eq(registrationRevision.revisionNo, registration.currentRevisionNo),
+        ),
+      )
+      .where(
+        and(
+          eq(registrationRevision.fwoNumber, fwoNumber),
+          inArray(registration.status, ["SUBMITTED", "CORRECTION_REQUESTED"]),
+          exceptRegistrationId ? ne(registration.id, exceptRegistrationId) : undefined,
+        ),
+      )
+      .orderBy(asc(registration.createdAt))
+      .limit(10),
+  );
+  return rows.map((r) => r.reference);
 }
 
 export type NewRegistration =

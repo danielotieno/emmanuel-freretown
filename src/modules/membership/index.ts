@@ -3,3 +3,4 @@
  * Public API of this module. Other code imports only from here.
  */
 export { fwoBelongsToMember, phoneBelongsToMember } from "./conflicts";
+export { createMember, type CreateMemberResult, type NewMember } from "./members";

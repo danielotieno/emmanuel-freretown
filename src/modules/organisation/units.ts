@@ -84,3 +84,20 @@ export async function checkUnitsForRegistration(
   if (!hbcUnavailable && unavailableDepartmentIds.length === 0) return { ok: true };
   return { ok: false, hbcUnavailable, unavailableDepartmentIds };
 }
+
+/**
+ * Every HBC and department by id, deactivated ones included, for staff screens that show a
+ * registration or member whose unit may have been deactivated since (FR-4).
+ */
+export async function unitNames(
+  db: DbOrTx,
+): Promise<{ hbcs: Map<string, string>; departments: Map<string, string> }> {
+  const [hbcs, departments] = await Promise.all([
+    safeQuery(() => db.select({ id: hbc.id, name: hbc.name }).from(hbc)),
+    safeQuery(() => db.select({ id: department.id, name: department.name }).from(department)),
+  ]);
+  return {
+    hbcs: new Map(hbcs.map((u) => [u.id, u.name])),
+    departments: new Map(departments.map((u) => [u.id, u.name])),
+  };
+}

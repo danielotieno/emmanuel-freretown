@@ -9,6 +9,7 @@ export {
   checkFullName,
   checkFwoNumber,
   checkPhone,
+  checkReason,
   checkSelfRegistration,
   type AssistedFieldName,
   type AssistedRegistrationFields,
@@ -32,3 +33,18 @@ export {
   type SelfRegistrationResult,
   type SelfRegistrationSubmission,
 } from "./self-registration";
+export {
+  approveRegistration,
+  listQueueEvents,
+  listReviewQueue,
+  openRegistrationForReview,
+  QUEUE_FLAGS,
+  rejectRegistration,
+  requestCorrection,
+  type DecisionRefusal,
+  type DecisionResult,
+  type QueueFilters,
+  type QueueFlag,
+  type QueueItem,
+  type RegistrationForReview,
+} from "./review";
