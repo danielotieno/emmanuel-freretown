@@ -31,17 +31,17 @@ export function LegalPage(props: {
   return (
     <>
       <SiteHeader locale={locale} />
-      <main id="main" className="mx-auto max-w-prose px-4 pt-6 sm:px-6 sm:pt-12">
-        <h1 className="text-[clamp(2.25rem,6vw,3.25rem)]">{props.title}</h1>
-        <p className="mt-3 text-sm text-ink-muted tabular-nums">
+      <main id="main" className="mx-auto w-full max-w-prose px-4 pt-6 sm:px-6 sm:pt-12">
+        <h1 className="text-title">{props.title}</h1>
+        <p className="mt-3 text-small text-ink-muted tabular-nums">
           {m.legal_version({ version: props.version }, { locale })}
         </p>
-        {englishOnly && <p className="mt-6 rounded-xl bg-lagoon p-4">{englishOnly}</p>}
+        {englishOnly && <p className="mt-6 rounded-xl bg-mist p-4">{englishOnly}</p>}
         <div lang="en" className="mt-8 space-y-10">
-          <p className="text-lg text-ink-muted">{props.intro}</p>
+          <p className="text-lead text-ink-muted">{props.intro}</p>
           {props.sections.map((section) => (
             <section key={section.heading} className="space-y-3">
-              <h2 className="text-3xl">{section.heading}</h2>
+              <h2 className="text-subtitle">{section.heading}</h2>
               {section.intro && <p>{section.intro}</p>}
               {section.list && (
                 <ul className="list-disc space-y-2 pl-6 marker:text-brand">

@@ -7,27 +7,64 @@
 @theme {
   --color-*: initial;
 
-  /* Palette (DESIGN.md §2): clean white, Ocean Blue for action, sand and lagoon for calm panels */
+  /* Palette (DESIGN.md §2): white and cloud, one bright blue for action, midnight for dark fields */
   --color-paper: #ffffff; /* page background */
-  --color-sand: #f7f5f0; /* warm neutral panels and the footer */
-  --color-lagoon: #e8f4f8; /* ocean-tinted panels, notices, selected options */
-  --color-brand: #0a5f86; /* Ocean Blue: primary buttons, links, active states (7.0:1 on paper) */
-  --color-brand-deep: #083f5a; /* hover, and dark bands with paper text (11.2:1) */
-  --color-gold: #e0a63a; /* crest accent. Never text on light backgrounds */
+  --color-cloud: #f5f7fb; /* cool neutral panels, the registration page ground */
+  --color-mist: #edf2ff; /* blue-tinted panels, notices, selected options */
+  --color-brand: #0b5cff; /* Signal Blue: primary buttons, links, active states (5.3:1 on paper) */
+  --color-brand-deep: #0841b8; /* hover and pressed primary (paper text 8.5:1) */
+  --color-night: #0a1433; /* Midnight: dark tiles, bands and the footer (paper text 18.1:1) */
+  --color-night-soft: #14224f; /* raised surfaces and hairlines on Midnight */
+  --color-sky: #a9c1ff; /* secondary text and links on Midnight (10.1:1). Never on light grounds */
+  --color-gold: #e0a63a; /* crest accent on Midnight only (8.3:1). Never text on light grounds */
 
   /* Text and lines */
-  --color-ink: #0f1a24; /* body text and headings */
-  --color-ink-muted: #55606b; /* secondary text (5.7:1 or better on every panel) */
-  --color-line: #e3e0d9; /* hairlines: cards, dividers (decorative) */
-  --color-line-strong: #8a939c; /* input and control borders (3.1:1, WCAG 1.4.11) */
+  --color-ink: #0e1525; /* body text and headings */
+  --color-ink-muted: #535b6b; /* secondary text (6.1:1 or better on every light panel) */
+  --color-line: #e4e7ee; /* hairlines: dividers (decorative) */
+  --color-line-strong: #80889a; /* input and control borders (3.2:1 or better, WCAG 1.4.11) */
   --color-error: #b42318;
   --color-success: #1e7a46;
 
-  /* Typography (DESIGN.md §3). Self-hosted with next/font in src/app/(public)/fonts.ts. */
-  --font-display: var(--font-instrument-serif, Georgia), Georgia, "Times New Roman", serif;
+  /* Typography (DESIGN.md §3 and §10): one family, Inter, self-hosted in src/app/(public)/fonts.ts */
   --font-sans:
-    var(--font-instrument-sans, system-ui), system-ui, -apple-system, "Segoe UI", Roboto,
-    "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+    var(--font-inter, system-ui), system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
+    "Helvetica Neue", Arial, sans-serif;
+
+  /*
+   * The type scale: seven steps, nothing in between (DESIGN.md §10 rule 1). The larger the step,
+   * the tighter its tracking and line height (rules 7 and 8). Titles are 500, body 400 (rule 3).
+   * Card text and button text are 1px under body text (rules 5 and 6). Tailwind's default text-*
+   * sizes remain for the staff portal; public pages use only these.
+   */
+  --text-display: clamp(2.5rem, 1.75rem + 3.2vw, 4.5rem); /* the hero's h1 */
+  --text-display--line-height: 1.04;
+  --text-display--letter-spacing: -0.04em;
+  --text-display--font-weight: 500;
+  --text-title: clamp(2rem, 1.6rem + 1.6vw, 3rem); /* section titles (h2) and page titles */
+  --text-title--line-height: 1.1;
+  --text-title--letter-spacing: -0.032em;
+  --text-title--font-weight: 500;
+  --text-subtitle: clamp(1.25rem, 1.15rem + 0.4vw, 1.5rem); /* card titles, sub-sections, times */
+  --text-subtitle--line-height: 1.25;
+  --text-subtitle--letter-spacing: -0.022em;
+  --text-subtitle--font-weight: 500;
+  --text-lead: clamp(1.125rem, 1.08rem + 0.2vw, 1.25rem); /* the paragraph under a title */
+  --text-lead--line-height: 1.5;
+  --text-lead--letter-spacing: -0.014em;
+  --text-body: var(--fs-body); /* 17px, 18px from sm */
+  --text-body--line-height: 1.6;
+  --text-body--letter-spacing: -0.011em;
+  --text-card: calc(var(--fs-body) - 1px); /* text inside cards, tiles and panels */
+  --text-card--line-height: 1.55;
+  --text-card--letter-spacing: -0.011em;
+  --text-button: calc(var(--fs-body) - 1px); /* button labels */
+  --text-button--line-height: 1.25;
+  --text-button--letter-spacing: -0.006em;
+  --text-button--font-weight: 500;
+  --text-small: 0.875rem; /* meta: verse references, the language switch, footer links */
+  --text-small--line-height: 1.45;
+  --text-small--letter-spacing: -0.004em;
 
   /* Breakpoints (DESIGN.md §4): base 0–599, sm 600, md 900, lg 1200 */
   --breakpoint-*: initial;
@@ -36,7 +73,7 @@
   --breakpoint-lg: 75rem;
 
   /* Layout */
-  --container-content: 70rem; /* ~1120px */
+  --container-content: 85rem; /* 1360px: the 12-column grid on wide screens */
   --container-form: 34rem;
   --container-prose: 42rem;
 }
@@ -44,9 +81,13 @@
 @layer base {
   :root {
     color-scheme: light; /* Release 1 is light only (DESIGN.md §2) */
+    --fs-body: 1.0625rem; /* 17px on mobile, never below 16px */
+    accent-color: var(--color-brand);
+    caret-color: var(--color-brand);
   }
 
   html {
+    scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
@@ -55,30 +96,38 @@
     background-color: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    font-size: 1.0625rem; /* 17px on mobile, never below 16px */
+    font-size: var(--fs-body);
     line-height: 1.6;
+    letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
-    /* Both faces ship one weight (DESIGN.md §3): never fake a bold. */
-    font-synthesis-weight: none;
+    /* Inter ships 400 and 500 only (DESIGN.md §3): never fake a bold, never fake an italic. */
+    font-synthesis: none;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
       env(safe-area-inset-left);
   }
 
   @media (min-width: 37.5rem) {
-    body {
-      font-size: 1.125rem; /* 18px */
+    :root {
+      --fs-body: 1.125rem; /* 18px */
     }
   }
 
+  /* Straight, balanced titles in the one family (DESIGN.md §10 rules 4, 10 and 12). */
   h1,
   h2,
   h3 {
-    font-family: var(--font-display);
-    font-weight: 400;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-style: normal;
     color: var(--color-ink);
-    line-height: 1.1;
-    letter-spacing: -0.02em;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
     text-wrap: balance;
+  }
+
+  /* Paragraphs avoid a lone word on their last line where the browser can (rule 10). */
+  p {
+    text-wrap: pretty;
   }
 
   a {
@@ -92,7 +141,21 @@
   }
 
   ::selection {
-    background-color: var(--color-lagoon);
+    background-color: var(--color-mist);
+    color: var(--color-ink);
+  }
+
+  .bg-night ::selection,
+  .bg-brand ::selection {
+    background-color: var(--color-paper);
+    color: var(--color-night);
+  }
+
+  /* On dark and blue fields the focus ring turns paper, so it stays visible (WCAG 2.4.7). */
+  .bg-night :focus-visible,
+  .bg-brand :focus-visible,
+  .on-dark :focus-visible {
+    outline-color: var(--color-paper);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -108,27 +171,103 @@
 }
 
 /*
- * Shared controls (DESIGN.md §2 and §4): pill buttons, quiet inputs. Primary actions are Ocean
- * Blue and at least 48px tall; there is one per screen.
+ * Shared controls (DESIGN.md §2, §4 and §8): pill buttons, quiet inputs. Primary actions are
+ * Signal Blue and at least 48px tall; there is one solid blue pill per screen.
  */
 @layer components {
+  /* Every button answers the press at once: it settles by 2% while held. */
+  .btn-primary,
+  .btn-secondary,
+  .btn-on-dark {
+    @apply inline-flex min-h-12 items-center justify-center gap-2.5 rounded-full px-7 text-button no-underline transition-[background-color,border-color,color,transform] duration-150 ease-out select-none active:scale-[0.98] disabled:cursor-not-allowed;
+  }
+
   .btn-primary {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-brand px-7 text-paper no-underline transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60;
+    @apply bg-brand text-paper hover:bg-brand-deep active:bg-brand-deep disabled:opacity-60;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-line-strong bg-paper px-7 text-ink no-underline transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-60;
+    @apply border border-line-strong bg-paper text-ink hover:border-ink disabled:opacity-60;
+  }
+
+  /* On Midnight, Signal Blue or over the photo: a paper fill. */
+  .btn-on-dark {
+    @apply bg-paper text-night hover:bg-mist;
   }
 
   .btn-text {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 px-2 text-ink no-underline hover:text-brand;
+    @apply inline-flex min-h-12 items-center justify-center gap-2 px-2 text-button text-ink no-underline transition-colors select-none hover:text-brand disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:text-ink;
   }
 
   .field {
-    @apply block min-h-13 w-full rounded-xl border border-line-strong bg-paper px-4 py-3 text-ink transition-colors placeholder:text-ink-muted hover:border-ink focus-visible:border-brand aria-[invalid=true]:border-error;
+    @apply block min-h-14 w-full rounded-xl border border-line-strong bg-paper px-4 py-3 text-body text-ink transition-[border-color,box-shadow] placeholder:text-ink-muted hover:border-ink focus-visible:border-brand focus-visible:shadow-[0_0_0_4px_var(--color-mist)] aria-[invalid=true]:border-error;
   }
 
   .option {
-    @apply flex min-h-13 cursor-pointer items-start gap-3 rounded-xl border border-line-strong bg-paper p-4 transition-colors hover:border-ink has-checked:border-brand has-checked:bg-lagoon;
+    @apply flex min-h-14 cursor-pointer items-start gap-3 rounded-xl border border-line-strong bg-paper p-4 text-card transition-colors hover:border-ink has-checked:border-brand has-checked:bg-mist;
   }
+
+  /*
+   * Text inside a card or panel that holds controls: 1px under body text, and its buttons 1px
+   * under that (DESIGN.md §10 rules 5 and 6).
+   */
+  .in-card {
+    font-size: var(--text-card);
+    line-height: var(--text-card--line-height);
+    --text-button: calc(var(--fs-body) - 2px);
+  }
+
+  /* The button whose post is on the way stays at full strength while the others dim. */
+  :is(.btn-primary, .btn-secondary, .btn-text, .btn-on-dark)[aria-busy="true"] {
+    opacity: 1;
+    cursor: progress;
+  }
+
+  /* A busy button's icon gives way to the spinner; its words stay. */
+  :is(.btn-primary, .btn-secondary, .btn-text, .btn-on-dark)[aria-busy="true"] > svg {
+    display: none;
+  }
+
+  .btn-primary[aria-busy="true"] {
+    background-color: var(--color-brand-deep);
+  }
+
+  /* A spinner for pending buttons and links: a ring with one bright quarter. */
+  .spinner {
+    @apply inline-block size-[1.1em] shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent;
+  }
+}
+
+/* Under reduced motion the spinner holds still; the busy label and aria-busy still say "working". */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-right-color: currentColor;
+    opacity: 0.6;
+  }
+}
+
+/*
+ * The homepage's one authored moment (#96): the hero settles into place and the photo eases
+ * from a slight zoom. Transform only, so nothing is ever hidden; off under reduced
+ * motion (the base layer's rule above).
+ */
+@keyframes tile-rise {
+  from {
+    transform: translateY(14px);
+  }
+}
+
+@keyframes photo-settle {
+  from {
+    transform: scale(1.06);
+  }
+}
+
+.tile-rise {
+  animation: tile-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.photo-settle {
+  animation: photo-settle 1400ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }

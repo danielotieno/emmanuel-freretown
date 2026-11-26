@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import crest from "./crest.webp";
 import { LanguageSwitch } from "@/components/language-switch";
+import { PendingLink } from "@/components/pending-link";
 import type { Locale } from "@/i18n/locale";
 import { m } from "@/paraglide/messages";
 
@@ -14,8 +15,16 @@ import { m } from "@/paraglide/messages";
  * the lockup rather than behind a menu button, so older members see them straight away. The row
  * wraps rather than scrolls, so every link stays on screen at 360px in both languages.
  */
-export function SiteHeader({ locale }: { locale: Locale }) {
+export function SiteHeader({
+  locale,
+  onRegistration = false,
+}: {
+  locale: Locale;
+  /** On /registration the form's own button is the page's one solid pill, so Register is outlined. */
+  onRegistration?: boolean;
+}) {
   const o = { locale };
+  const current = onRegistration ? ("page" as const) : undefined;
   const links = [
     ["/#about", m.nav_about({}, o)],
     ["/#services", m.nav_services({}, o)],
@@ -23,7 +32,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
     ["/#visit", m.nav_visit({}, o)],
   ] as const;
   return (
-    <header className="mx-auto max-w-content px-4 pt-4 sm:px-6 sm:pt-5">
+    <header className="mx-auto w-full max-w-content px-4 pt-4 sm:px-6 sm:pt-5 lg:px-10">
       <div className="flex items-center justify-between gap-4">
         <Link
           href="/"
@@ -34,10 +43,10 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           {/* Read as the full name, in one piece; the two visual lines are hidden from readers. */}
           <span className="sr-only">{m.site_name({}, o)}</span>
           <span aria-hidden="true" className="min-w-0 leading-tight">
-            <span className="block font-display text-lg tracking-tight sm:text-xl">
+            <span className="block font-medium tracking-[-0.016em]">
               {m.site_name_short({}, o)}
             </span>
-            <span className="block truncate text-xs text-ink-muted sm:text-sm">
+            <span className="block truncate text-small text-ink-muted">
               {m.site_name_place({}, o)}
             </span>
           </span>
@@ -45,24 +54,31 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         <div className="flex items-center gap-3">
           <NavLinks label={m.nav_label({}, o)} links={links} className="hidden md:block" />
           {/* A plain link, not <Link>: Turnstile's CSP is set per page load (src/lib/csp.ts).
-              Outlined, so the page's own primary button stays the one solid pill (DESIGN.md §2). */}
-          <a
+              The site's one solid blue pill: registering is what the site exists for (DESIGN.md §2),
+              except on /registration itself, where the form's button takes that place. */}
+          <PendingLink
             href="/registration"
-            className="hidden min-h-10 items-center rounded-full border border-brand px-5 text-sm text-brand no-underline hover:bg-lagoon md:inline-flex"
+            aria-current={current}
+            className={`hidden min-h-11 items-center gap-2 rounded-full px-5 text-button no-underline transition-[background-color,transform] duration-150 select-none active:scale-[0.98] md:inline-flex ${
+              onRegistration
+                ? "border border-brand bg-paper text-brand hover:bg-mist"
+                : "bg-brand text-paper hover:bg-brand-deep"
+            }`}
           >
             {m.nav_register({}, o)}
-          </a>
+          </PendingLink>
           <LanguageSwitch locale={locale} />
         </div>
       </div>
       <NavLinks label={m.nav_label({}, o)} links={links} className="mt-3 md:hidden">
         <li className="sm:ml-auto">
-          <a
+          <PendingLink
             href="/registration"
-            className="inline-flex min-h-10 items-center px-1.5 text-brand underline underline-offset-4 sm:px-2"
+            aria-current={current}
+            className="inline-flex min-h-11 items-center gap-2 px-1.5 text-button text-brand underline underline-offset-4 sm:px-2"
           >
             {m.nav_register({}, o)}
-          </a>
+          </PendingLink>
         </li>
       </NavLinks>
     </header>
@@ -79,12 +95,12 @@ function NavLinks(props: {
   const { label, links, className, children } = props;
   return (
     <nav aria-label={label} className={className}>
-      <ul className="-mx-1.5 flex flex-wrap items-center text-[0.9375rem] sm:-mx-2 sm:gap-x-1 md:mx-0">
+      <ul className="-mx-1.5 flex flex-wrap items-center text-button font-normal sm:-mx-2 sm:gap-x-1 md:mx-0">
         {links.map(([href, text]) => (
           <li key={href}>
             <a
               href={href}
-              className="inline-flex min-h-10 items-center px-1.5 text-ink-muted no-underline hover:text-ink sm:px-2 md:px-3"
+              className="inline-flex min-h-11 items-center rounded-full px-1.5 text-ink-muted no-underline transition-colors hover:text-ink sm:px-2 md:px-3 md:hover:bg-cloud"
             >
               {text}
             </a>

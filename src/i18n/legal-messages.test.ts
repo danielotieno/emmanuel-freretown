@@ -29,6 +29,8 @@ describe("legal pages text", () => {
  */
 const APPROVED_NOTICES: Record<string, string> = {
   "2026-11-25": "6e24d7a33b9c8d5568966e328ce3952d9f6b382cc730836231dbfc290a0aeb73",
+  // HBC reads "Home Based Cell" (#96); wording only, approved via the technical lead.
+  "2026-11-26": "ef31612e194ea9d2bbe66a6ca6595f7bf601c226568efcc6d18eae83e986eccc",
 };
 
 describe("privacy notice version (BR-15, D35)", () => {

@@ -90,6 +90,28 @@ test("keeps entered values through errors and the Back button", async ({ page })
   await expect(page.getByLabel(en.reg_name_label)).toHaveValue("Test Person");
 });
 
+test("Continue shows at once that it is working while the step is sent (#96)", async ({ page }) => {
+  await page.goto("/registration");
+  await page.getByLabel(en.reg_name_label).fill("Test Person");
+  // Hold the step's post, so the busy state can be seen before the answer arrives.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route("**/registration", async (route) => {
+    if (route.request().method() === "POST") await held;
+    await route.fallback();
+  });
+  const button = page.getByRole("button", { name: en.reg_continue });
+  await button.click();
+  await expect(button).toHaveAttribute("aria-busy", "true");
+  await expect(button).toBeDisabled();
+  await expect(page.locator("form[aria-busy=true]")).toHaveCount(1);
+  release();
+  await expect(page.getByLabel(en.reg_fwo_label)).toBeVisible();
+  await expect(page.getByRole("button", { name: en.reg_continue })).not.toHaveAttribute(
+    "aria-busy",
+  );
+});
+
 test("lets a new member register without an FWO number (BR-16)", async ({ page }) => {
   await page.goto("/registration");
   await page.getByLabel(en.reg_name_label).fill("Test Person");

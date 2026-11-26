@@ -17,7 +17,7 @@ export default async function SignInPage({
     <main className="mx-auto max-w-form px-4 py-10">
       <h1 className="text-4xl">Staff sign-in</h1>
       {timeout ? (
-        <p className="mt-4 rounded-xl bg-lagoon p-4">
+        <p className="mt-4 rounded-xl bg-mist p-4">
           You were signed out because the page was left idle. Sign in again to carry on.
         </p>
       ) : null}

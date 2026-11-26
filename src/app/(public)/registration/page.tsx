@@ -25,16 +25,19 @@ export default async function RegistrationPage() {
   const text = registrationText(locale);
   return (
     <>
-      <SiteHeader locale={locale} />
-      <main id="main" className="mx-auto max-w-form px-4 pt-6 sm:px-6 sm:pt-12">
-        <h1 className="text-[clamp(2.25rem,6vw,3.25rem)]">{text.title}</h1>
-        <p className="mt-3 mb-10 text-lg text-ink-muted">{text.intro}</p>
-        <RegistrationForm
-          text={text}
-          hbcs={hbcs}
-          departments={departments}
-          turnstileSiteKey={turnstileSiteKey(env)}
-        />
+      <SiteHeader locale={locale} onRegistration />
+      {/* The page sits on Cloud down to the footer, so the white question card stands out (#96):
+          main fills the layout's column, and its negative margin meets the footer's top margin
+          (mt-20, md:mt-28 in site-footer.tsx). */}
+      <main id="main" className="mt-4 -mb-20 flex-1 bg-cloud pb-20 sm:mt-6 md:-mb-28 md:pb-28">
+        <div className="mx-auto max-w-content px-4 pt-8 sm:px-6 sm:pt-12 lg:px-10">
+          <RegistrationForm
+            text={text}
+            hbcs={hbcs}
+            departments={departments}
+            turnstileSiteKey={turnstileSiteKey(env)}
+          />
+        </div>
       </main>
     </>
   );

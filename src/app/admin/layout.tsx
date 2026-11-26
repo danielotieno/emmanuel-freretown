@@ -19,7 +19,7 @@ export const metadata: Metadata = {
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className="min-h-dvh">{children}</body>
     </html>
   );

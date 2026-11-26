@@ -39,7 +39,7 @@ The website and member platform of ACK Emmanuel Freretown - Kengeleni, an Anglic
 
 ## Avoid
 
-- Generic SaaS dashboard looks, gradient-heavy "AI" aesthetics, and default component-library styling. Clean is the aim (DESIGN.md §7: kurax.vercel.app), but it must still feel like this church — the crest, Ocean Blue from its sea, real photographs — not like a tech product.
+- Generic SaaS dashboard looks, gradient-heavy "AI" aesthetics, and default component-library styling. Clean is the aim (DESIGN.md §7: kurax.vercel.app), but it must still feel like this church — the crest, its Signal Blue and Midnight palette (DESIGN.md §2), real photographs — not like a tech product.
 - Stock photos of strangers.
 - Cleverness that slows people down on registration or voting screens.
 - Anything that looks like it is asking for money or passwords.
