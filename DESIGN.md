@@ -19,33 +19,50 @@ colors:
   success: "#1E7A46"
 typography:
   display:
-    fontFamily: "Instrument Serif, Georgia, Times New Roman, serif"
-    fontSize: "clamp(2.75rem, 8.4vw, 5.5rem)"
-    fontWeight: 400
-    lineHeight: 0.96
-    letterSpacing: "-0.03em"
-  headline:
-    fontFamily: "Instrument Serif, Georgia, Times New Roman, serif"
-    fontSize: "clamp(2.5rem, 5.6vw, 4.5rem)"
-    fontWeight: 400
-    lineHeight: 0.98
-    letterSpacing: "-0.03em"
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "clamp(2.5rem, 1.75rem + 3.2vw, 4.5rem)"
+    fontWeight: 500
+    lineHeight: 1.04
+    letterSpacing: "-0.04em"
   title:
-    fontFamily: "Instrument Serif, Georgia, Times New Roman, serif"
-    fontSize: "clamp(1.875rem, 3vw, 2.375rem)"
-    fontWeight: 400
-    lineHeight: 1.05
-    letterSpacing: "-0.02em"
-  body:
-    fontFamily: "Instrument Sans, system-ui, sans-serif"
-    fontSize: "1.0625rem"
-    fontWeight: 400
-    lineHeight: 1.6
-  label:
-    fontFamily: "Instrument Sans, system-ui, sans-serif"
-    fontSize: "0.875rem"
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "clamp(2rem, 1.6rem + 1.6vw, 3rem)"
+    fontWeight: 500
+    lineHeight: 1.1
+    letterSpacing: "-0.032em"
+  subtitle:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "clamp(1.25rem, 1.15rem + 0.4vw, 1.5rem)"
+    fontWeight: 500
+    lineHeight: 1.25
+    letterSpacing: "-0.022em"
+  lead:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "clamp(1.125rem, 1.08rem + 0.2vw, 1.25rem)"
     fontWeight: 400
     lineHeight: 1.5
+    letterSpacing: "-0.014em"
+  body:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "1.0625rem (1.125rem from sm)"
+    fontWeight: 400
+    lineHeight: 1.6
+    letterSpacing: "-0.011em"
+  card:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "body - 1px"
+    fontWeight: 400
+    lineHeight: 1.55
+  button:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "body - 1px (card text - 1px inside cards)"
+    fontWeight: 500
+    lineHeight: 1.25
+  small:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.45
 rounded:
   field: "12px"
   list: "16px"
@@ -146,8 +163,8 @@ Visual rules for ackemmanuelfreretown.org. Read with `PRODUCT.md`. Reference fil
 ## 1. Identity
 
 - **Crest.** The Diocese of Mombasa coat of arms: bishop's mitre with gold lappets above a shield with the red cross of St George on silver, over a blue sea bearing a gold anchor and crozier. The scan in `docs/design/references/diocese-crest-scan.jpg` is a placeholder only: its colours are faded and the edges are soft. Obtain the official vector (SVG or high-resolution PNG) from the Diocese office and confirm the parish may use it. Do not trace, redraw or recolour the crest. The one exception is the placeholder below, whose faded colour was lifted slightly until the official file replaces it (#87).
-- **Parish lockup.** Crest at small size beside "ACK Emmanuel" in the display face, with "Freretown - Kengeleni" beneath in small muted text (`src/components/site-header.tsx`). The footer repeats it larger on Midnight, with the full parish name (`src/components/site-footer.tsx`). Until the official file arrives, the site uses `src/components/crest.webp`, cut from the scan with its colour lifted slightly (#80). If the parish has its own emblem, it takes this place and the crest moves to the footer.
-- **Motifs drawn from the crest**, used sparingly as lightweight SVG: a single wave line (the sea, `src/components/wave.tsx`) along the foot of a dark or blue tile; the bell that gave Kengeleni its name, drawn as one gold line on Midnight; the anchor as a small mark for "hope" and for the Freretown coast. Never use the cross or mitre as decoration.
+- **Parish lockup.** Crest at small size beside "ACK Emmanuel" in Inter 500, with "Freretown - Kengeleni" beneath in small muted text (`src/components/site-header.tsx`). The footer repeats it larger on Midnight, with the full parish name (`src/components/site-footer.tsx`). Until the official file arrives, the site uses `src/components/crest.webp`, cut from the scan with its colour lifted slightly (#80). If the parish has its own emblem, it takes this place and the crest moves to the footer.
+- **Motifs drawn from the crest**, used sparingly as lightweight SVG: the bell that gave Kengeleni its name, drawn as one gold line on Midnight; the anchor as a small mark for "hope" and for the Freretown coast. Never use the cross or mitre as decoration.
 
 ## 2. Colour
 
@@ -158,10 +175,10 @@ White and Cloud pages, one bright blue for every action, and Midnight for dark f
 | `--color-paper` | `#FFFFFF` | Paper | Page background; the question card; text and fills on Midnight and Signal Blue |
 | `--color-cloud` | `#F5F7FB` | Cloud | Cool neutral tiles (the week, HBCs), the registration page ground, nav hover |
 | `--color-mist` | `#EDF2FF` | Mist | Blue-tinted tiles, notices, selected options, the current step, focus halo on fields; secondary text on Signal Blue |
-| `--color-brand` | `#0B5CFF` | Signal Blue | Primary buttons, links, active and done states, the board's one blue tile and the registration band |
+| `--color-brand` | `#0B5CFF` | Signal Blue | Primary buttons, links, active and done states, one Mothers' Union tile and the registration band |
 | `--color-brand-deep` | `#0841B8` | Deep Signal | Hover and pressed primary; a primary button while its post is on the way |
 | `--color-night` | `#0A1433` | Midnight | Dark tiles, the help panel, and the footer on every public page |
-| `--color-night-soft` | `#14224F` | Midnight soft | Hairlines, chip outlines and the wave on Midnight |
+| `--color-night-soft` | `#14224F` | Midnight soft | Hairlines on Midnight |
 | `--color-sky` | `#A9C1FF` | Sky | Secondary text and links on Midnight. **Never on light grounds** |
 | `--color-gold` | `#E0A63A` | Crest gold | The bell and small crest details on Midnight. **Never text on light grounds; never off Midnight** |
 | `--color-ink` | `#0E1525` | Ink | Body text and headings; the current language in the switch |
@@ -191,7 +208,7 @@ Measured contrast (WCAG 2.2):
 | Signal Blue on Midnight | 3.4 | ✗ Never text on Midnight: use Sky or Paper |
 
 Rules:
-- **The Committed Field Rule.** Colour arrives as whole fields at page scale, Midnight and Signal Blue tiles and bands, not as scattered accents on white. A board carries one Signal Blue tile; Midnight carries the rest of the weight.
+- **The Committed Field Rule.** Colour arrives as whole fields at page scale (the Midnight hero, the theme band, the ministries tiles, the Signal Blue registration band, the Midnight footer), not as scattered accents on white. Between them, sections breathe on white with hairlines.
 - **The One Blue Pill Rule.** One solid Signal Blue pill per screen: on public pages it is the header's Register; on `/registration` it is the form's `btn-primary`, and the header's Register turns into an outlined pill marked as the current page. Secondary actions are outlined pills or text links with an arrow. On Midnight, Signal Blue or the photo, actions are paper pills (`btn-on-dark`) and paper outlines (`btn-outline-on-dark`), never blue on blue or blue on Midnight.
 - **The Midnight Text Rule.** On Midnight, text is Paper or Sky and details are Gold. Signal Blue is never text there (3.4:1). Sky and Gold never appear on light grounds.
 - **The Always-Dark Footer Rule.** The footer is Midnight on every public page, registration included.
@@ -201,11 +218,23 @@ Rules:
 
 ## 3. Typography
 
-- **Headings:** Instrument Serif, regular (400), slightly tight tracking (−0.02em; display and section headings −0.03em). Editorial and calm; large sizes carry the personality, never bold weights.
-- **Body and controls:** Instrument Sans, regular (400) only. The variable 400–600 file is nearly twice the size and took the pages over the 200 KB budget, so hierarchy comes from size, colour and the serif, never bold. Faked bold is turned off (`font-synthesis-weight: none`).
-- Both are self-hosted with `next/font/local` (`src/app/(public)/fonts.ts`), subset to the characters English and Kiswahili use, about 27 KB together, preloaded with `font-display: swap` and a size-matched fallback. Licences in `src/app/fonts/README.md`.
-- Body text 17px on mobile and 18px from `sm` (never below 16px), line height 1.6, line length 60–70 characters on wide screens.
-- Fluid headings with `clamp()`; no heading so large that a Kiswahili phrase breaks awkwardly on a 360px screen. Test every heading in both languages.
+- **One family: Inter**, for titles and body alike, the face tihada.com uses (chosen by the user, #96). Weights 400 for body text and 500 for titles and buttons, nothing else. Straight only: no italics, and faked bold or italic is turned off (`font-synthesis: none`).
+- Self-hosted with `next/font/local` (`src/app/(public)/fonts.ts`): two static files, each a Google Fonts subset to the characters English and Kiswahili use, about 19 KB together (kerning and tabular figures kept, other OpenType features dropped), preloaded with `font-display: swap` and a size-matched fallback. Licence in `src/app/fonts/README.md`.
+- **The scale** (tokens in `globals.css`, used as `text-display`, `text-title` and so on). Seven steps and nothing in between; Tailwind's default sizes remain only for the staff portal.
+
+| Token | Size | Weight | Line height | Tracking | Use |
+|---|---|---|---|---|---|
+| `display` | 40–72px | 500 | 1.04 | −0.04em | The hero's h1 only |
+| `title` | 32–48px | 500 | 1.1 | −0.032em | Section titles (h2) and page titles (h1 on inner pages) |
+| `subtitle` | 20–24px | 500 | 1.25 | −0.022em | Card and tile titles, sub-sections, registration questions, service times |
+| `lead` | 18–20px | 400 | 1.5 | −0.014em | The paragraph under a title |
+| `body` | 17px, 18px from `sm` | 400 | 1.6 | −0.011em | Running text (never below 16px) |
+| `card` | body − 1px | 400 | 1.55 | −0.011em | Text inside cards, tiles and panels |
+| `button` | body − 1px | 500 | 1.25 | −0.006em | Button labels; inside a card (`.in-card`) card text − 1px |
+| `small` | 14px | 400 | 1.45 | −0.004em | Verse references, the language switch, footer links |
+
+- Service times use the `subtitle` step but shrink with their list's width (container units) so the longest Kiswahili time stays on one line; that is the only size that flexes outside the scale. The six-digit code field is letter-spaced (0.3em) for legibility: the one deliberate exception to tighter tracking.
+- Line length 60–70 characters on wide screens. Titles balance their lines (`text-wrap: balance`); paragraphs avoid a lone last word (`text-wrap: pretty`). Test every title in both languages at 360px.
 - Tabular figures for references, FWO numbers, times and dates.
 
 ## 4. Layout and responsiveness
@@ -219,9 +248,9 @@ Mobile first: design at **360 × 800** before anything else.
 | `md` | 900px | Tiles pair in two columns; the navigation row under the lockup moves inline beside it, with the header's Register pill |
 | `lg` | 1200px | The 12-column grid; side gutter 40px; content max width 85rem (1360px), centred |
 
-- **The board.** Pages are built from 28px-radius tiles on the 12-column grid, 12px apart (16px from `sm`). The homepage's first screen is one tiled board: the photo with the welcome over 7 columns and two rows, the Midnight Sunday-services tile and the board's one Signal Blue tile (the theme of the year) beside it in 5, then the week as a Cloud tile across the full width. On phones the welcome comes first on Midnight, the photo follows inset in the same tile (never under text), then the Sunday tile.
-- Sections after the board are 80px apart (128px from `md`); a section heading and its tiles share the grid, usually 7/5 or 5/7 splits.
-- **The Unbreakable Time Rule.** Service and weekly times never wrap (`whitespace-nowrap`). The Sunday tile is a container and sizes its times with container units (`cqi`) so the longest Kiswahili time fits on one line at 360px; the week is hairline rows (day, time, what happens), never a seven-column strip. Test both languages at 360px.
+- **The hero** is one Midnight tile across the full grid: the photo, the welcome, one line under it and one action ("Join us this Sunday"). Nothing else shares it (#96). On phones the welcome comes first on Midnight and the photo follows inset in the same tile, never under text.
+- **Sections** are 96px apart (144px from `md`): Sunday services and the week, the theme of the year on its own Midnight band, about, ministries and HBCs, the registration band, visit. Titles take 4 columns and lists 8 (services), or 7/5 and 5/7 splits elsewhere. Tiles are 28px-radius, 12px apart (16px from `sm`).
+- **The Unbreakable Time Rule.** Service and weekly times never wrap (`whitespace-nowrap`). The Sunday list is one grid (rows are subgrids), so every service name lines up beside the widest time; the list is a container and sizes its times with container units (`cqi`) so the longest Kiswahili time fits on one line at 360px, and with enlarged text a range can only fold at its dash. The week is hairline rows (day, time, what happens), never a seven-column strip. Test both languages at 360px.
 - **Forms stay single column at every size.** The question sits in a white card (28px radius from `sm`) on a Cloud page that runs down to the footer. From `lg` the card takes 7 columns and a sticky side column takes 4: the step rail (every step by name, done, current or still to come) and the Midnight help panel. Below `lg` the step rail gives way to a segmented progress bar under "Step N of M". Staff pages and narrow forms keep the 34rem form width; legal pages the 42rem prose width.
 - Touch targets at least 44 × 44px, and primary controls (buttons, inputs, options) at least 48px tall. A small control may look smaller if its tap area still reaches 44px: the language switch is a 32px pill whose buttons each take 44 × 44px. Leave 8px between separate targets.
 - Shapes: pill buttons (`rounded-full`); 12px on inputs, options and notices; 16px on review lists and the reference panel; 20px on the inset photo on phones; 28px on tiles and the question card; 32px on the registration band.
@@ -249,9 +278,9 @@ Mobile first: design at **360 × 800** before anything else.
 
 ## 7. Inspiration and what we take from it
 
-- **tihada.com.** Kenyan identity through a local skyline silhouette; "how it works" as short numbered steps; plain promises such as "no account needed"; FAQ in everyday language. *Take:* a Mombasa coastline or Freretown silhouette, "Register in 3 steps", plain reassurances.
+- **tihada.com.** Kenyan identity through a local skyline silhouette; "how it works" as short numbered steps; plain promises such as "no account needed"; FAQ in everyday language; Inter throughout. *Take:* its typeface, Inter, for everything (#96); "Register in 3 steps"; plain reassurances.
 - **ardia.dev.** Warm paper-toned background; one painterly illustration that gives the site a personality; an honest FAQ ("Fair questions") and plainly written privacy notes. *Take:* the honesty of its notes and a "Fair questions" section on registration: why we need your phone number, where your details are stored, who can see them. Not its illustration: the homepage photo is our one large image (D46, §5).
-- **kurax.vercel.app** (the main reference, #80, kept in #96). Clean white space, editorial serif headings over a plain sans, pill buttons, hairline borders, bold coloured tiles. *Take:* that restraint and rhythm, with Signal Blue in place of its purple. Plain numerals (1, 2, 3) only where the sequence matters, such as the registration steps; never zero-padded counters as decoration. Not its fintech imagery, mock-ups or copy.
+- **kurax.vercel.app** (the main reference, #80, kept in #96). Clean white space, confident headings over a plain sans, pill buttons, hairline borders, bold coloured tiles. *Take:* that restraint and rhythm, with Signal Blue in place of its purple. Plain numerals (1, 2, 3) only where the sequence matters, such as the registration steps; never zero-padded counters as decoration. Not its fintech imagery, mock-ups or copy.
 - **siteinspire.com.** A gallery to browse. When a site is used as a reference, add it here with one line on what specifically to take from it.
 
 Take ideas, not assets: no copying another site's illustrations, layouts or copy.
@@ -275,14 +304,14 @@ The shared controls are classes in `src/app/globals.css` (`@layer components`). 
 - **Header Register pill** (`src/components/site-header.tsx`): from `md`, the site's one solid Signal Blue pill, 44px tall (a navigation control, so the 44px target rule applies rather than the 48px primary-control height), beside the navigation. On `/registration` (`onRegistration`) it is outlined in Signal Blue with `aria-current="page"`. On phones it is a blue underlined link at the end of the navigation row.
 - **Header navigation:** plain links with no JavaScript, in muted ink, turning ink with a Cloud pill behind on hover from `md`. On phones they sit in a row under the lockup that wraps rather than scrolls. Links to `/registration` are plain `<a>`, never `<Link>` (Turnstile's CSP, see CLAUDE.md).
 - **Language switch** (`src/components/language-switch.tsx`): a small two-part pill with a Control line border that looks 32px tall, while each button's tap area reaches 44 × 44px (§4). The current language is an ink fill with paper text. The visible codes "EN"/"SW" stay in each button's accessible name with the full name ("SW Kiswahili"), so voice control can say what it sees.
-- **Tiles:** 28px radius, padding 24px (32px from `sm`), no border. Midnight tiles carry paper headings and Sky text, with Midnight soft hairlines; Signal Blue tiles carry paper headings and Mist text; Mist and Cloud tiles carry ink and muted ink, with Signal Blue for a verse or detail. Lists inside a tile use hairlines, not nested cards. A wave may run along the foot of a Midnight or blue tile.
-- **Sunday services tile:** Midnight, with each service as a hairline row: the time in the display face on its own unbreakable line, then the service name and a small outlined language chip in Sky.
+- **Tiles:** 28px radius, padding 24px (32px from `sm`), no border. Midnight tiles carry paper headings and Sky text, with Midnight soft hairlines; Signal Blue tiles carry paper headings and Mist text; Mist and Cloud tiles carry ink and muted ink, with Signal Blue for a verse or detail. Lists inside a tile use hairlines, not nested cards. Tile titles use the `subtitle` step and tile text the `card` step, always smaller than the section title above them.
+- **Sunday services list:** hairline rows on white: the time in Inter 500 (never breaking inside a time), then the service name in muted ink. No language chips: each name already says its language.
 - **Question card:** the one raised surface: Paper on Cloud with a hairline border and a soft, Midnight-tinted two-layer shadow. Everything else is flat; depth comes from field colour, not shadow.
 - **Step rail and progress:** the rail is a Paper panel listing every step; done steps show a check on a Signal Blue disc, the current step a Signal Blue ring on a Mist row, later steps a Control line ring. Phones and tablets get a segmented bar (Signal Blue done, Hairline to come) under "Step N of M" in Signal Blue.
 - **Help panel:** Midnight, beside the card from `lg`, with the church office's number as a paper link underlined in Sky.
 - **Notices:** Mist panels with ink text and a Signal Blue info icon. A field's error is a message in error red under the field with an alert icon; an error for the whole form is a lightly red-tinted panel with a red border and `role="alert"`. "Why we ask" notes are disclosures on Cloud with a hairline border and a blue plus that turns to a cross. The words always say what went wrong, never colour alone.
 - **Icons:** drawn by hand as inline SVG on a 24px grid with a 1.75 stroke, round caps and joins, in the current colour, `aria-hidden` beside words that carry the meaning. No icon library, no icon font, no emoji or unicode glyphs as icons.
-- **Motion:** the homepage's one authored moment is the board settling: its tiles rise 14px into place in turn (700ms, 60ms apart, `cubic-bezier(0.16, 1, 0.3, 1)`) while the photo eases from a 6% zoom (1400ms). Transform only, so nothing ever starts hidden; all of it, spinners included, stops under reduced motion. Elsewhere motion is state feedback only (150–300ms colour and press transitions).
+- **Motion:** the homepage's one authored moment is the hero settling: the tile rises 14px into place (700ms, `cubic-bezier(0.16, 1, 0.3, 1)`) while the photo eases from a 6% zoom (1400ms). Transform only, so nothing ever starts hidden; all of it, spinners included, stops under reduced motion. Elsewhere motion is state feedback only (150–300ms colour and press transitions).
 
 ## 9. Design tools
 
@@ -291,3 +320,24 @@ Impeccable (`.claude/skills/impeccable/`, #85) is the design skill for this site
 - **Point it only at public pages showing synthetic data:** the homepage, registration, status and vote with test data. Never at the staff portal (`admin.`), the officer desk, or any page or screenshot that could show a member's name, phone number or FWO number (CLAUDE.md rule 2).
 - **Saved reports and telemetry stay off.** `.impeccable/config.json` (committed) sets `reports.enabled: false`, so critiques and audits are never uploaded with their screenshots, and `telemetry: false`. Don't change them: the service has no data processing agreement with the church.
 - Image generation (`generate-image --ref`) takes a screenshot as a reference: the same rule applies to what that screenshot shows.
+
+## 10. Design rules
+
+The user's rules for every screen (#96). Check each change against them, in review as well as in the build. The second column says how this codebase keeps each one.
+
+| # | Rule | How we keep it |
+|---|---|---|
+| 1 | Use a small, consistent type scale. | Seven tokens in `globals.css` (§3); no arbitrary `text-[…]` sizes on public pages, except the service times' container sizing (§3) |
+| 2 | Make card titles smaller than section titles. | Section titles `text-title`; card and tile titles `text-subtitle` |
+| 3 | Use 400 for body text and 400 or 500 for titles. | Only Inter 400 and 500 ship; titles and buttons are 500 |
+| 4 | Straight titles. No italics. | No italic files; `font-synthesis: none`; `font-style: normal` on h1–h3 |
+| 5 | Card text, 1px smaller than similar text outside cards. | `text-card` = body − 1px inside cards, tiles and panels |
+| 6 | Button text, 1px smaller than the surrounding text. | `text-button` = body − 1px; inside `.in-card` it is card text − 1px |
+| 7 | The larger the font, the tighter the letter spacing. | Tracking runs from −0.004em (`small`) to −0.04em (`display`) |
+| 8 | Tight line height on large titles. | 1.04 on `display`, 1.1 on `title`, 1.25 on `subtitle` |
+| 9 | Leave breathing room between sections. | 96px between sections, 144px from `md` (§4) |
+| 10 | Balance titles that span multiple lines. No orphan words on the last line. | `text-wrap: balance` on h1–h3; `text-wrap: pretty` on paragraphs |
+| 11 | Remove decorative labels, badges, and redundant buttons. | No eyebrows or kickers, no photo badge, no language chips, no second Register in the hero (the header has it) |
+| 12 | One sans serif for body text and a single family for all titles. | Inter for both |
+| 13 | Real, high-quality photos are better. | Real photographs of this church and congregation only, with consent (§5); no stock, no illustration standing in |
+

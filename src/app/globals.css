@@ -26,11 +26,45 @@
   --color-error: #b42318;
   --color-success: #1e7a46;
 
-  /* Typography (DESIGN.md §3). Self-hosted with next/font in src/app/(public)/fonts.ts. */
-  --font-display: var(--font-instrument-serif, Georgia), Georgia, "Times New Roman", serif;
+  /* Typography (DESIGN.md §3 and §10): one family, Inter, self-hosted in src/app/(public)/fonts.ts */
   --font-sans:
-    var(--font-instrument-sans, system-ui), system-ui, -apple-system, "Segoe UI", Roboto,
-    "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+    var(--font-inter, system-ui), system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
+    "Helvetica Neue", Arial, sans-serif;
+
+  /*
+   * The type scale: seven steps, nothing in between (DESIGN.md §10 rule 1). The larger the step,
+   * the tighter its tracking and line height (rules 7 and 8). Titles are 500, body 400 (rule 3).
+   * Card text and button text are 1px under body text (rules 5 and 6). Tailwind's default text-*
+   * sizes remain for the staff portal; public pages use only these.
+   */
+  --text-display: clamp(2.5rem, 1.75rem + 3.2vw, 4.5rem); /* the hero's h1 */
+  --text-display--line-height: 1.04;
+  --text-display--letter-spacing: -0.04em;
+  --text-display--font-weight: 500;
+  --text-title: clamp(2rem, 1.6rem + 1.6vw, 3rem); /* section titles (h2) and page titles */
+  --text-title--line-height: 1.1;
+  --text-title--letter-spacing: -0.032em;
+  --text-title--font-weight: 500;
+  --text-subtitle: clamp(1.25rem, 1.15rem + 0.4vw, 1.5rem); /* card titles, sub-sections, times */
+  --text-subtitle--line-height: 1.25;
+  --text-subtitle--letter-spacing: -0.022em;
+  --text-subtitle--font-weight: 500;
+  --text-lead: clamp(1.125rem, 1.08rem + 0.2vw, 1.25rem); /* the paragraph under a title */
+  --text-lead--line-height: 1.5;
+  --text-lead--letter-spacing: -0.014em;
+  --text-body: var(--fs-body); /* 17px, 18px from sm */
+  --text-body--line-height: 1.6;
+  --text-body--letter-spacing: -0.011em;
+  --text-card: calc(var(--fs-body) - 1px); /* text inside cards, tiles and panels */
+  --text-card--line-height: 1.55;
+  --text-card--letter-spacing: -0.011em;
+  --text-button: calc(var(--fs-body) - 1px); /* button labels */
+  --text-button--line-height: 1.25;
+  --text-button--letter-spacing: -0.006em;
+  --text-button--font-weight: 500;
+  --text-small: 0.875rem; /* meta: verse references, the language switch, footer links */
+  --text-small--line-height: 1.45;
+  --text-small--letter-spacing: -0.004em;
 
   /* Breakpoints (DESIGN.md §4): base 0–599, sm 600, md 900, lg 1200 */
   --breakpoint-*: initial;
@@ -47,6 +81,7 @@
 @layer base {
   :root {
     color-scheme: light; /* Release 1 is light only (DESIGN.md §2) */
+    --fs-body: 1.0625rem; /* 17px on mobile, never below 16px */
     accent-color: var(--color-brand);
     caret-color: var(--color-brand);
   }
@@ -61,30 +96,38 @@
     background-color: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    font-size: 1.0625rem; /* 17px on mobile, never below 16px */
+    font-size: var(--fs-body);
     line-height: 1.6;
+    letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
-    /* Both faces ship one weight (DESIGN.md §3): never fake a bold. */
-    font-synthesis-weight: none;
+    /* Inter ships 400 and 500 only (DESIGN.md §3): never fake a bold, never fake an italic. */
+    font-synthesis: none;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
       env(safe-area-inset-left);
   }
 
   @media (min-width: 37.5rem) {
-    body {
-      font-size: 1.125rem; /* 18px */
+    :root {
+      --fs-body: 1.125rem; /* 18px */
     }
   }
 
+  /* Straight, balanced titles in the one family (DESIGN.md §10 rules 4, 10 and 12). */
   h1,
   h2,
   h3 {
-    font-family: var(--font-display);
-    font-weight: 400;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-style: normal;
     color: var(--color-ink);
-    line-height: 1.1;
-    letter-spacing: -0.02em;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
     text-wrap: balance;
+  }
+
+  /* Paragraphs avoid a lone word on their last line where the browser can (rule 10). */
+  p {
+    text-wrap: pretty;
   }
 
   a {
@@ -137,7 +180,7 @@
   .btn-secondary,
   .btn-on-dark,
   .btn-outline-on-dark {
-    @apply inline-flex min-h-12 items-center justify-center gap-2.5 rounded-full px-7 no-underline transition-[background-color,border-color,color,transform] duration-150 ease-out select-none active:scale-[0.98] disabled:cursor-not-allowed;
+    @apply inline-flex min-h-12 items-center justify-center gap-2.5 rounded-full px-7 text-button no-underline transition-[background-color,border-color,color,transform] duration-150 ease-out select-none active:scale-[0.98] disabled:cursor-not-allowed;
   }
 
   .btn-primary {
@@ -158,15 +201,25 @@
   }
 
   .btn-text {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 px-2 text-ink no-underline transition-colors select-none hover:text-brand disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:text-ink;
+    @apply inline-flex min-h-12 items-center justify-center gap-2 px-2 text-button text-ink no-underline transition-colors select-none hover:text-brand disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:text-ink;
   }
 
   .field {
-    @apply block min-h-14 w-full rounded-xl border border-line-strong bg-paper px-4 py-3 text-lg text-ink transition-[border-color,box-shadow] placeholder:text-ink-muted hover:border-ink focus-visible:border-brand focus-visible:shadow-[0_0_0_4px_var(--color-mist)] aria-[invalid=true]:border-error;
+    @apply block min-h-14 w-full rounded-xl border border-line-strong bg-paper px-4 py-3 text-body text-ink transition-[border-color,box-shadow] placeholder:text-ink-muted hover:border-ink focus-visible:border-brand focus-visible:shadow-[0_0_0_4px_var(--color-mist)] aria-[invalid=true]:border-error;
   }
 
   .option {
-    @apply flex min-h-14 cursor-pointer items-start gap-3 rounded-xl border border-line-strong bg-paper p-4 transition-colors hover:border-ink has-checked:border-brand has-checked:bg-mist;
+    @apply flex min-h-14 cursor-pointer items-start gap-3 rounded-xl border border-line-strong bg-paper p-4 text-card transition-colors hover:border-ink has-checked:border-brand has-checked:bg-mist;
+  }
+
+  /*
+   * Text inside a card or panel that holds controls: 1px under body text, and its buttons 1px
+   * under that (DESIGN.md §10 rules 5 and 6).
+   */
+  .in-card {
+    font-size: var(--text-card);
+    line-height: var(--text-card--line-height);
+    --text-button: calc(var(--fs-body) - 2px);
   }
 
   /* The button whose post is on the way stays at full strength while the others dim. */

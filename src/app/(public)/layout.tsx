@@ -4,7 +4,7 @@ import { getLocale } from "@/app/_lib/i18n";
 import { SiteFooter } from "@/components/site-footer";
 import { m } from "@/paraglide/messages";
 import "../globals.css";
-import { instrumentSans, instrumentSerif } from "./fonts";
+import { inter } from "./fonts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -25,11 +25,7 @@ export const viewport: Viewport = {
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   return (
-    <html
-      lang={locale}
-      data-scroll-behavior="smooth"
-      className={`${instrumentSerif.variable} ${instrumentSans.variable}`}
-    >
+    <html lang={locale} data-scroll-behavior="smooth" className={inter.variable}>
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"
@@ -37,7 +33,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         >
           {m.skip_to_content({}, { locale })}
         </a>
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div className="flex-1">{children}</div>
         <SiteFooter locale={locale} />
       </body>
     </html>

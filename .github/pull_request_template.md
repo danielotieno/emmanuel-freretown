@@ -26,6 +26,7 @@ Closes #
 - [ ] Member-facing text is in `messages/en.json` (Kiswahili in `messages/sw.json` optional, D44)
 - [ ] Migrations generated with `pnpm db:generate` / `db:custom`, reviewed, committed; new tables have grants
 - [ ] Docs updated if behaviour or a decision changed (requirements, domain model, database design, ADR)
+- [ ] UI changes checked against the design rules (DESIGN.md §10)
 - [ ] New dependencies are pinned and justified below
 - [ ] Self-review and independent review done; every blocker and should-fix fixed here, or out of scope and split into an issue
 

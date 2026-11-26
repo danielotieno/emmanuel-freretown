@@ -43,10 +43,10 @@ export function SiteHeader({
           {/* Read as the full name, in one piece; the two visual lines are hidden from readers. */}
           <span className="sr-only">{m.site_name({}, o)}</span>
           <span aria-hidden="true" className="min-w-0 leading-tight">
-            <span className="block font-display text-lg tracking-tight sm:text-xl">
+            <span className="block font-medium tracking-[-0.016em]">
               {m.site_name_short({}, o)}
             </span>
-            <span className="block truncate text-xs text-ink-muted sm:text-sm">
+            <span className="block truncate text-small text-ink-muted">
               {m.site_name_place({}, o)}
             </span>
           </span>
@@ -59,7 +59,7 @@ export function SiteHeader({
           <PendingLink
             href="/registration"
             aria-current={current}
-            className={`hidden min-h-11 items-center gap-2 rounded-full px-5 text-sm no-underline transition-[background-color,transform] duration-150 select-none active:scale-[0.98] md:inline-flex ${
+            className={`hidden min-h-11 items-center gap-2 rounded-full px-5 text-button no-underline transition-[background-color,transform] duration-150 select-none active:scale-[0.98] md:inline-flex ${
               onRegistration
                 ? "border border-brand bg-paper text-brand hover:bg-mist"
                 : "bg-brand text-paper hover:bg-brand-deep"
@@ -75,7 +75,7 @@ export function SiteHeader({
           <PendingLink
             href="/registration"
             aria-current={current}
-            className="inline-flex min-h-11 items-center gap-2 px-1.5 text-brand underline underline-offset-4 sm:px-2"
+            className="inline-flex min-h-11 items-center gap-2 px-1.5 text-button text-brand underline underline-offset-4 sm:px-2"
           >
             {m.nav_register({}, o)}
           </PendingLink>
@@ -95,7 +95,7 @@ function NavLinks(props: {
   const { label, links, className, children } = props;
   return (
     <nav aria-label={label} className={className}>
-      <ul className="-mx-1.5 flex flex-wrap items-center text-[0.9375rem] sm:-mx-2 sm:gap-x-1 md:mx-0">
+      <ul className="-mx-1.5 flex flex-wrap items-center text-button font-normal sm:-mx-2 sm:gap-x-1 md:mx-0">
         {links.map(([href, text]) => (
           <li key={href}>
             <a

@@ -27,7 +27,7 @@ export function LanguageSwitch({ locale }: { locale: Locale }) {
       <div
         role="group"
         aria-labelledby="language-switch-label"
-        className="flex rounded-full border border-line-strong p-0.5 text-sm"
+        className="flex rounded-full border border-line-strong p-0.5 text-small"
       >
         {locales.map((option) => (
           <LanguageButton

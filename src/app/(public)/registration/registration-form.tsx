@@ -71,12 +71,10 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
   return (
     <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
       <div className="lg:col-span-7">
-        <h1 className="text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.02] tracking-[-0.03em]">
-          {text.title}
-        </h1>
-        <p className="mt-3 max-w-[52ch] text-lg text-pretty text-ink-muted">{text.intro}</p>
+        <h1 className="text-title">{text.title}</h1>
+        <p className="mt-4 max-w-[52ch] text-lead text-ink-muted">{text.intro}</p>
 
-        <div className="-mx-4 mt-8 border-y border-line bg-paper px-4 py-7 shadow-[0_1px_2px_rgb(10_20_51/0.04),0_16px_40px_-20px_rgb(10_20_51/0.18)] sm:mx-0 sm:rounded-[1.75rem] sm:border sm:p-10">
+        <div className="in-card -mx-4 mt-8 border-y border-line bg-paper px-4 py-7 shadow-[0_1px_2px_rgb(10_20_51/0.04),0_16px_40px_-20px_rgb(10_20_51/0.18)] sm:mx-0 sm:rounded-[1.75rem] sm:border sm:p-10">
           {done ? (
             <Done text={text} reference={state.reference} />
           ) : (
@@ -99,8 +97,8 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
         <div className="sticky top-6 space-y-4">
           <StepRail text={text} current={done ? null : step} index={index} />
           <div className="on-dark rounded-[1.75rem] bg-night p-6 text-paper sm:p-7">
-            <h2 className="text-2xl leading-tight text-paper">{text.helpTitle}</h2>
-            <p className="mt-2 text-sky">
+            <h2 className="text-subtitle text-paper">{text.helpTitle}</h2>
+            <p className="mt-2 text-card text-sky">
               {text.helpBody.split("{phone}").map((part, i) => (
                 <Fragment key={i}>
                   {i > 0 && (
@@ -360,7 +358,7 @@ function StepForm(props: {
               autoComplete="one-time-code"
               maxLength={6}
               {...invalid("code", errors)}
-              className={`${INPUT} max-w-[12ch] text-center font-display text-3xl tracking-[0.3em] tabular-nums`}
+              className={`${INPUT} max-w-[12ch] text-center text-subtitle tracking-[0.3em] tabular-nums`}
             />
           </Question>
         )}
@@ -420,7 +418,7 @@ function Progress(props: { text: RegistrationText; index: number }) {
     <div>
       {/* From lg the rail beside the card marks the step, so the count is kept for screen
           readers only (it still announces each step). */}
-      <p className="text-sm text-brand tabular-nums lg:sr-only" aria-live="polite">
+      <p className="text-small text-brand tabular-nums lg:sr-only" aria-live="polite">
         {text.progress
           .replace("{current}", String(index))
           .replace("{total}", String(COUNTED_STEPS))}
@@ -448,10 +446,10 @@ function StepRail(props: { text: RegistrationText; current: Step | null; index: 
       aria-labelledby="steps-heading"
       className="hidden rounded-[1.75rem] border border-line bg-paper p-7 lg:block"
     >
-      <h2 id="steps-heading" className="text-2xl leading-tight">
+      <h2 id="steps-heading" className="text-subtitle">
         {text.stepsLabel}
       </h2>
-      <ol className="mt-5 space-y-1">
+      <ol className="mt-5 space-y-1 text-card">
         {RAIL_STEPS.map((s, i) => {
           const isCurrent = s === current;
           const isDone = current === null || i + 1 < index;
@@ -465,7 +463,7 @@ function StepRail(props: { text: RegistrationText; current: Step | null; index: 
             >
               <span
                 aria-hidden="true"
-                className={`grid size-7 shrink-0 place-items-center rounded-full text-sm tabular-nums ${
+                className={`grid size-7 shrink-0 place-items-center rounded-full text-small tabular-nums ${
                   isDone
                     ? "bg-brand text-paper"
                     : isCurrent
@@ -497,10 +495,8 @@ function Done({ text, reference }: { text: RegistrationText; reference?: string 
         {text.doneTitle}
       </h2>
       <div className="rounded-2xl bg-mist p-6 sm:p-7">
-        <p className="text-sm text-ink-muted">{text.doneReference}</p>
-        <p className="mt-1 font-display text-[clamp(2.5rem,8vw,3.5rem)] leading-none tracking-wide text-brand tabular-nums">
-          {reference}
-        </p>
+        <p className="text-small text-ink-muted">{text.doneReference}</p>
+        <p className="mt-1 text-title text-brand tabular-nums">{reference}</p>
         <p className="mt-4 text-ink-muted">{text.doneSms}</p>
       </div>
       <p>{text.doneNext}</p>
@@ -522,7 +518,7 @@ const INPUT = "field";
 const PRIMARY = "btn-primary w-full sm:w-auto sm:min-w-44";
 const SECONDARY = "btn-secondary w-full sm:w-auto";
 const BACK = "btn-text w-full justify-center sm:w-auto sm:justify-start sm:px-0";
-const QUESTION = "text-[clamp(1.875rem,4vw,2.5rem)] leading-[1.08] outline-none";
+const QUESTION = "text-subtitle outline-none";
 
 function invalid(field: ErrorField, errors: RegistrationState["errors"]) {
   return {
@@ -640,7 +636,7 @@ function WhyWeAsk({ title, children }: { title: string; children: ReactNode }) {
 function Row({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div className="grid gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4">
-      <dt className="text-sm text-ink-muted sm:text-base">{term}</dt>
+      <dt className="text-ink-muted">{term}</dt>
       <dd className="sm:col-span-2">{children}</dd>
     </div>
   );

@@ -26,7 +26,7 @@ This system holds sensitive personal data: church membership reveals religious a
 - `docs/architecture/database-design.md` — the source of truth for tables and constraints
 - `docs/architecture/adr/` — decisions already made; don't relitigate them silently
 - `PRODUCT.md` — audience and design intent (used by Impeccable)
-- `DESIGN.md` — palette, contrast rules, typography, breakpoints, imagery. Use its tokens; don't invent colours
+- `DESIGN.md` — palette, contrast rules, typography, breakpoints, imagery, and the 13 design rules (§10) every UI change is checked against. Use its tokens; don't invent colours or type sizes
 
 If a requirement is ambiguous, ask. Don't invent rules (for example, there is no FWO length rule yet).
 

@@ -18,15 +18,13 @@ export function SiteFooter({ locale }: { locale: Locale }) {
         <div className="grid gap-10 md:grid-cols-12 md:gap-8">
           <div className="flex items-start gap-4 md:col-span-5">
             <Crest className="h-14 w-auto shrink-0" />
-            <div className="max-w-[30ch]">
-              <p className="font-display text-2xl leading-tight text-paper">{m.site_name({}, o)}</p>
+            <div className="max-w-[36ch]">
+              <p className="text-lead font-medium text-balance text-paper">{m.site_name({}, o)}</p>
               <p className="mt-2 text-sky">{m.footer_tagline({}, o)}</p>
             </div>
           </div>
           <div className="md:col-span-4 md:col-start-9">
-            <h2 className="font-sans text-base tracking-normal text-sky">
-              {m.home_visit_office({}, o)}
-            </h2>
+            <h2 className="text-small font-normal text-sky">{m.home_visit_office({}, o)}</h2>
             <ul className="mt-3 space-y-1.5">
               <li>
                 <a
@@ -51,7 +49,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           aria-label={m.footer_nav_label({}, o)}
           className="mt-12 border-t border-night-soft pt-6 md:mt-16"
         >
-          <ul className="-mx-2 flex flex-wrap gap-x-4 text-sm">
+          <ul className="-mx-2 flex flex-wrap gap-x-4 text-small">
             <li>
               <Link
                 href="/privacy"
