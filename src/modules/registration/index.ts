@@ -29,6 +29,12 @@ export {
 export { PRIVACY_NOTICE_VERSION } from "./intake";
 export { REFERENCE_PATTERN } from "./reference";
 export {
+  checkRegistrationStatus,
+  parseStatusKey,
+  type StatusCheckResult,
+  type StatusKey,
+} from "./status-check";
+export {
   submitSelfRegistration,
   type SelfRegistrationResult,
   type SelfRegistrationSubmission,
