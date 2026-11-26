@@ -70,10 +70,13 @@ export type NewRegistration =
 /**
  * Inserts the registration (SUBMITTED) with a new random reference, drawing another if it is
  * taken. Each try runs in a savepoint, so a collision doesn't abort the surrounding transaction.
+ * With `id`, the registration gets that id (the officer desk's submission id, which makes a
+ * repeated submission fail on `registration_pkey`); otherwise the database draws one.
  */
 export async function insertRegistration(
   tx: Transaction,
   values: NewRegistration & {
+    id?: string;
     language: "en" | "sw";
     fwoConflict: boolean;
     phoneConflict: boolean;

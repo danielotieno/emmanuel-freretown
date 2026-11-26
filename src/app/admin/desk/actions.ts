@@ -20,6 +20,7 @@ import { sendNow } from "@/modules/notifications";
 import { checkUnitsForRegistration } from "@/modules/organisation";
 import {
   checkAssistedRegistration,
+  findAssistedSubmission,
   submitAssistedRegistration,
   type AssistedFieldName,
   type FieldError,
@@ -206,21 +207,47 @@ export async function sendDeskCode(input: unknown, turnstileToken: unknown): Pro
  */
 export async function submitDeskRegistration(
   input: unknown,
-  proof: { challengeId?: unknown; code?: unknown; turnstileToken?: unknown } = {},
+  proof: {
+    submissionId?: unknown;
+    challengeId?: unknown;
+    code?: unknown;
+    turnstileToken?: unknown;
+  } = {},
 ): Promise<DeskAnswer> {
   const staff = await requireStaff("REGISTRATION_OFFICER");
   const locale = await getLocale();
   const o = { locale };
   const log = await getLogger();
   const here: DeskStep = proof.challengeId === undefined ? "confirm" : "code";
+  const officer = { type: "STAFF", userId: staff.userId } as const;
   try {
     const values = readDeskValues(input);
+    const submissionId = typeof proof.submissionId === "string" ? proof.submissionId : "";
+    // A retry after a lost response: this form was already stored, so answer as then, before
+    // anything is checked, counted or sent again.
+    const stored = await findAssistedSubmission(await getDb(), { submissionId, officer });
+    if (stored) {
+      log.info("desk.replayed");
+      return {
+        errors: {},
+        step: "done",
+        reference: stored.reference,
+        sms: values.phoneMode !== "none",
+      };
+    }
+
     const checked = check(values, locale);
     if (!checked.ok) return { errors: checked.errors, step: checked.step };
 
     const env = await getEnv();
     const otpSecret = secret(env, "OTP_SECRET");
     if (checked.value.verification === "IN_PERSON" && checked.value.phoneE164) {
+      // A deactivated HBC or department is caught before the SMS limits are spent.
+      const units = await checkUnitsForRegistration(await getDb(), {
+        hbcId: checked.value.hbcId,
+        departmentIds: checked.value.departmentIds,
+      });
+      if (!units.ok) return unavailable(units, locale);
       const guarded = await checkDeskSms(
         await getDb(),
         {
@@ -277,8 +304,9 @@ export async function submitDeskRegistration(
     const result = await submitAssistedRegistration(
       await getDb(),
       {
+        submissionId,
         registration: checked.value,
-        officer: { type: "STAFF", userId: staff.userId },
+        officer,
         language: values.language,
         verificationToken,
         requestId: await requestId(),
@@ -293,7 +321,7 @@ export async function submitDeskRegistration(
       return unavailable(result, locale);
     }
 
-    log.info("registration.submitted", {
+    log.info(result.replayed ? "desk.replayed" : "registration.submitted", {
       channel: "ASSISTED",
       verification: checked.value.verification,
     });
@@ -308,7 +336,14 @@ export async function submitDeskRegistration(
         ),
       );
     }
-    return { errors: {}, step: "done", reference: result.reference, sms: result.smsId !== null };
+    // Whether the member gets an SMS: there is one whenever there is a phone, even when this
+    // answer is a replay and the SMS went with the first submission.
+    return {
+      errors: {},
+      step: "done",
+      reference: result.reference,
+      sms: checked.value.phoneE164 !== null,
+    };
   } catch (error) {
     log.error("desk.step_failed", error, { step: here });
     return { errors: {}, step: here, notice: m.err_generic({}, o) };

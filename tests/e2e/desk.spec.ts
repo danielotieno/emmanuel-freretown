@@ -150,7 +150,6 @@ async function next(page: Page) {
 /** The event and the member's details, up to the phone step. */
 async function fillMember(page: Page, member: { newMember?: boolean } = {}) {
   await page.getByLabel(en.desk_event_title).fill(EVENT);
-  await page.getByRole("radio", { name: "Kiswahili" }).check();
   await next(page);
   await expect(page.getByRole("heading", { name: en.desk_member_title })).toBeVisible();
   await page.getByLabel(en.desk_name_label, { exact: true }).fill("Test Person");
@@ -195,6 +194,8 @@ test("an officer registers a member whose phone is at the desk, with a code (FR-
   await fillMember(page);
   await page.getByRole("radio", { name: en.desk_phone_otp }).check();
   await page.getByLabel(en.desk_phone_label, { exact: true }).fill(`07${randomDigits(8)}`);
+  // The SMS language is asked with each member's phone (NFR-5).
+  await page.getByRole("radio", { name: "Kiswahili" }).check();
   await next(page);
 
   await confirmAll(page);
@@ -247,17 +248,19 @@ test("a half-filled form survives a reload and a dropped connection", async ({ p
   await page.goto(`${ADMIN}/desk`);
   await fillMember(page);
   await page.getByRole("radio", { name: en.desk_phone_unverified }).check();
-  await page.getByLabel(en.desk_phone_label, { exact: true }).fill("0712 345 678");
+  // A fresh number each run: the confirmation counts against the phone's hourly limit.
+  const phone = `07${randomDigits(2)} ${randomDigits(3)} ${randomDigits(3)}`;
+  await page.getByLabel(en.desk_phone_label, { exact: true }).fill(phone);
 
   await page.reload();
   await expect(page.getByText(en.desk_restored)).toBeVisible();
   await expect(page.getByRole("radio", { name: en.desk_phone_unverified })).toBeChecked();
-  await expect(page.getByLabel(en.desk_phone_label, { exact: true })).toHaveValue("0712 345 678");
+  await expect(page.getByLabel(en.desk_phone_label, { exact: true })).toHaveValue(phone);
 
   await context.setOffline(true);
   await next(page);
   await expect(page.getByRole("alert").filter({ hasText: en.desk_offline })).toBeVisible();
-  await expect(page.getByLabel(en.desk_phone_label, { exact: true })).toHaveValue("0712 345 678");
+  await expect(page.getByLabel(en.desk_phone_label, { exact: true })).toHaveValue(phone);
   await context.setOffline(false);
   await next(page);
 
@@ -271,7 +274,10 @@ test("a half-filled form survives a reload and a dropped connection", async ({ p
     timeout: 30_000,
   });
 
-  // Submitted: nothing is left in the tab to restore.
+  // Submitted: nothing is left in the tab to restore, and no desk key holds the member.
+  const stored = await page.evaluate(() => JSON.stringify({ ...sessionStorage }));
+  expect(stored).not.toContain("Test Person");
+  expect(stored).not.toContain(phone);
   await page.reload();
   await expect(page.getByRole("heading", { name: en.desk_member_title })).toBeHidden();
   await expect(page.getByLabel(en.desk_event_title)).toHaveValue(EVENT);

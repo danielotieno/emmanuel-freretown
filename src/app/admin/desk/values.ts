@@ -42,9 +42,10 @@ export type DeskErrorField = DeskField | "code";
 
 /** The fields each step asks for. */
 export const DESK_STEP_FIELDS: Partial<Record<DeskStep, DeskField[]>> = {
-  event: ["eventLabel", "language"],
+  event: ["eventLabel"],
   member: ["fullName", "isNewMember", "fwoNumber", "hbcId", "departmentIds"],
-  phone: ["phoneMode", "phone"],
+  // The SMS language is asked with each member's phone, so it never carries over unseen.
+  phone: ["phoneMode", "phone", "language"],
   confirm: ["readBackConfirmed", "adultDeclared", "privacyAcknowledged", "transferConsent"],
 };
 
@@ -138,6 +139,17 @@ export interface DeskDraft {
   step: DeskStep;
   values: DeskValues;
   challengeId?: string;
+  /**
+   * Drawn once per member and kept with the draft: it becomes the registration's id, so a retry
+   * after a lost response finds the stored registration instead of making a second one.
+   */
+  submissionId: string;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+export function newSubmissionId(): string {
+  return crypto.randomUUID();
 }
 
 const DESK_STORAGE_PREFIX = "desk:";
@@ -163,7 +175,11 @@ export function loadDraft(userId: string): DeskDraft | null {
       : "event";
     if (step === "done") return null;
     const challengeId = typeof parsed.challengeId === "string" ? parsed.challengeId : undefined;
-    return { step, values: readDeskValues(parsed.values), challengeId };
+    const submissionId =
+      typeof parsed.submissionId === "string" && UUID.test(parsed.submissionId)
+        ? parsed.submissionId
+        : newSubmissionId();
+    return { step, values: readDeskValues(parsed.values), challengeId, submissionId };
   } catch {
     return null;
   }
@@ -199,9 +215,29 @@ export function loadEvent(userId: string): { eventLabel: string; language: "en" 
 
 export function saveEvent(userId: string, event: { eventLabel: string; language: string }) {
   try {
-    storage()?.setItem(eventKey(userId), JSON.stringify(event));
+    // Only these two fields: the caller may pass the whole form, and a member's details must
+    // never outlive their draft (#18 review).
+    const kept = { eventLabel: event.eventLabel, language: event.language };
+    storage()?.setItem(eventKey(userId), JSON.stringify(kept));
   } catch {
     // As saveDraft.
+  }
+}
+
+/**
+ * Removes every other officer's desk draft and event from this tab: after an idle timeout, the
+ * officer who signs in next on the same tab never keeps a colleague's unfinished registration.
+ */
+export function clearOtherOfficers(userId: string): void {
+  try {
+    const store = storage();
+    if (!store) return;
+    const mine = new Set([draftKey(userId), eventKey(userId)]);
+    for (const key of Object.keys(store)) {
+      if (key.startsWith(DESK_STORAGE_PREFIX) && !mine.has(key)) store.removeItem(key);
+    }
+  } catch {
+    // Nothing to clear.
   }
 }
 

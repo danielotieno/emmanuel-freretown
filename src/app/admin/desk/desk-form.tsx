@@ -15,10 +15,12 @@ import { checkDeskStep, sendDeskCode, submitDeskRegistration } from "./actions";
 import type { DeskText } from "./text";
 import {
   clearDraft,
+  clearOtherOfficers,
   countedSteps,
   emptyDeskValues,
   loadDraft,
   loadEvent,
+  newSubmissionId,
   PHONE_MODES,
   saveDraft,
   saveEvent,
@@ -74,11 +76,18 @@ export function DeskForm(props: Props) {
 type Done = { reference: string; sms: boolean; isNewMember: boolean };
 
 function freshDraft(officerId: string): DeskDraft {
-  return { step: "event", values: emptyDeskValues(loadEvent(officerId) ?? undefined) };
+  return {
+    step: "event",
+    values: emptyDeskValues(loadEvent(officerId) ?? undefined),
+    submissionId: newSubmissionId(),
+  };
 }
 
 function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl }: Props) {
-  const [restored] = useState(() => loadDraft(officerId));
+  const [restored] = useState(() => {
+    clearOtherOfficers(officerId);
+    return loadDraft(officerId);
+  });
   const [draft, setDraft] = useState<DeskDraft>(() => restored ?? freshDraft(officerId));
   const [errors, setErrors] = useState<DeskAnswer["errors"]>({});
   const [alert, setAlert] = useState<string>();
@@ -153,9 +162,12 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
     }
     setErrors(answer.errors);
     if (answer.notice) setAlert(answer.notice);
-    if (step === "event" && answer.step === "member") saveEvent(officerId, values);
+    // The event and SMS language are kept as the next person's defaults.
+    if ((step === "event" || step === "phone") && answer.step !== step)
+      saveEvent(officerId, values);
     if (answer.step !== "code") setCode("");
     setDraft((d) => ({
+      submissionId: d.submissionId,
       step: answer.step ?? d.step,
       challengeId: answer.challengeId ?? (answer.step === "code" ? d.challengeId : undefined),
       values: answer.unavailableDepartmentIds
@@ -176,9 +188,17 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
     if (step === "confirm" && values.phoneMode === "otp") {
       run("send", () => sendDeskCode(values, turnstileToken));
     } else if (step === "confirm") {
-      run("submit", () => submitDeskRegistration(values, { turnstileToken }));
+      run("submit", () =>
+        submitDeskRegistration(values, { submissionId: draft.submissionId, turnstileToken }),
+      );
     } else if (step === "code") {
-      run("submit", () => submitDeskRegistration(values, { challengeId: draft.challengeId, code }));
+      run("submit", () =>
+        submitDeskRegistration(values, {
+          submissionId: draft.submissionId,
+          challengeId: draft.challengeId,
+          code,
+        }),
+      );
     } else {
       run("next", () => checkDeskStep(step, values));
     }
@@ -273,41 +293,22 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
           )}
 
           {step === "event" && (
-            <>
-              <Question
+            <Question
+              id="eventLabel"
+              label={text.eventTitle}
+              hint={text.eventHint}
+              error={errors.eventLabel}
+            >
+              <input
                 id="eventLabel"
-                label={text.eventTitle}
-                hint={text.eventHint}
-                error={errors.eventLabel}
-              >
-                <input
-                  id="eventLabel"
-                  value={values.eventLabel}
-                  onChange={(e) => set({ eventLabel: e.target.value })}
-                  maxLength={120}
-                  autoComplete="off"
-                  {...invalid("eventLabel", errors)}
-                  className="field"
-                />
-              </Question>
-              <fieldset className="space-y-2">
-                <legend className="mb-2 text-ink">{text.languageLabel}</legend>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {(["en", "sw"] as const).map((lang) => (
-                    <label key={lang} className="option items-center" lang={lang}>
-                      <input
-                        type="radio"
-                        name="language"
-                        checked={values.language === lang}
-                        onChange={() => set({ language: lang })}
-                        className="size-5 shrink-0 accent-brand"
-                      />
-                      {text.languages[lang]}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            </>
+                value={values.eventLabel}
+                onChange={(e) => set({ eventLabel: e.target.value })}
+                maxLength={120}
+                autoComplete="off"
+                {...invalid("eventLabel", errors)}
+                className="field"
+              />
+            </Question>
           )}
 
           {step === "member" && (
@@ -458,6 +459,25 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
                   />
                 </Field>
               )}
+              {values.phoneMode !== "none" && (
+                <fieldset className="space-y-2">
+                  <legend className="mb-2 text-ink">{text.languageLabel}</legend>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(["en", "sw"] as const).map((lang) => (
+                      <label key={lang} className="option items-center" lang={lang}>
+                        <input
+                          type="radio"
+                          name="language"
+                          checked={values.language === lang}
+                          onChange={() => set({ language: lang })}
+                          className="size-5 shrink-0 accent-brand"
+                        />
+                        {text.languages[lang]}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
             </>
           )}
 
@@ -491,7 +511,9 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
                     <span className="tabular-nums">{values.phone}</span>
                   </Row>
                 )}
-                <Row term={text.languageLabel}>{text.languages[values.language]}</Row>
+                {values.phoneMode !== "none" && (
+                  <Row term={text.languageLabel}>{text.languages[values.language]}</Row>
+                )}
               </dl>
               <div className="space-y-3">
                 <Tick

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../../src/db";
@@ -5,6 +6,7 @@ import { hmacSha256Hex } from "../../src/lib/crypto";
 import type { SmsProvider } from "../../src/modules/notifications";
 import {
   checkAssistedRegistration,
+  findAssistedSubmission,
   PRIVACY_NOTICE_VERSION,
   REFERENCE_PATTERN,
   submitAssistedRegistration,
@@ -103,11 +105,13 @@ async function submit(
   tx: Transaction,
   over: Partial<AssistedRegistrationFields> = {},
   token?: string,
+  submissionId: string = randomUUID(),
 ) {
   const registration = await fields(tx, over);
   return submitAssistedRegistration(
     tx,
     {
+      submissionId,
       registration,
       officer: OFFICER,
       language: "sw",
@@ -415,6 +419,75 @@ describe("checkDeskSms: the confirmation to an unchecked number (rule 8, #18)", 
       for (let i = 0; i < 3; i++)
         expect(await checkDeskSms(tx, request, deps)).toEqual({ ok: true });
       expect(await checkDeskSms(tx, request, deps)).toEqual({ ok: false, reason: "phone_hourly" });
+    });
+  });
+});
+
+describe("a repeated desk submission stores one registration (#18)", () => {
+  it("uses the submission id as the registration id", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const submissionId = randomUUID();
+      const { registrationId } = ok(
+        await submit(tx, { phone: "0700000095" }, undefined, submissionId),
+      );
+      expect(registrationId).toBe(submissionId);
+    });
+  });
+
+  it("answers a retry with the stored reference, without a second registration or SMS", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const submissionId = randomUUID();
+      const first = ok(await submit(tx, { phone: "0700000096" }, undefined, submissionId));
+      const before = {
+        registrations: await count(tx, "registration"),
+        sms: await count(tx, "sms_outbox"),
+        audit: await count(tx, "audit_entry"),
+      };
+      // A retry after a lost response: the action finds it first...
+      expect(await findAssistedSubmission(tx, { submissionId, officer: OFFICER })).toEqual({
+        reference: first.reference,
+      });
+      // ...and a copy that raced past that check is answered from the stored row.
+      const again = await tx.transaction(async (sp) =>
+        submitAssistedRegistration(
+          sp,
+          {
+            submissionId,
+            registration: await fields(tx, { phone: "0700000096" }),
+            officer: OFFICER,
+            language: "sw",
+          },
+          OTP_SECRET,
+        ),
+      );
+      expect(again).toEqual({
+        ok: true,
+        reference: first.reference,
+        registrationId: submissionId,
+        smsId: null,
+        replayed: true,
+      });
+      expect({
+        registrations: await count(tx, "registration"),
+        sms: await count(tx, "sms_outbox"),
+        audit: await count(tx, "audit_entry"),
+      }).toEqual(before);
+    });
+  });
+
+  it("never finds another officer's submission, and refuses a malformed id", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const submissionId = randomUUID();
+      ok(await submit(tx, { phone: "0700000097" }, undefined, submissionId));
+      const other = { type: "STAFF", userId: "test-officer-2" } as const;
+      expect(await findAssistedSubmission(tx, { submissionId, officer: other })).toBeNull();
+      expect(
+        await findAssistedSubmission(tx, { submissionId: "REG-ABCDE", officer: OFFICER }),
+      ).toBeNull();
+      await expect(submit(tx, {}, undefined, submissionId.toUpperCase())).rejects.toThrow();
     });
   });
 });

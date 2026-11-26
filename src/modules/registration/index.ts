@@ -20,6 +20,7 @@ export {
   type ValidSelfRegistration,
 } from "./fields";
 export {
+  findAssistedSubmission,
   submitAssistedRegistration,
   type AssistedRegistrationResult,
   type AssistedRegistrationSubmission,

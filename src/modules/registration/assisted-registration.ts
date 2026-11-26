@@ -1,12 +1,23 @@
-import { safeQuery, type DbOrTx } from "../../db";
+import { and, eq } from "drizzle-orm";
+import { isUniqueViolation, safeQuery, type DbOrTx } from "../../db";
+import { registration } from "../../db/schema";
 import * as audit from "../audit";
 import { enqueueSms } from "../notifications";
+import { SafeError } from "../observability";
 import { checkUnitsForRegistration } from "../organisation";
 import { recordInPersonVerification, redeemRegistrationVerification } from "../verification";
 import type { ValidAssistedRegistration } from "./fields";
 import { conflictFlags, insertFirstRevision, insertRegistration } from "./intake";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 export interface AssistedRegistrationSubmission {
+  /**
+   * A random uuid the desk draws once per member, kept with the unfinished form. It becomes the
+   * registration's id, so submitting the same form twice (a retry after a lost response) stores
+   * one registration, not two.
+   */
+  submissionId: string;
   registration: ValidAssistedRegistration;
   /** The officer capturing it. The caller has checked their Registration Officer role. */
   officer: audit.StaffActor;
@@ -22,7 +33,14 @@ export type AssistedRegistrationResult =
    * Stored as SUBMITTED. Send the SMS with `sendNow` after the response; there is none when the
    * member has no personal phone.
    */
-  | { ok: true; reference: string; registrationId: string; smsId: string | null }
+  | {
+      ok: true;
+      reference: string;
+      registrationId: string;
+      smsId: string | null;
+      /** True when this submission id was already stored: nothing new, and no second SMS. */
+      replayed?: boolean;
+    }
   /** The code check is missing, spent, expired or for another phone: check again. */
   | { ok: false; reason: "verification" }
   /** The HBC or a department can't be chosen (deactivated since the form loaded). */
@@ -50,7 +68,17 @@ export async function submitAssistedRegistration(
   submission: AssistedRegistrationSubmission,
   otpSecret: string,
 ): Promise<AssistedRegistrationResult> {
-  const { registration: details, officer, language, verificationToken, requestId } = submission;
+  const {
+    submissionId,
+    registration: details,
+    officer,
+    language,
+    verificationToken,
+    requestId,
+  } = submission;
+  if (!UUID.test(submissionId)) {
+    throw new SafeError("invalid_submission_id", "A desk submission id is a lowercase uuid");
+  }
   try {
     return await safeQuery(() =>
       db.transaction(async (tx): Promise<AssistedRegistrationResult> => {
@@ -69,6 +97,7 @@ export async function submitAssistedRegistration(
 
         const { fwoConflict, phoneConflict } = await conflictFlags(tx, details);
         const { id: registrationId, reference } = await insertRegistration(tx, {
+          id: submissionId,
           channel: "ASSISTED",
           capturedByUserId: officer.userId,
           eventLabel: details.eventLabel,
@@ -144,6 +173,39 @@ export async function submitAssistedRegistration(
     );
   } catch (error) {
     if (error instanceof VerificationRefused) return { ok: false, reason: "verification" };
+    // A concurrent copy of the same submission committed first: answer as it did.
+    if (isUniqueViolation(error, "registration_pkey")) {
+      const stored = await findAssistedSubmission(db, { submissionId, officer });
+      if (stored) {
+        return { ok: true, ...stored, registrationId: submissionId, smsId: null, replayed: true };
+      }
+    }
     throw error;
   }
+}
+
+/**
+ * The registration an officer already stored under this desk submission id, if any: a retry
+ * after a lost response (#18) gets the same reference instead of a second registration. Only the
+ * officer who captured it can find it; any other id, or another officer's, finds nothing.
+ */
+export async function findAssistedSubmission(
+  db: DbOrTx,
+  lookup: { submissionId: string; officer: audit.StaffActor },
+): Promise<{ reference: string } | null> {
+  if (!UUID.test(lookup.submissionId)) return null;
+  const rows = await safeQuery(() =>
+    db
+      .select({ reference: registration.reference })
+      .from(registration)
+      .where(
+        and(
+          eq(registration.id, lookup.submissionId),
+          eq(registration.channel, "ASSISTED"),
+          eq(registration.capturedByUserId, lookup.officer.userId),
+        ),
+      )
+      .limit(1),
+  );
+  return rows[0] ?? null;
 }
