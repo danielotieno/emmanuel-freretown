@@ -158,7 +158,7 @@ Staff users are never seeded from the repository (database-design.md §5). Once 
 DATABASE_URL='<owner connection string, direct endpoint>' pnpm staff:bootstrap --email <their address> --name "<their name>"
 ```
 
-It asks twice for their password (not shown; at least 12 characters), then creates the staff user, their password login and a GLOBAL Super Administrator grant, with audit entries, in one transaction. It refuses if an active Super Administrator already exists. Run it with the person beside you so they type their own password, or have them run it.
+The email and name stay in your shell history; on a shared machine, close the terminal afterwards and delete that line from your history file (`~/.zsh_history` or `~/.bash_history`). Run the command in one terminal tab, after setting `DATABASE_URL` there: the script ignores `.env`, and prints the database host before asking for anything, so check it. It asks twice for their password (not shown; at least 12 characters), then creates the staff user, their password login and a GLOBAL Super Administrator grant, with audit entries, in one transaction. It refuses if an active Super Administrator already exists. Run it with the person beside you so they type their own password, or have them run it.
 
 Then the Super Administrator opens the staff host (`admin.` or `admin-staging.`), passes Cloudflare Access (their email must be on the environment's allow-list, §5), signs in with the password and sets up an authenticator app. They can reach nothing else until they do. The 30-minute idle timeout applies to them (D32).
 

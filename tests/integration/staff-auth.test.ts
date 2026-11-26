@@ -296,7 +296,7 @@ describe("sign-in and the second factor", () => {
     });
   });
 
-  it("accepts a backup code instead of the app's code", async () => {
+  it("accepts a backup code once instead of the app's code, and audits its use", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
       const { user, backupCodes } = await enrolled(tx, ["REGISTRATION_OFFICER"]);
@@ -305,6 +305,23 @@ describe("sign-in and the second factor", () => {
       const result = await browser.post("/two-factor/verify-backup-code", { code: backupCodes[0] });
       expect(result.status).toBe(200);
       expect((await requireStaff(browser.request(), "REGISTRATION_OFFICER")).userId).toBe(user.id);
+
+      // The same code never works twice, and a failed attempt writes nothing.
+      const again = new Browser(tx);
+      await again.post("/sign-in/email", { email: user.email, password: PASSWORD });
+      expect(
+        (await again.post("/two-factor/verify-backup-code", { code: backupCodes[0] })).status,
+      ).toBe(401);
+
+      const { rows } = await asOwner(tx, () =>
+        tx.execute<{ action: string; actor_id: string }>(sql`
+          SELECT action, actor_id FROM audit_entry
+           WHERE entity_type = 'staff_user' AND entity_id = ${user.id} ORDER BY id`),
+      );
+      expect(rows).toEqual([
+        { action: "staff_user.enable_second_factor", actor_id: user.id },
+        { action: "staff_user.use_backup_code", actor_id: user.id },
+      ]);
     });
   });
 

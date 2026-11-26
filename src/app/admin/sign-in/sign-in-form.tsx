@@ -59,12 +59,25 @@ export function SignInForm() {
       return;
     }
     setPending(false);
+    // Chosen by Better Auth's error code; nothing the server says is shown.
+    const reason = result.data.code;
+    if (reason === "INVALID_TWO_FACTOR_COOKIE" || reason === "TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE") {
+      // The sign-in challenge has expired or is used up: only a new password step helps.
+      setStep("password");
+      setBackup(false);
+      setError("That sign-in has expired. Enter your email address and password again.");
+      return;
+    }
+    if (reason === "ACCOUNT_TEMPORARILY_LOCKED") {
+      setError("Too many wrong codes. Sign-in is locked for 15 minutes; try again after that.");
+      return;
+    }
     setError(
       failureMessage(
         result,
-        result.status === 401
-          ? "The sign-in took too long. Start again with your password."
-          : "That code didn't work. Check it and try again.",
+        backup
+          ? "That backup code didn't work. Check it and try again."
+          : "That code didn't work. Check the app and try again.",
       ),
     );
   }

@@ -20,14 +20,14 @@ const APP_NAME = "ACK Emmanuel Freretown - Kengeleni";
  * matter (D32: 30 minutes, or 4 hours for Registration Officers alone) are shorter and are
  * enforced by `requireStaff`; this matches Cloudflare Access's 24-hour session in front of it.
  */
-export const SESSION_MAX_AGE_SECONDS = 24 * 60 * 60;
+const SESSION_MAX_AGE_SECONDS = 24 * 60 * 60;
 
 /**
  * The Better Auth endpoints the staff portal uses. Every other endpoint (password reset, email
  * change, account deletion, OTP by email or SMS, disabling the second factor…) answers 404.
  * Staff accounts are created by a Super Administrator (FR-10), not through Better Auth.
  */
-export const ALLOWED_AUTH_PATHS: ReadonlySet<string> = new Set([
+const ALLOWED_AUTH_PATHS: ReadonlySet<string> = new Set([
   "/sign-in/email",
   "/sign-out",
   "/get-session",

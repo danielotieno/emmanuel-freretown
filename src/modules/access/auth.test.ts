@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALLOWED_AUTH_PATHS, staffCookies } from "./auth";
+import { staffCookies } from "./auth";
 
 describe("staffCookies", () => {
   it("makes every cookie __Host- on the https admin hosts: Secure, Path=/, no Domain", () => {
@@ -25,23 +25,5 @@ describe("staffCookies", () => {
     const cookies = staffCookies("https://admin.ackemmanuelfreretown.org");
     expect(cookies.two_factor?.name).toBe("__Host-ack-staff.two_factor");
     expect(cookies.trust_device?.name).toBe("__Host-ack-staff.trust_device");
-  });
-});
-
-describe("ALLOWED_AUTH_PATHS", () => {
-  it("offers no sign-up, password reset, email or SMS codes, or switching the factor off", () => {
-    for (const path of [
-      "/sign-up/email",
-      "/request-password-reset",
-      "/reset-password",
-      "/change-email",
-      "/delete-user",
-      "/two-factor/send-otp",
-      "/two-factor/verify-otp",
-      "/two-factor/disable",
-      "/sign-in/social",
-    ]) {
-      expect(ALLOWED_AUTH_PATHS.has(path)).toBe(false);
-    }
   });
 });

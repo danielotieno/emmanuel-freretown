@@ -201,7 +201,7 @@ A public page where a person enters a phone number and their FWO number or regis
 ### FR-10 Staff accounts and authentication
 
 - Staff accounts are created by a Super Administrator only; no self sign-up.
-- Staff sign in with email and password plus a second factor (passkey or authenticator app). SMS is not accepted as a second factor for administrators.
+- Staff sign in with email and password plus a second factor (passkey or authenticator app). SMS is not accepted as a second factor for administrators. Release 1 offers the authenticator app only, with single-use backup codes (#17).
 - Sessions are server-side and revocable; idle timeout 30 minutes for anyone holding the Membership Administrator or Super Administrator role, 4 hours for staff who are Registration Officers only (D32).
 - The admin interface is served from its own subdomain with host-only cookies.
 

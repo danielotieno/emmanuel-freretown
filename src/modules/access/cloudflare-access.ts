@@ -55,12 +55,18 @@ async function teamKeys(
   const cached = keyCache.get(teamDomain);
   const fresh = cached && now - cached.fetchedAt < (forceRefresh ? REFETCH_MIN_MS : KEY_TTL_MS);
   if (cached && fresh) return cached.keys;
-  const response = await fetcher(`https://${teamDomain}/cdn-cgi/access/certs`);
-  if (!response.ok) return cached?.keys ?? [];
-  const body = (await response.json()) as { keys?: Jwk[] };
-  const keys = Array.isArray(body.keys) ? body.keys : [];
-  keyCache.set(teamDomain, { keys, fetchedAt: now });
-  return keys;
+  // A network failure or a malformed answer keeps the last good keys (or none), so the request
+  // is refused as usual rather than failing with an error.
+  try {
+    const response = await fetcher(`https://${teamDomain}/cdn-cgi/access/certs`);
+    if (!response.ok) return cached?.keys ?? [];
+    const body = (await response.json()) as { keys?: Jwk[] };
+    const keys = Array.isArray(body.keys) ? body.keys : [];
+    keyCache.set(teamDomain, { keys, fetchedAt: now });
+    return keys;
+  } catch {
+    return cached?.keys ?? [];
+  }
 }
 
 /** For tests: forget fetched keys. */

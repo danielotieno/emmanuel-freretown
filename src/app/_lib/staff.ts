@@ -23,18 +23,16 @@ import { getDb } from "./db";
 import { getEnv, secret } from "./env";
 import { getLogger } from "./log";
 
-function isDeployed(env: Record<string, unknown>): boolean {
-  return ["staging", "production"].includes(secret(env, "SENTRY_ENVIRONMENT"));
-}
-
 /**
- * The Cloudflare Access check for this environment: verified in staging and production (it
- * refuses everything if `CF_ACCESS_TEAM_DOMAIN` or `CF_ACCESS_AUD` is missing there), skipped
- * locally unless both are set.
+ * The Cloudflare Access check: verified on the real staff hosts, which refuse everything if
+ * `CF_ACCESS_TEAM_DOMAIN` or `CF_ACCESS_AUD` is missing. Skipped only on a loopback host
+ * (`admin.localhost`, local development and tests) in an environment that isn't staging or
+ * production, and only while neither setting is present, so a misconfiguration fails closed.
  */
-function accessPolicy(env: Record<string, unknown>): AccessJwtPolicy {
+function accessPolicy(env: Record<string, unknown>, baseURL: string): AccessJwtPolicy {
+  const deployed = ["staging", "production"].includes(secret(env, "SENTRY_ENVIRONMENT"));
   return accessJwtPolicy({
-    deployed: isDeployed(env),
+    deployed: deployed || baseURL.startsWith("https://"),
     teamDomain: secret(env, "CF_ACCESS_TEAM_DOMAIN"),
     audience: secret(env, "CF_ACCESS_AUD"),
   });
@@ -58,13 +56,14 @@ const getAuth = cache(async (): Promise<Auth | null> => {
 });
 
 async function staffRequest(): Promise<StaffRequest | null> {
+  const config = await getAuthConfig();
   const auth = await getAuth();
-  if (!auth) return null;
+  if (!config || !auth) return null;
   return {
     db: await getDb(),
     auth,
     headers: new Headers(await headers()),
-    access: accessPolicy(await getEnv()),
+    access: accessPolicy(await getEnv(), config.baseURL),
   };
 }
 
@@ -84,10 +83,12 @@ async function refuse(error: unknown): Promise<never> {
  *
  *   const staff = await requireStaff("MEMBERSHIP_ADMIN");
  *
+ * The role is always written out: `null` means any staff member with an active role, and is
+ * for pages every staff member may see, never for actions.
  * Returns the signed-in staff member, or redirects to sign-in or enrolment, or answers 404.
  * The checks themselves are `requireStaff` in src/modules/access.
  */
-export async function requireStaff(role: StaffRole | null = null, scope?: Scope): Promise<Staff> {
+export async function requireStaff(role: StaffRole | null, scope?: Scope): Promise<Staff> {
   const req = await staffRequest();
   if (!req) notFound();
   try {
@@ -115,7 +116,7 @@ export async function requireEnrollingStaff(): Promise<EnrollingStaff | null> {
 export async function handleAuthRequest(request: Request): Promise<Response> {
   const config = await getAuthConfig();
   const env = await getEnv();
-  if (!config || !(await passesAccess(request.headers, accessPolicy(env)))) {
+  if (!config || !(await passesAccess(request.headers, accessPolicy(env, config.baseURL)))) {
     return new Response("Not found", { status: 404 });
   }
   // Better Auth routes by path under /api/auth. The middleware rewrites admin requests into

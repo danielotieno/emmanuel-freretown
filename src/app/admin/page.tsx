@@ -10,7 +10,7 @@ const ROLE_NAMES: Record<StaffRole, string> = {
 
 /** Staff home. Any staff member with an active role. */
 export default async function AdminHome() {
-  const staff = await requireStaff();
+  const staff = await requireStaff(null);
   const roles = [...new Set(staff.grants.map((g) => ROLE_NAMES[g.role]))];
   return (
     <main className="mx-auto max-w-form px-4 py-10">

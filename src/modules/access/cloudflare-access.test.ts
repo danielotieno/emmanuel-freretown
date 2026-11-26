@@ -134,9 +134,18 @@ describe("verifyAccessJwt", () => {
     expect(await verifyAccessJwt(none, policy, NOW)).toBe(false);
   });
 
-  it("refuses everything if the keys can't be fetched", async () => {
+  it("refuses everything if the keys can't be fetched, without throwing", async () => {
     const down = { ...policy, fetch: (async () => new Response("", { status: 503 })) as never };
     expect(await verifyAccessJwt(await sign(valid()), down, NOW)).toBe(false);
+    const offline = {
+      ...policy,
+      fetch: (async () => {
+        throw new TypeError("network down");
+      }) as never,
+    };
+    expect(await verifyAccessJwt(await sign(valid()), offline, NOW)).toBe(false);
+    const garbled = { ...policy, fetch: (async () => new Response("<html>")) as never };
+    expect(await verifyAccessJwt(await sign(valid()), garbled, NOW)).toBe(false);
   });
 });
 
