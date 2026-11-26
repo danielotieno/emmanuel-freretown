@@ -5,6 +5,7 @@ import {
   checkFullName,
   checkFwoNumber,
   checkPhone,
+  checkReason,
   checkSelfRegistration,
   type AssistedRegistrationFields,
 } from "./fields";
@@ -206,5 +207,18 @@ describe("checkAssistedRegistration (FR-3)", () => {
     expect(
       checkAssistedRegistration({ ...valid, verification: "FWO_CONFIRMED_BY_SECRETARY" }),
     ).toEqual({ ok: false, errors: { verification: "required" } });
+  });
+});
+
+describe("checkReason (FR-4)", () => {
+  it("needs 3 to 500 characters once trimmed", () => {
+    expect(checkReason("  Duplicate of REG-ABCDE  ")).toEqual({
+      ok: true,
+      value: "Duplicate of REG-ABCDE",
+    });
+    expect(checkReason("   ")).toEqual({ ok: false, error: "required" });
+    expect(checkReason("no")).toEqual({ ok: false, error: "too_short" });
+    expect(checkReason("x".repeat(501))).toEqual({ ok: false, error: "too_long" });
+    expect(checkReason("x".repeat(500)).ok).toBe(true);
   });
 });

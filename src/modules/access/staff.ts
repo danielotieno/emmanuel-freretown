@@ -1,7 +1,7 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { safeQuery, type Database } from "../../db";
 import { roleAssignment } from "../../db/schema/access";
-import { session as sessionTable, twoFactor } from "../../db/schema/auth";
+import { session as sessionTable, twoFactor, user as userTable } from "../../db/schema/auth";
 import { isAdminHost } from "../../lib/hosts";
 import { SafeError } from "../observability";
 import type { Auth } from "./auth";
@@ -177,4 +177,20 @@ export async function requireStaff(
 export async function requireEnrollingStaff(req: StaffRequest): Promise<EnrollingStaff | null> {
   const result = await checkSession(req);
   return result.state === "enrolment_required" ? result.staff : null;
+}
+
+/**
+ * Staff users' names by id, for staff screens that say who captured or decided something
+ * (FR-4). Names only: never an email address or anything about the account.
+ */
+export async function staffNames(db: Database, userIds: string[]): Promise<Map<string, string>> {
+  const ids = [...new Set(userIds)];
+  if (ids.length === 0) return new Map();
+  const rows = await safeQuery(() =>
+    db
+      .select({ id: userTable.id, name: userTable.name })
+      .from(userTable)
+      .where(inArray(userTable.id, ids)),
+  );
+  return new Map(rows.map((r) => [r.id, r.name]));
 }

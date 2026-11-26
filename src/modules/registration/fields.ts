@@ -214,3 +214,15 @@ export function checkAssistedRegistration(
     },
   };
 }
+
+/**
+ * An administrator's reason for rejecting or asking for a correction (FR-4): required, trimmed,
+ * at least 3 characters and at most 500. Staff see it; members never do.
+ */
+export function checkReason(input: string): FieldResult<string> {
+  const value = input.trim();
+  if (!value) return { ok: false, error: "required" };
+  if (value.length < 3) return { ok: false, error: "too_short" };
+  if (value.length > 500) return { ok: false, error: "too_long" };
+  return { ok: true, value };
+}

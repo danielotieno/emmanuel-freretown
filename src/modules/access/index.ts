@@ -9,6 +9,7 @@ export { GLOBAL, type RoleGrant, type Scope, type StaffRole } from "./roles";
 export {
   requireEnrollingStaff,
   requireStaff,
+  staffNames,
   StaffAccessError,
   type EnrollingStaff,
   type Staff,

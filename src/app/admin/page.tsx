@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireStaff } from "@/app/_lib/staff";
 import type { StaffRole } from "@/modules/access";
 import { SignOutButton } from "./_components/sign-out-button";
@@ -14,6 +15,9 @@ export default async function AdminHome() {
   const roles = [...new Set(staff.grants.map((g) => ROLE_NAMES[g.role]))];
   // Only to show the link: the desk checks the role itself (CLAUDE.md rule 1).
   const officer = staff.grants.some((g) => g.role === "REGISTRATION_OFFICER");
+  const reviewer = staff.grants.some(
+    (g) => g.role === "MEMBERSHIP_ADMIN" || g.role === "SUPER_ADMIN",
+  );
   return (
     <main className="mx-auto max-w-form px-4 py-10">
       <h1 className="text-4xl">Staff area</h1>
@@ -29,7 +33,13 @@ export default async function AdminHome() {
           </a>
         </p>
       )}
-      <p className="mt-6 text-ink-muted">The review queue will appear here as it is built.</p>
+      {reviewer && (
+        <p className="mt-4">
+          <Link href="/review" className="btn-secondary">
+            Review queue
+          </Link>
+        </p>
+      )}
       <div className="mt-8">
         <SignOutButton />
       </div>

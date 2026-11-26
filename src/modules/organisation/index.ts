@@ -6,6 +6,7 @@ export {
   checkUnitsForRegistration,
   listActiveDepartments,
   listActiveHbcs,
+  unitNames,
   type Unit,
   type UnitCheck,
 } from "./units";
