@@ -18,9 +18,10 @@ Use these terms exactly, in conversation, code, tests and docs.
 
 | Term | Meaning |
 |---|---|
-| **Member** | An adult (18+) in the official registry, created only by approving a registration. Not a "user": members have no login in Release 1 |
+| **Member** | An adult (18+) in the official registry, created by approving a registration or by importing the parish list (D47). Not a "user": members have no login in Release 1 |
 | **FWO number** | Freewill offering number, issued per adult by the Church Secretary when they join. Digits only, never reused. Identifies a member; never proves who someone is |
-| **New member** | A person registering who has no FWO number yet. The Secretary issues one before approval |
+| **New member** | A person registering who has no FWO number yet. The Secretary issues one before approval, and sets their HBC then if they didn't know it (D49) |
+| **Imported member** | A member created from the parish list (D47, FR-13) rather than from a registration. Has no registration reference |
 | **Registration** | An application to join (or update) the registry. Has a reference like `REG-7K3M9` |
 | **Revision** | An immutable snapshot of a registration's details. Corrections add a revision; nothing is edited in place |
 | **Self-registration** | Submitted by the member online, with phone OTP |

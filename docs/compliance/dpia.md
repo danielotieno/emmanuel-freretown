@@ -29,7 +29,7 @@ Required. The registry records who is a member of the church, so every record re
 
 ### 3. Project outline
 
-The parish is replacing an unreliable paper list (D5) with a verified register of adult members (18+, D4), about 600 people (D15) across 11 Home Based Cells (HBCs) and 8 departments. Members register themselves online, or are registered by a church officer at a desk (for example at an HBC AGM). A Membership Administrator reviews and approves each registration. Members can check their own status from their phone. The register is the basis for future member services and for HBC, department and parish elections (Release 2).
+The parish is replacing its paper list with a verified register of adult members (18+, D4), about 600 people (D15) across 11 Home Based Cells (HBCs) and 8 departments. Members on the cleaned parish list are imported once, with their permission and the Vicar's confirmation of their consent (D47). Others register themselves online, or are registered by a church officer at a desk (for example at an HBC AGM). A Membership Administrator reviews and approves each registration. Members can check their own status from their phone. The register is the basis for future member services and for HBC, department and parish elections (Release 2).
 
 ### 4. Personal data
 
@@ -42,11 +42,11 @@ The parish is replacing an unreliable paper list (D5) with a verified register o
 
 ### 5. Information flow
 
-- **Collection.** Directly from the member: on the public form at `/registration` after verifying their own phone by one-time code, or by an officer at a desk with the member present (FR-1, FR-3). Nothing is imported from the old list (D5).
+- **Collection.** Directly from the member: on the public form at `/registration` after verifying their own phone by one-time code, or by an officer at a desk with the member present (FR-1, FR-3). From the parish list, cleaned by the Church Secretary and imported once by a Membership Administrator, with the members' permission and the Vicar's confirmation of their consent to storage outside Kenya (D47, FR-13); the uploaded file is read in memory and not kept, and imported phone numbers stay unverified until the member uses a code.
 - **Use.** Administrators review, approve, correct and maintain records (FR-4 to FR-6). Members see their own status after phone verification (FR-7). One logged CSV export of active members is available to administrators (FR-12).
 - **Storage.** PostgreSQL on Neon, AWS Frankfurt region (EU), production on the Launch plan with a 7-day restore window (D26). Nightly encrypted backups in Cloudflare R2 (#8).
 - **Application.** Cloudflare Workers (global edge network); the staff portal is on a separate host behind Cloudflare Access.
-- **Transfers outside Kenya.** The database and backups are in the EU; the application runs on Cloudflare's network; GitHub Actions runners (which run the backup job) and Sentry may be outside the EU. Every member gives explicit, separate consent to storage outside Kenya (BR-15), as s. 49(1) requires for sensitive data.
+- **Transfers outside Kenya.** The database and backups are in the EU; the application runs on Cloudflare's network; GitHub Actions runners (which run the backup job) and Sentry may be outside the EU. Every member gives explicit, separate consent to storage outside Kenya (BR-15), as s. 49(1) requires for sensitive data; for imported members it was given to the parish and is confirmed by the Vicar for the batch (D47).
 - **Retention and deletion.** Rejected and withdrawn registrations are redacted after 12 months, including their audit entries (BR-14, D13). One-time codes are deleted after expiry. Backups expire on a lifecycle rule (#8). Members marked deceased or transferred out have their name, phone number and departments removed one year later; the FWO number is kept so it is never reissued (D45).
 - **People affected.** About 600 adult members, plus around 10 staff users.
 
@@ -69,7 +69,7 @@ The parish is replacing an unreliable paper list (D5) with a verified register o
 | Lawful basis | s. 45(a): legitimate activities of a religious not-for-profit body, relating solely to its members, with appropriate safeguards, not disclosed outside the body without consent. Explicit consent for the transfer outside Kenya (s. 49(1), BR-15). _To be confirmed on legal advice._ |
 | How consent is obtained | A separate checkbox, not ticked by default, recorded with the privacy-notice version. At a desk, the officer confirms the member gave it verbally (BR-15). A staff correction carries it over unless the notice changed (D35) |
 | Is personal data key to the purpose? | Yes. A register of members cannot be kept without identifying members |
-| Could the outcome be reached without it? | Paper registers remain the fallback (§10), but they cannot verify phone numbers or support remote voting, and the existing list is unreliable (D5) |
+| Could the outcome be reached without it? | Paper registers remain the fallback (§10), but they cannot verify phone numbers or support remote voting |
 | Data quality and minimisation | See principle table above |
 | Notifying data subjects | Privacy notice linked from every form (NFR-10); SMS confirmation of submission and approval (FR-8) |
 | Exercising data subject rights | Requests go to the church office; staff act through the admin portal, and every action is audited (BR-12) |
@@ -94,7 +94,8 @@ Score = impact × likelihood, each from 1 (low) to 5 (high), assessed with the c
 | R8 | The nightly backup job runs on a GitHub-hosted runner outside the EU | Exposure if the runner or GitHub were compromised | Technical lead | Read-only `ack_backup` login; the dump is streamed through age encryption, so no unencrypted copy is written to disk; backups stored in R2's EU jurisdiction and deleted after 35 days; private key held offline | 4 | 1 | 4 | — |
 | R9 | Records kept longer than needed | Unnecessary exposure | Vicar | Automatic redaction after 12 months (BR-14) and one year after a member is marked deceased or transferred out (D45); backup lifecycle (#8) | 2 | 3 | 6 | Build the former-member redaction job (#26) |
 | R10 | Data lost or unavailable during registration | Members must re-register; loss of trust | Technical lead | Point-in-time restore for 7 days (D26); nightly backups; paper fallback (§10) | 3 | 2 | 6 | Restore drill before go-live (go/no-go item 6) |
-| R11 | Inaccurate records (wrong HBC, wrong person) | Wrong electorate in Release 2 | Membership Administrator | Approval step; HBC shown on status check (D14); revisions keep history | 2 | 3 | 6 | — |
+| R11 | Inaccurate records (wrong HBC, wrong person) | Wrong electorate in Release 2 | Membership Administrator | Approval step; name and HBC shown on status check (D14, D48); revisions keep history; imported rows that break a rule are skipped, not guessed (FR-13) | 2 | 3 | 6 | — |
+| R13 | The imported parish list holds an out-of-date phone number or a wrong name | A code, or a vote in Release 2, reaches someone who is no longer the member's phone | Membership Administrator | List cleaned by the Church Secretary before import; imported phones unverified until the member uses a code; one member per phone (D20); the member sees their name and HBC on the status check (D48) and asks the office to correct it | 3 | 2 | 6 | — |
 | R12 | A breach is not noticed or not reported in time | Harm to members; breach of s. 43 | Vicar | Breach procedure (`docs/compliance/breach-response.md`, D42) | 4 | 2 | 8 | Contacts and processor notification terms confirmed before go-live |
 
 ## Changes that need a new assessment
