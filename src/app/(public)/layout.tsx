@@ -25,7 +25,11 @@ export const viewport: Viewport = {
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={`${instrumentSerif.variable} ${instrumentSans.variable}`}>
+    <html
+      lang={locale}
+      data-scroll-behavior="smooth"
+      className={`${instrumentSerif.variable} ${instrumentSans.variable}`}
+    >
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"
@@ -33,7 +37,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         >
           {m.skip_to_content({}, { locale })}
         </a>
-        <div className="flex-1">{children}</div>
+        <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter locale={locale} />
       </body>
     </html>

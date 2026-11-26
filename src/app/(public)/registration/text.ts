@@ -63,7 +63,8 @@ export function registrationText(locale: Locale) {
       code: m.reg_step_code({}, o),
     },
     helpTitle: m.reg_help_title({}, o),
-    helpBody: m.reg_help_body({}, o),
+    /** "… Call {phone}.", with a placeholder where the form puts the office number as a link. */
+    helpBody: m.reg_help_body({ phone: "{phone}" }, o),
     /** "Step {current} of {total}", with placeholders for the form to fill. */
     progress: m.reg_progress({ current: "{current}", total: "{total}" }, o),
     /** "We sent a code to {phone}", with a placeholder. */

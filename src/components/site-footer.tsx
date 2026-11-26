@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Crest } from "@/components/site-header";
 import type { Locale } from "@/i18n/locale";
+import { CHURCH_OFFICE } from "@/lib/church-office";
 import { m } from "@/paraglide/messages";
 
 /**
  * Footer on every public page, always on Midnight (#96): the parish lockup, the church office
  * (so help is one call away on registration too), and the privacy notice, terms and cookies
  * (NFR-10). No prefetching: these pages are rarely opened, and members are often on mobile data.
+ * Its top margin is matched by /registration's Cloud ground (registration/page.tsx).
  */
 export function SiteFooter({ locale }: { locale: Locale }) {
   const o = { locale };
@@ -27,16 +29,19 @@ export function SiteFooter({ locale }: { locale: Locale }) {
             </h2>
             <ul className="mt-3 space-y-1.5">
               <li>
-                <a href="tel:+254790255515" className="text-paper tabular-nums hover:text-sky">
-                  +254 790 255515
+                <a
+                  href={CHURCH_OFFICE.phoneHref}
+                  className="text-paper tabular-nums hover:text-sky"
+                >
+                  {CHURCH_OFFICE.phone}
                 </a>
               </li>
               <li>
                 <a
-                  href="mailto:ackemmanuelkengeleni@gmail.com"
-                  className="break-words text-paper hover:text-sky"
+                  href={`mailto:${CHURCH_OFFICE.email}`}
+                  className="text-paper wrap-anywhere hover:text-sky"
                 >
-                  ackemmanuelkengeleni@gmail.com
+                  {CHURCH_OFFICE.email}
                 </a>
               </li>
             </ul>

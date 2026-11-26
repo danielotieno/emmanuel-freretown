@@ -6,6 +6,7 @@ import { getLogger } from "@/app/_lib/log";
 import { PendingLink } from "@/components/pending-link";
 import { SiteHeader } from "@/components/site-header";
 import { Wave } from "@/components/wave";
+import { CHURCH_OFFICE } from "@/lib/church-office";
 import { listActiveHbcs } from "@/modules/organisation";
 import { m } from "@/paraglide/messages";
 import church1440 from "./images/church-1440.webp";
@@ -148,8 +149,8 @@ export default async function HomePage() {
                     key={name}
                     className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-0.5 py-2.5"
                   >
-                    <p className="col-span-2 font-display text-[clamp(1.375rem,8cqi,1.75rem)] leading-tight whitespace-nowrap tabular-nums">
-                      {time}
+                    <p className="col-span-2 font-display text-[clamp(1.125rem,8cqi,1.75rem)] leading-tight tabular-nums">
+                      <TimeRange time={time} />
                     </p>
                     <p className="text-paper">{name}</p>
                     <p className="rounded-full border border-night-soft px-2.5 text-sm text-sky">
@@ -208,7 +209,11 @@ export default async function HomePage() {
                     <ArrowIcon className="size-4 -rotate-90" />
                   </a>
                 </dd>
-                <dd className="text-ink-muted">{services.map(([, name]) => name).join(", ")}</dd>
+                <dd className="text-ink-muted">
+                  {new Intl.ListFormat(locale, { type: "conjunction" }).format(
+                    services.map(([, name]) => name),
+                  )}
+                </dd>
               </div>
               {week.map(([day, time, what]) => (
                 <div key={day} className={WEEK_ROW}>
@@ -393,13 +398,13 @@ export default async function HomePage() {
                 <h3 className="text-2xl">{m.home_visit_office({}, o)}</h3>
                 <ul className="mt-3 space-y-2 text-ink-muted">
                   <li>
-                    <a href="tel:+254790255515" className="tabular-nums">
-                      +254 790 255515
+                    <a href={CHURCH_OFFICE.phoneHref} className="tabular-nums">
+                      {CHURCH_OFFICE.phone}
                     </a>
                   </li>
                   <li>
-                    <a href="mailto:ackemmanuelkengeleni@gmail.com" className="break-words">
-                      ackemmanuelkengeleni@gmail.com
+                    <a href={`mailto:${CHURCH_OFFICE.email}`} className="wrap-anywhere">
+                      {CHURCH_OFFICE.email}
                     </a>
                   </li>
                   <li>{m.home_visit_postal({}, o)}</li>
@@ -460,14 +465,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+/** A row of the week: day, time, what happens; one column on phones, three from md. */
+const WEEK_ROW = "grid gap-1 py-4 md:grid-cols-[9rem_13rem_1fr] md:items-baseline md:gap-6";
+
 /**
  * The ministries' tiles, in order: KAMA on Midnight, Mothers' Union on Signal Blue, KAYO on Mist,
  * Children's Ministry on Cloud. Widths alternate 7/5 and 5/7 on the 12-column grid. Every text
  * colour here meets AA on its tile (DESIGN.md §2).
  */
-/** A row of the week: day, time, what happens; one column on phones, three from md. */
-const WEEK_ROW = "grid gap-1 py-4 md:grid-cols-[9rem_13rem_1fr] md:items-baseline md:gap-6";
-
 const MINISTRY_TONES = [
   {
     tile: "on-dark bg-night lg:col-span-7",
@@ -494,6 +499,22 @@ const MINISTRY_TONES = [
     verse: "text-brand",
   },
 ] as const;
+
+/**
+ * A time range that never breaks inside a time: each side of the en dash is one unbreakable
+ * piece. At normal sizes the whole range fits on one line (the tile scales its type, tested at
+ * every viewport in both languages); only with enlarged text may it fold, and then at the dash.
+ */
+function TimeRange({ time }: { time: string }) {
+  const [from, to] = time.split(" – ");
+  if (to === undefined) return <span className="whitespace-nowrap">{time}</span>;
+  return (
+    <>
+      <span className="whitespace-nowrap">{from} –</span>{" "}
+      <span className="whitespace-nowrap">{to}</span>
+    </>
+  );
+}
 
 /** A right arrow for links that move on. Decorative: the link's words carry its meaning. */
 function ArrowIcon({ className = "size-5" }: { className?: string }) {

@@ -158,7 +158,7 @@
   }
 
   .btn-text {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 px-2 text-ink no-underline transition-colors hover:text-brand;
+    @apply inline-flex min-h-12 items-center justify-center gap-2 px-2 text-ink no-underline transition-colors select-none hover:text-brand disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:text-ink;
   }
 
   .field {
@@ -179,6 +179,12 @@
   )[aria-busy="true"] {
     opacity: 1;
     cursor: progress;
+  }
+
+  /* A busy button's icon gives way to the spinner; its words stay. */
+  :is(.btn-primary, .btn-secondary, .btn-text, .btn-on-dark, .btn-outline-on-dark)[aria-busy="true"]
+    > svg {
+    display: none;
   }
 
   .btn-primary[aria-busy="true"] {

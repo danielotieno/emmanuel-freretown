@@ -1,7 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
+import {
+  Fragment,
+  useActionState,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { useFormStatus } from "react-dom";
+import { CHURCH_OFFICE } from "@/lib/church-office";
 import { registrationStep } from "./actions";
 import {
   COUNTED_STEPS,
@@ -93,14 +101,19 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
           <div className="on-dark rounded-[1.75rem] bg-night p-6 text-paper sm:p-7">
             <h2 className="text-2xl leading-tight text-paper">{text.helpTitle}</h2>
             <p className="mt-2 text-sky">
-              {text.helpBody}{" "}
-              <a
-                href="tel:+254790255515"
-                className="whitespace-nowrap text-paper underline tabular-nums decoration-sky underline-offset-4 hover:decoration-paper"
-              >
-                +254 790 255515
-              </a>
-              .
+              {text.helpBody.split("{phone}").map((part, i) => (
+                <Fragment key={i}>
+                  {i > 0 && (
+                    <a
+                      href={CHURCH_OFFICE.phoneHref}
+                      className="whitespace-nowrap text-paper underline decoration-sky underline-offset-4 tabular-nums hover:decoration-paper"
+                    >
+                      {CHURCH_OFFICE.phone}
+                    </a>
+                  )}
+                  {part}
+                </Fragment>
+              ))}
             </p>
           </div>
         </div>
@@ -392,15 +405,10 @@ function SubmitButton(props: { intent: string; className: string; children: Reac
       aria-busy={mine || undefined}
       className={props.className}
     >
-      {mine ? (
-        <>
-          <span aria-hidden="true" className="spinner" />
-          {/* The label stays, so the button keeps its name and size; the arrow gives way. */}
-          {onlyText(props.children)}
-        </>
-      ) : (
-        props.children
-      )}
+      {/* The label stays, so the button keeps its name and size; its icon gives way to the
+          spinner (globals.css hides a busy button's svg). */}
+      {mine && <span aria-hidden="true" className="spinner" />}
+      {props.children}
     </button>
   );
 }
@@ -515,13 +523,6 @@ const PRIMARY = "btn-primary w-full sm:w-auto sm:min-w-44";
 const SECONDARY = "btn-secondary w-full sm:w-auto";
 const BACK = "btn-text w-full justify-center sm:w-auto sm:justify-start sm:px-0";
 const QUESTION = "text-[clamp(1.875rem,4vw,2.5rem)] leading-[1.08] outline-none";
-
-/** The text parts of a button's children, without its icons. */
-function onlyText(children: ReactNode): ReactNode {
-  return (Array.isArray(children) ? children : [children]).filter(
-    (child) => typeof child === "string",
-  );
-}
 
 function invalid(field: ErrorField, errors: RegistrationState["errors"]) {
   return {
