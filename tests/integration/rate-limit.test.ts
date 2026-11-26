@@ -144,6 +144,41 @@ describe("checkOtpSendLimits (FR-2)", () => {
   }, 180_000); // ~60 limit checks; slow only against a remote test database
 });
 
+describe("checkOtpSendLimits at the officer desk (FR-3, #18)", () => {
+  it("counts the officer, not the IP: 60 an hour, and the phone's limits still apply", async () => {
+    await rolledBack(db, async (tx) => {
+      const ip = "198.51.100.40"; // one church Wi-Fi for two officers
+      const officerKey = `otp:staff:${await hmacSha256Hex(SECRET, "officer-a")}`;
+      // 59 codes already sent by officer A this hour.
+      await tx.execute(sql`
+        INSERT INTO rate_limit_bucket (key, window_start, count)
+        VALUES (${officerKey}, clock_timestamp() - interval '10 minutes', ${OTP_LIMITS.staff.limit - 1})`);
+      await asApp(tx);
+      const send = (staffUserId: string, phoneE164: string) =>
+        checkOtpSendLimits(tx, { phoneE164, staffUserId }, SECRET);
+
+      expect(await send("officer-a", "+254700000401")).toEqual({ allowed: true });
+      expect(await send("officer-a", "+254700000402")).toEqual({
+        allowed: false,
+        reason: "staff",
+      });
+      // Officer B on the same network is not held up by officer A.
+      expect(await send("officer-b", "+254700000402")).toEqual({ allowed: true });
+      expect(await send("officer-b", "+254700000402")).toEqual({
+        allowed: false,
+        reason: "phone_resend",
+      });
+
+      // The desk never counts against the IP that public visitors share.
+      const ipKey = `otp:ip:${await hmacSha256Hex(SECRET, ip)}`;
+      const { rows } = await tx.execute<{ n: number }>(
+        sql`SELECT count(*)::int AS n FROM rate_limit_bucket WHERE key = ${ipKey}`,
+      );
+      expect(rows[0]!.n).toBe(0);
+    });
+  });
+});
+
 describe("checkOtpSendLimits counts a request all or nothing (issue #60 review)", () => {
   it("doesn't count a refused request against the IP", async () => {
     await rolledBack(db, async (tx) => {

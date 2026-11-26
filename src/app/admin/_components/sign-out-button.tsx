@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { clearDeskStorage } from "../desk/values";
 import { authPost } from "./auth-api";
 
 export function SignOutButton() {
@@ -15,6 +16,8 @@ export function SignOutButton() {
       onClick={async () => {
         setPending(true);
         await authPost("/sign-out");
+        // An unfinished desk registration holds a member's details: it goes with the session.
+        clearDeskStorage();
         router.replace("/sign-in");
       }}
     >

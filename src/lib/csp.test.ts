@@ -12,6 +12,16 @@ describe("usesTurnstile", () => {
       expect(usesTurnstile(path)).toBe(false);
     },
   );
+
+  it("is true on the staff host's officer desk only (#18)", () => {
+    expect(usesTurnstile("/desk", true)).toBe(true);
+    expect(usesTurnstile("/desk/", true)).toBe(true);
+    for (const path of ["/", "/sign-in", "/enrol", "/desks", "/registration", "/admin/desk"]) {
+      expect(usesTurnstile(path, true), path).toBe(false);
+    }
+    // The desk path means nothing on the public site.
+    expect(usesTurnstile("/desk")).toBe(false);
+  });
 });
 
 describe("contentSecurityPolicy (issue #13)", () => {

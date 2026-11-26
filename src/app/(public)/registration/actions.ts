@@ -164,6 +164,8 @@ async function sendCode(values: FormValues, form: FormData, locale: Locale, at: 
     invalid_phone: m.err_phone_invalid({}, o),
     turnstile: m.err_turnstile({}, o),
     ip: m.err_limit_ip({}, o),
+    // Only the officer desk counts codes per officer; this page never does.
+    staff: m.err_generic({}, o),
     phone_resend: m.err_limit_resend({}, o),
     phone_hourly: m.err_limit_hourly({}, o),
     send_failed: m.err_send_failed({}, o),

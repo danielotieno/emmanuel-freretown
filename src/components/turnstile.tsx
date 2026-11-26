@@ -18,10 +18,11 @@ const SCRIPT =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileReady";
 
 /**
- * Cloudflare Turnstile (rule 8, issue #13), loaded only on the step that sends a code. The
- * widget adds a hidden `cf-turnstile-response` field to the surrounding form, which the server
- * verifies. The script is added by this component, so the page's nonce-based CSP trusts it
- * ('strict-dynamic'); its origin is allowed on /registration pages only (src/lib/csp.ts).
+ * Cloudflare Turnstile (rule 8, issue #13), loaded only on the step that sends a code: the
+ * public registration form and the officer desk (#18). The widget adds a hidden
+ * `cf-turnstile-response` field to the surrounding form, which the server verifies. The script
+ * is added by this component, so the page's nonce-based CSP trusts it ('strict-dynamic'); its
+ * origin is allowed on those pages only (src/lib/csp.ts).
  */
 export function Turnstile({ siteKey }: { siteKey: string }) {
   const container = useRef<HTMLDivElement>(null);

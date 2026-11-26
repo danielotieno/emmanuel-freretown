@@ -9,6 +9,15 @@ import {
   type ReactNode,
 } from "react";
 import { useFormStatus } from "react-dom";
+import {
+  AlertIcon,
+  ArrowIcon,
+  CheckIcon,
+  ChevronIcon,
+  InfoIcon,
+  PlusIcon,
+} from "@/components/icons";
+import { Turnstile } from "@/components/turnstile";
 import { CHURCH_OFFICE } from "@/lib/church-office";
 import { registrationStep } from "./actions";
 import {
@@ -22,7 +31,6 @@ import {
   type Step,
 } from "./state";
 import type { RegistrationText } from "./text";
-import { Turnstile } from "./turnstile";
 
 interface Option {
   id: string;
@@ -639,75 +647,5 @@ function Row({ term, children }: { term: string; children: ReactNode }) {
       <dt className="text-ink-muted">{term}</dt>
       <dd className="sm:col-span-2">{children}</dd>
     </div>
-  );
-}
-
-/* Icons: one 24px grid, 1.75 stroke, drawn here so the page loads no icon library. */
-
-function Icon(props: { className?: string; size?: string; children: ReactNode }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className={`shrink-0 ${props.size ?? "size-5"} ${props.className ?? ""}`}
-    >
-      {props.children}
-    </svg>
-  );
-}
-
-function ArrowIcon({ className }: { className?: string }) {
-  return (
-    <Icon className={className}>
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </Icon>
-  );
-}
-
-function CheckIcon({ size }: { size: string }) {
-  return (
-    <Icon size={size}>
-      <path d="m5 12.5 4.5 4.5L19 7.5" />
-    </Icon>
-  );
-}
-
-function ChevronIcon({ className }: { className?: string }) {
-  return (
-    <Icon className={className}>
-      <path d="m6 9 6 6 6-6" />
-    </Icon>
-  );
-}
-
-function PlusIcon({ className }: { className?: string }) {
-  return (
-    <Icon className={className}>
-      <path d="M12 5v14M5 12h14" />
-    </Icon>
-  );
-}
-
-function AlertIcon({ className }: { className?: string }) {
-  return (
-    <Icon size="size-[1.1em]" className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7.5v5.5M12 16.5v.01" />
-    </Icon>
-  );
-}
-
-function InfoIcon({ className }: { className?: string }) {
-  return (
-    <Icon size="size-[1.1em]" className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 11v5.5M12 7.5v.01" />
-    </Icon>
   );
 }

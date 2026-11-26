@@ -12,15 +12,24 @@ const ROLE_NAMES: Record<StaffRole, string> = {
 export default async function AdminHome() {
   const staff = await requireStaff(null);
   const roles = [...new Set(staff.grants.map((g) => ROLE_NAMES[g.role]))];
+  // Only to show the link: the desk checks the role itself (CLAUDE.md rule 1).
+  const officer = staff.grants.some((g) => g.role === "REGISTRATION_OFFICER");
   return (
     <main className="mx-auto max-w-form px-4 py-10">
       <h1 className="text-4xl">Staff area</h1>
       <p className="mt-4">
         Signed in as {staff.name}. {roles.length === 1 ? "Role" : "Roles"}: {roles.join(", ")}.
       </p>
-      <p className="mt-2 text-ink-muted">
-        The review queue and the registration desk will appear here as they are built.
-      </p>
+      {officer && (
+        <p className="mt-6">
+          {/* A plain link, never <Link>: the desk's Turnstile needs its own page load
+              (src/lib/csp.ts). */}
+          <a href="/desk" className="btn-primary">
+            Open the registration desk
+          </a>
+        </p>
+      )}
+      <p className="mt-6 text-ink-muted">The review queue will appear here as it is built.</p>
       <div className="mt-8">
         <SignOutButton />
       </div>

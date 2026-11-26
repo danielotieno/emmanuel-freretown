@@ -5,6 +5,7 @@
  * Public API of this module. Other code imports only from here.
  */
 export {
+  recordInPersonVerification,
   redeemRegistrationVerification,
   redeemStatusCheckVerification,
   requestPhoneChallenge,
@@ -24,6 +25,7 @@ export {
   OTP_LIMITS,
   purgeExpiredRateLimits,
   type OtpSendCheck,
+  type OtpSender,
   type RateLimit,
 } from "./rate-limit";
 export { TURNSTILE_VERIFY_URL, verifyTurnstile, type TurnstileOptions } from "./turnstile";

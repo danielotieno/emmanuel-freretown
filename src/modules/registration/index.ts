@@ -3,21 +3,33 @@
  * Public API of this module. Other code imports only from here.
  */
 export {
+  ASSISTED_VERIFICATIONS,
   checkAccepted,
+  checkAssistedRegistration,
   checkChosen,
+  checkEventLabel,
   checkFullName,
   checkFwoNumber,
   checkPhone,
   checkSelfRegistration,
+  type AssistedFieldName,
+  type AssistedRegistrationFields,
+  type AssistedVerification,
   type FieldError,
   type FieldName,
   type FieldResult,
   type SelfRegistrationFields,
+  type ValidAssistedRegistration,
   type ValidSelfRegistration,
 } from "./fields";
+export {
+  submitAssistedRegistration,
+  type AssistedRegistrationResult,
+  type AssistedRegistrationSubmission,
+} from "./assisted-registration";
+export { PRIVACY_NOTICE_VERSION } from "./intake";
 export { REFERENCE_PATTERN } from "./reference";
 export {
-  PRIVACY_NOTICE_VERSION,
   submitSelfRegistration,
   type SelfRegistrationResult,
   type SelfRegistrationSubmission,

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { checkFullName, checkFwoNumber, checkPhone, checkSelfRegistration } from "./fields";
+import {
+  checkAssistedRegistration,
+  checkEventLabel,
+  checkFullName,
+  checkFwoNumber,
+  checkPhone,
+  checkSelfRegistration,
+  type AssistedRegistrationFields,
+} from "./fields";
 
 describe("checkFullName", () => {
   it("trims and collapses spaces, and keeps 2 to 120 characters (database CHECK)", () => {
@@ -103,5 +111,100 @@ describe("checkSelfRegistration (FR-1, BR-07, BR-15)", () => {
       ok: false,
       errors: { fullName: "required", fwoNumber: "invalid", phone: "invalid", hbcId: "required" },
     });
+  });
+});
+
+describe("checkEventLabel (FR-3)", () => {
+  it("trims, collapses spaces and keeps 2 to 120 characters", () => {
+    expect(checkEventLabel("  Judea HBC AGM,  17 Jan 2027 ")).toEqual({
+      ok: true,
+      value: "Judea HBC AGM, 17 Jan 2027",
+    });
+    expect(checkEventLabel("")).toEqual({ ok: false, error: "required" });
+    expect(checkEventLabel("A".repeat(121))).toEqual({ ok: false, error: "too_long" });
+  });
+});
+
+describe("checkAssistedRegistration (FR-3)", () => {
+  const valid: AssistedRegistrationFields = {
+    fullName: "Test Person",
+    isNewMember: false,
+    fwoNumber: "0042",
+    noPersonalPhone: false,
+    phone: "0712 345 678",
+    hbcId: "hbc-1",
+    departmentIds: ["d-1", "d-1", " "],
+    verification: "PHONE_OTP",
+    eventLabel: "Judea HBC AGM, 17 Jan 2027",
+    adultDeclared: true,
+    privacyAcknowledged: true,
+    transferConsent: true,
+    readBackConfirmed: true,
+  };
+
+  it("accepts FR-1's fields with the verification method and the event", () => {
+    expect(checkAssistedRegistration(valid)).toEqual({
+      ok: true,
+      value: {
+        fullName: "Test Person",
+        isNewMember: false,
+        fwoNumber: "0042",
+        phoneE164: "+254712345678",
+        noPersonalPhone: false,
+        hbcId: "hbc-1",
+        departmentIds: ["d-1"],
+        verification: "PHONE_OTP",
+        eventLabel: "Judea HBC AGM, 17 Jan 2027",
+      },
+    });
+  });
+
+  it("records an unchecked phone as IN_PERSON (phone not at the desk)", () => {
+    const checked = checkAssistedRegistration({ ...valid, verification: "IN_PERSON" });
+    expect(checked.ok && checked.value).toMatchObject({
+      phoneE164: "+254712345678",
+      verification: "IN_PERSON",
+    });
+  });
+
+  it("drops the phone for a member with no personal phone, who can't get a code (BR-06)", () => {
+    const none = { ...valid, noPersonalPhone: true, phone: "not a phone" };
+    const checked = checkAssistedRegistration({ ...none, verification: "IN_PERSON" });
+    expect(checked.ok && checked.value).toMatchObject({ phoneE164: null, noPersonalPhone: true });
+    expect(checkAssistedRegistration(none)).toEqual({
+      ok: false,
+      errors: { verification: "invalid" },
+    });
+  });
+
+  it("needs a method, an event, and every confirmation, read-back included", () => {
+    const checked = checkAssistedRegistration({
+      ...valid,
+      phone: "",
+      verification: "",
+      eventLabel: " ",
+      adultDeclared: false,
+      privacyAcknowledged: false,
+      transferConsent: false,
+      readBackConfirmed: false,
+    });
+    expect(checked).toEqual({
+      ok: false,
+      errors: {
+        phone: "required",
+        verification: "required",
+        eventLabel: "required",
+        adultDeclared: "must_accept",
+        privacyAcknowledged: "must_accept",
+        transferConsent: "must_accept",
+        readBackConfirmed: "must_accept",
+      },
+    });
+  });
+
+  it("refuses an unknown verification method", () => {
+    expect(
+      checkAssistedRegistration({ ...valid, verification: "FWO_CONFIRMED_BY_SECRETARY" }),
+    ).toEqual({ ok: false, errors: { verification: "required" } });
   });
 });
