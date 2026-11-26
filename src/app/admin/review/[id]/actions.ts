@@ -38,11 +38,13 @@ const REFUSALS: Record<DecisionRefusal, string> = {
   stale:
     "Someone else acted on this registration first, or it changed since you opened it. Its latest state is shown below.",
   captured_by_you:
-    "You captured this registration, so you can't approve it (BR-10). Another Membership Administrator or a Super Administrator must approve it.",
+    "You captured this registration, so you can't approve it. A Super Administrator must approve it (BR-10, D36).",
   no_fwo:
     "This new member has no FWO number yet. The Church Secretary must issue one and enter it before approval (BR-16).",
   fwo_held:
     "This FWO number already belongs to a member. Reject this registration with a reason; if the member's details have changed, edit the member record instead (D33).",
+  fwo_in_open_registration:
+    "Another registration waiting for review has this FWO number. Compare the two and reject the duplicate with a reason first (BR-03, D33).",
   phone_held:
     "This phone number belongs to another member. Call both people to agree who keeps it (D28), have the registration corrected, then approve.",
   units: "The HBC or a department on this registration has been deactivated. Ask for a correction.",

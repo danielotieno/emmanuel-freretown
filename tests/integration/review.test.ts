@@ -127,10 +127,15 @@ describe("listReviewQueue (FR-4)", () => {
         (await listReviewQueue(tx, filters)).items
           .map((i) => i.id)
           .filter((id) => [first, second, decided].includes(id));
-      expect(await ids()).toEqual([first, second]);
+      // Oldest first. In one test transaction every registration shares now(), so they tie on
+      // submittedAt and the id breaks the tie; in production each is its own transaction.
+      const { items } = await listReviewQueue(tx);
+      const times = items.map((i) => i.submittedAt.getTime());
+      expect(times).toEqual([...times].sort((a, b) => a - b));
+      expect((await ids()).sort()).toEqual([first, second].sort());
       expect(await ids({ hbcId: await idOf(tx, "hbc", "Samaria") })).toEqual([second]);
       expect(await ids({ channel: "SELF" })).toEqual([]);
-      expect(await ids({ channel: "ASSISTED" })).toEqual([first, second]);
+      expect((await ids({ channel: "ASSISTED" })).sort()).toEqual([first, second].sort());
       expect(await ids({ flag: "NEW_MEMBER" })).toEqual([first]);
       expect(await ids({ eventLabel: "Samaria HBC AGM, 24 Jan 2027" })).toEqual([second]);
       expect(await listReviewQueue(tx, { hbcId: "not-a-uuid" })).toEqual({ items: [], total: 0 });
@@ -176,7 +181,7 @@ describe("openRegistrationForReview (FR-4, D31)", () => {
         details: { fullName: "Test Person", noPersonalPhone: false },
         evidence: [{ kind: "IN_PERSON", actorUserId: OFFICER.userId }],
         decisions: [],
-        live: { fwoHeldByMember: false, phoneHeldByMember: false },
+        live: { fwoHeldByMember: false, phoneHeldByMember: false, fwoInOpenRegistrations: [] },
       });
       expect(opened!.details.departmentIds).toHaveLength(1);
       const { rows } = await tx.execute<Record<string, unknown>>(sql`
@@ -359,6 +364,53 @@ describe("approveRegistration (FR-4, BR-08)", () => {
       expect(await approve(tx, fwo)).toEqual({ ok: false, reason: "fwo_held" });
       expect(await approve(tx, phone)).toEqual({ ok: false, reason: "phone_held" });
       expect(await counts(tx)).toEqual(before);
+    });
+  });
+
+  it("refuses while another open registration has the same FWO, until it is rejected (BR-03, FR-4)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const holder = await registered(tx, { fwoNumber: "7710" });
+      const duplicate = await registered(tx, { fwoNumber: "7710" });
+      const { rows } = await tx.execute<{ reference: string }>(
+        sql`SELECT reference FROM registration WHERE id = ${holder}`,
+      );
+      const opened = await openRegistrationForReview(tx, {
+        registrationId: duplicate,
+        actor: ADMIN,
+      });
+      expect(opened!.live.fwoInOpenRegistrations).toEqual([rows[0]!.reference]);
+
+      const before = await counts(tx);
+      expect(await approve(tx, duplicate)).toEqual({
+        ok: false,
+        reason: "fwo_in_open_registration",
+      });
+      expect(await approve(tx, holder)).toEqual({ ok: false, reason: "fwo_in_open_registration" });
+      expect(await counts(tx)).toEqual(before);
+
+      // The administrator rejects the duplicate; the real holder can then be approved.
+      await rejectRegistration(tx, {
+        registrationId: duplicate,
+        version: await versionOf(tx, duplicate),
+        reason: "Same FWO as the earlier registration",
+        actor: ADMIN,
+      });
+      expect((await approve(tx, holder)).ok).toBe(true);
+    });
+  });
+
+  it("asks nothing about conflicts once approved: the FWO is its own member's", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const id = await registered(tx);
+      expect((await approve(tx, id)).ok).toBe(true);
+      const opened = await openRegistrationForReview(tx, { registrationId: id, actor: ADMIN });
+      expect(opened!.live).toEqual({
+        fwoHeldByMember: false,
+        phoneHeldByMember: false,
+        fwoInOpenRegistrations: [],
+      });
     });
   });
 

@@ -69,7 +69,7 @@ export default async function ReviewRegistrationPage({
   const blocks: string[] = [];
   if (reg.capturedByUserId === staff.userId) {
     blocks.push(
-      "You captured this registration, so another Membership Administrator or a Super Administrator must approve it (BR-10).",
+      "You captured this registration, so a Super Administrator must approve it (BR-10, D36).",
     );
   }
   if (!details.fwoNumber) {
@@ -80,6 +80,11 @@ export default async function ReviewRegistrationPage({
   if (reg.live.fwoHeldByMember) {
     blocks.push(
       "This FWO number belongs to an existing member. Reject this registration with a reason (D33).",
+    );
+  }
+  if (reg.live.fwoInOpenRegistrations.length > 0) {
+    blocks.push(
+      `Another registration waiting for review has this FWO number: ${reg.live.fwoInOpenRegistrations.join(", ")}. Compare them and reject the duplicate with a reason first (BR-03, D33).`,
     );
   }
   if (reg.live.phoneHeldByMember) {
@@ -211,8 +216,8 @@ export default async function ReviewRegistrationPage({
 
 function Flag({ children }: { children: ReactNode }) {
   return (
-    <li className="flex gap-3 rounded-xl border border-error/40 bg-error/5 p-4 text-ink">
-      <AlertIcon className="mt-1 text-error" />
+    <li className="flex gap-3 rounded-xl bg-mist p-4 text-ink">
+      <AlertIcon className="mt-1 text-brand" />
       <span>{children}</span>
     </li>
   );

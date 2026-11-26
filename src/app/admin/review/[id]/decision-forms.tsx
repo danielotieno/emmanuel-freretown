@@ -6,6 +6,13 @@ import { AlertIcon, PlusIcon } from "@/components/icons";
 import { approveAction, correctionAction, rejectAction, type DecisionState } from "./actions";
 
 /**
+ * Reasons are kept after retention removes a registration's personal details (BR-14), so they
+ * must not repeat them.
+ */
+const KEPT =
+  "Don't write names, phone or FWO numbers here: the reason is kept after the details are removed (BR-14).";
+
+/**
  * The three decisions (FR-4): approve, reject with a reason, ask for a correction with a reason.
  * Plain forms posting to server actions, so they work before the page's JavaScript runs. Each
  * carries the version the administrator saw: if someone else acted first, the action fails and
@@ -79,7 +86,7 @@ export function DecisionForms(props: {
 
         <ReasonForm
           title="Ask for a correction"
-          hint={`The reason is for staff only.${props.hasPhone ? " The member gets an SMS asking them to contact the church office." : ""}`}
+          hint={`The reason is for staff only.${props.hasPhone ? " The member gets an SMS asking them to contact the church office." : ""} ${KEPT}`}
           action={correct}
           state={corrected}
           hidden={hidden}
@@ -88,7 +95,7 @@ export function DecisionForms(props: {
         />
         <ReasonForm
           title="Reject"
-          hint="The reason is for staff only. The member gets no SMS. Use this for a duplicate or an FWO already held by a member (D33)."
+          hint={`The reason is for staff only. The member gets no SMS. Use this for a duplicate or an FWO already held by a member (D33). ${KEPT}`}
           action={reject}
           state={rejected}
           hidden={hidden}

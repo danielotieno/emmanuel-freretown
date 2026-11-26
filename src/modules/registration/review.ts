@@ -13,6 +13,7 @@ import { enqueueSms } from "../notifications";
 import { SafeError } from "../observability";
 import { checkUnitsForRegistration } from "../organisation";
 import { checkReason } from "./fields";
+import { openRegistrationsWithFwo } from "./intake";
 
 /**
  * The review queue and the administrator's decisions (FR-4): approve, reject, request a
@@ -145,7 +146,12 @@ export interface RegistrationForReview {
   evidence: { kind: string; actorUserId: string | null; eventLabel: string | null; at: Date }[];
   decisions: { action: string; reason: string | null; actorUserId: string; at: Date }[];
   /** Checked now, not at submission: what would block approval today. */
-  live: { fwoHeldByMember: boolean; phoneHeldByMember: boolean };
+  live: {
+    fwoHeldByMember: boolean;
+    phoneHeldByMember: boolean;
+    /** References of other open registrations with this FWO (BR-03): reject the duplicate. */
+    fwoInOpenRegistrations: string[];
+  };
 }
 
 /**
@@ -200,45 +206,50 @@ export async function openRegistrationForReview(
     requestId,
   });
 
-  const [departments, evidence, decisions, fwoHeldByMember, phoneHeldByMember] = await Promise.all([
-    safeQuery(() =>
-      db
-        .select({ id: registrationRevisionDepartment.departmentId })
-        .from(registrationRevisionDepartment)
-        .where(
-          and(
-            eq(registrationRevisionDepartment.registrationId, registrationId),
-            eq(registrationRevisionDepartment.revisionNo, row.revisionNo),
+  // What would block approval today. Only asked while it can still be approved: once approved,
+  // the FWO and phone belong to this registration's own member.
+  const waiting = row.status === "SUBMITTED";
+  const [departments, evidence, decisions, fwoHeldByMember, phoneHeldByMember, fwoInOpen] =
+    await Promise.all([
+      safeQuery(() =>
+        db
+          .select({ id: registrationRevisionDepartment.departmentId })
+          .from(registrationRevisionDepartment)
+          .where(
+            and(
+              eq(registrationRevisionDepartment.registrationId, registrationId),
+              eq(registrationRevisionDepartment.revisionNo, row.revisionNo),
+            ),
           ),
-        ),
-    ),
-    safeQuery(() =>
-      db
-        .select({
-          kind: verificationEvidence.kind,
-          actorUserId: verificationEvidence.actorUserId,
-          eventLabel: verificationEvidence.eventLabel,
-          at: verificationEvidence.at,
-        })
-        .from(verificationEvidence)
-        .where(eq(verificationEvidence.registrationId, registrationId))
-        .orderBy(asc(verificationEvidence.at)),
-    ),
-    safeQuery(() =>
-      db
-        .select({
-          action: registrationDecision.action,
-          reason: registrationDecision.reason,
-          actorUserId: registrationDecision.actorUserId,
-          at: registrationDecision.at,
-        })
-        .from(registrationDecision)
-        .where(eq(registrationDecision.registrationId, registrationId))
-        .orderBy(asc(registrationDecision.at)),
-    ),
-    row.fwoNumber ? fwoBelongsToMember(db, row.fwoNumber) : false,
-    row.phoneE164 ? phoneBelongsToMember(db, row.phoneE164) : false,
-  ]);
+      ),
+      safeQuery(() =>
+        db
+          .select({
+            kind: verificationEvidence.kind,
+            actorUserId: verificationEvidence.actorUserId,
+            eventLabel: verificationEvidence.eventLabel,
+            at: verificationEvidence.at,
+          })
+          .from(verificationEvidence)
+          .where(eq(verificationEvidence.registrationId, registrationId))
+          .orderBy(asc(verificationEvidence.at)),
+      ),
+      safeQuery(() =>
+        db
+          .select({
+            action: registrationDecision.action,
+            reason: registrationDecision.reason,
+            actorUserId: registrationDecision.actorUserId,
+            at: registrationDecision.at,
+          })
+          .from(registrationDecision)
+          .where(eq(registrationDecision.registrationId, registrationId))
+          .orderBy(asc(registrationDecision.at)),
+      ),
+      waiting && row.fwoNumber ? fwoBelongsToMember(db, row.fwoNumber) : false,
+      waiting && row.phoneE164 ? phoneBelongsToMember(db, row.phoneE164) : false,
+      waiting && row.fwoNumber ? openRegistrationsWithFwo(db, row.fwoNumber, registrationId) : [],
+    ]);
 
   return {
     id: row.id,
@@ -269,7 +280,7 @@ export async function openRegistrationForReview(
     },
     evidence,
     decisions,
-    live: { fwoHeldByMember, phoneHeldByMember },
+    live: { fwoHeldByMember, phoneHeldByMember, fwoInOpenRegistrations: fwoInOpen },
   };
 }
 
@@ -278,15 +289,24 @@ export async function openRegistrationForReview(
  * raw database error.
  * - `not_found`: no such registration.
  * - `stale`: someone else acted on it, or it changed, since the reviewer opened it (FR-4).
- * - `captured_by_you`: BR-10, the officer who captured it can't approve it (D36: another
- *   administrator or a Super Administrator does).
+ * - `captured_by_you`: BR-10, the officer who captured it can't approve it (D36: a Super
+ *   Administrator approves it instead).
  * - `no_fwo`: BR-16, a new member's FWO number must be entered first.
  * - `fwo_held`: the FWO belongs to a member (BR-02, D33: reject it with a reason).
+ * - `fwo_in_open_registration`: another open registration has the same FWO (BR-03, FR-4): the
+ *   administrator compares them and rejects the duplicate first.
  * - `phone_held`: the phone belongs to an active or inactive member (BR-06, D28).
  * - `units`: the HBC or a department was deactivated since (BR-04).
  */
 export type DecisionRefusal =
-  "not_found" | "stale" | "captured_by_you" | "no_fwo" | "fwo_held" | "phone_held" | "units";
+  | "not_found"
+  | "stale"
+  | "captured_by_you"
+  | "no_fwo"
+  | "fwo_held"
+  | "fwo_in_open_registration"
+  | "phone_held"
+  | "units";
 
 export type DecisionResult =
   { ok: true; smsId: string | null; memberId?: string } | { ok: false; reason: DecisionRefusal };
@@ -386,9 +406,10 @@ async function run(
  * member, the decision, the audit entries (rule 4) and the approval SMS in the outbox (FR-8).
  *
  * Refused, writing nothing, when: someone acted first (`stale`); the actor captured it (BR-10);
- * there is no FWO number yet (BR-16); the FWO or phone belongs to a member now, whatever the
- * flags said at submission (checked again here, and by the database's own unique indexes); or
- * the HBC or a department was deactivated since.
+ * there is no FWO number yet (BR-16); the FWO belongs to a member or to another open
+ * registration (BR-03), or the phone to a member, now, whatever the flags said at submission
+ * (checked again here, and by the database's own unique indexes); or the HBC or a department
+ * was deactivated since.
  */
 export async function approveRegistration(db: DbOrTx, decision: Decision): Promise<DecisionResult> {
   const { registrationId, actor, requestId } = decision;
@@ -428,6 +449,9 @@ export async function approveRegistration(db: DbOrTx, decision: Decision): Promi
     const units = await checkUnitsForRegistration(tx, { hbcId: revision.hbcId, departmentIds });
     if (!units.ok) throw new Refused("units");
     if (await fwoBelongsToMember(tx, revision.fwoNumber)) throw new Refused("fwo_held");
+    if ((await openRegistrationsWithFwo(tx, revision.fwoNumber, registrationId)).length > 0) {
+      throw new Refused("fwo_in_open_registration");
+    }
     if (revision.phoneE164 && (await phoneBelongsToMember(tx, revision.phoneE164))) {
       throw new Refused("phone_held");
     }

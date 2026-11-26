@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { test, type Browser, type Page } from "@playwright/test";
 import {
   ADMIN,
@@ -107,8 +108,12 @@ test("the capturing officer can't approve (BR-10), and a stale decision says so 
   await expect(page.getByText("Registered twice by mistake")).toBeVisible();
 });
 
-test("a Registration Officer alone can't open the review queue (NFR-8)", async ({ page }) => {
+test("a Registration Officer alone can't open the queue or a registration (NFR-8)", async ({
+  page,
+}) => {
   await signIn(page, ["REGISTRATION_OFFICER"]);
   await expect(page.getByRole("link", { name: "Review queue" })).toBeHidden();
   expect((await page.goto(`${ADMIN}/review`))?.status()).toBe(404);
+  // A registration's page shows personal data: refused too, before anything is read.
+  expect((await page.goto(`${ADMIN}/review/${randomUUID()}`))?.status()).toBe(404);
 });

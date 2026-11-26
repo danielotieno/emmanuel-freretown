@@ -195,7 +195,7 @@ function Select(props: { label: string; name: string; value?: string; children: 
 /** A flag in words, never colour alone (DESIGN.md §2). */
 function Tag({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full border border-error/40 bg-error/5 px-2.5 py-0.5 text-small text-error">
+    <span className="rounded-full border border-line-strong bg-mist px-2.5 py-0.5 text-small text-ink">
       {children}
     </span>
   );
