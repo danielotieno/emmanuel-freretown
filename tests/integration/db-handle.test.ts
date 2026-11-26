@@ -14,7 +14,7 @@ const poolOf = (handle: ReturnType<typeof createDb>) =>
   (handle.db as unknown as { $client: Pool }).$client;
 
 /** The structured warnings the logger printed. */
-function warnings(spy: ReturnType<typeof vi.spyOn>): Record<string, unknown>[] {
+function warnings(spy: { mock: { calls: unknown[][] } }): Record<string, unknown>[] {
   return spy.mock.calls.map((call) => call[0] as Record<string, unknown>);
 }
 
