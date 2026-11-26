@@ -103,11 +103,6 @@ components:
   button-on-dark-hover:
     backgroundColor: "{colors.mist}"
     textColor: "{colors.night}"
-  button-outline-on-dark:
-    textColor: "{colors.paper}"
-    rounded: "{rounded.pill}"
-    padding: "0 28px"
-    height: "48px"
   button-text:
     textColor: "{colors.ink}"
     padding: "0 8px"
@@ -209,7 +204,7 @@ Measured contrast (WCAG 2.2):
 
 Rules:
 - **The Committed Field Rule.** Colour arrives as whole fields at page scale (the Midnight hero, the theme band, the ministries tiles, the Signal Blue registration band, the Midnight footer), not as scattered accents on white. Between them, sections breathe on white with hairlines.
-- **The One Blue Pill Rule.** One solid Signal Blue pill per screen: on public pages it is the header's Register; on `/registration` it is the form's `btn-primary`, and the header's Register turns into an outlined pill marked as the current page. Secondary actions are outlined pills or text links with an arrow. On Midnight, Signal Blue or the photo, actions are paper pills (`btn-on-dark`) and paper outlines (`btn-outline-on-dark`), never blue on blue or blue on Midnight.
+- **The One Blue Pill Rule.** One solid Signal Blue pill per screen: on public pages it is the header's Register; on `/registration` it is the form's `btn-primary`, and the header's Register turns into an outlined pill marked as the current page. Secondary actions are outlined pills or text links with an arrow. On Midnight, Signal Blue or the photo, actions are paper pills (`btn-on-dark`), never blue on blue or blue on Midnight.
 - **The Midnight Text Rule.** On Midnight, text is Paper or Sky and details are Gold. Signal Blue is never text there (3.4:1). Sky and Gold never appear on light grounds.
 - **The Always-Dark Footer Rule.** The footer is Midnight on every public page, registration included.
 - Status is never shown by colour alone: always an icon and words.
@@ -270,7 +265,7 @@ Mobile first: design at **360 × 800** before anything else.
 
 | Page | Character |
 |---|---|
-| Landing `/` | Warm and expressive. Crest and parish name, service times immediately visible, two clear entry points (Register, Vote when open), then about, services, programmes and departments, HBC zones, visit us, contact |
+| Landing `/` | Warm and expressive. Crest and parish name; a hero with the welcome and one action (Register lives in the header); Sunday services and the week straight after; then the theme of the year, about, ministries and HBCs, registration, visit us |
 | Registration `/registration` | Quiet and reassuring. One question per step on mobile, a visible progress indicator, plain words, a "Why we ask" note beside phone and consent |
 | Status `/registration/status` | Minimal: phone, FWO, code, answer |
 | Vote `/vote` | Calm and unmistakable. Schedule when closed; when open, one position per screen, a review screen, then a clear "Your vote has been recorded" |
@@ -294,7 +289,6 @@ The shared controls are classes in `src/app/globals.css` (`@layer components`). 
 | `btn-primary` | Solid Signal Blue pill, 48px tall, with a paper label: the action the step exists for | Hover and pressed: Deep Signal. Busy: Deep Signal at full strength with a spinner. Disabled: 60% opacity, not-allowed cursor. Focus: the 3px brand outline |
 | `btn-secondary` | Paper pill with a Control line border and an ink label | Hover: ink border. Disabled and focus as primary |
 | `btn-on-dark` | Paper pill with a Midnight label, for Midnight, Signal Blue and the photo | Hover: Mist fill. Focus: the outline turns paper |
-| `btn-outline-on-dark` | Paper outline (70%) with a paper label, beside `btn-on-dark` | Hover: full paper border and a faint paper wash |
 | `btn-text` | Label only, 48px tall, for "Back" and low-stakes actions | Hover: Signal Blue |
 | `field` | Text input: 56px tall, 12px radius, Control line border, ink text, muted placeholder | Hover: ink border. Focus: brand border, a 4px Mist halo and the outline. `aria-invalid="true"`: error border, with the message below in error red |
 | `option` | Radio or checkbox card: the whole card is the target | Hover: ink border. Checked: brand border on Mist |

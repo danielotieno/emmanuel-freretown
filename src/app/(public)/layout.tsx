@@ -33,7 +33,9 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         >
           {m.skip_to_content({}, { locale })}
         </a>
-        <div className="flex-1">{children}</div>
+        {/* A flex column, so a page's main can fill down to the footer (registration's Cloud
+            ground). Its direct children with mx-auto need w-full, or they shrink to their content. */}
+        <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter locale={locale} />
       </body>
     </html>

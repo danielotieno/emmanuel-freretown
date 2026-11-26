@@ -61,6 +61,32 @@ test("links to registration with a plain link (Turnstile's CSP is per page load)
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(en.reg_title);
 });
 
+test("the Register link shows at once that the next page is loading (#96)", async ({ page }) => {
+  await page.goto("/");
+  // Cancel the navigation after the link has handled the click (a window listener runs last), so
+  // the busy state can be read on this page. The plain-link test above covers the page load.
+  await page.evaluate(() => window.addEventListener("click", (event) => event.preventDefault()));
+  const link = page.getByRole("link", { name: en.nav_register, exact: true });
+  await link.click();
+  await expect(link).toHaveAttribute("aria-busy", "true");
+});
+
+test("the language switch shows at once that it is working (#96)", async ({ page }) => {
+  await page.goto("/");
+  // Hold the switch's post (a server action on this page).
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route("**/*", async (route) => {
+    if (route.request().method() === "POST") await held;
+    await route.fallback();
+  });
+  const button = page.getByRole("button", { name: sw.language_sw });
+  await button.click();
+  await expect(button).toHaveAttribute("aria-busy", "true");
+  release();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(sw.landing_welcome);
+});
+
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 

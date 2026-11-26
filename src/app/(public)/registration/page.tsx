@@ -27,8 +27,9 @@ export default async function RegistrationPage() {
     <>
       <SiteHeader locale={locale} onRegistration />
       {/* The page sits on Cloud down to the footer, so the white question card stands out (#96):
-          its negative margin meets the footer's top margin (mt-20, md:mt-28 in site-footer.tsx). */}
-      <main id="main" className="mt-4 -mb-20 bg-cloud pb-20 sm:mt-6 md:-mb-28 md:pb-28">
+          main fills the layout's column, and its negative margin meets the footer's top margin
+          (mt-20, md:mt-28 in site-footer.tsx). */}
+      <main id="main" className="mt-4 -mb-20 flex-1 bg-cloud pb-20 sm:mt-6 md:-mb-28 md:pb-28">
         <div className="mx-auto max-w-content px-4 pt-8 sm:px-6 sm:pt-12 lg:px-10">
           <RegistrationForm
             text={text}

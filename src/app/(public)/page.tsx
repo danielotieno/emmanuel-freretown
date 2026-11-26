@@ -108,11 +108,11 @@ export default async function HomePage() {
               {/* Shade under the welcome so paper text stays readable on the white walls. */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 hidden bg-linear-to-t from-night from-10% via-night/70 via-45% to-night/0 to-80% md:block"
+                className="absolute inset-0 hidden bg-linear-to-t from-night from-15% via-night/80 via-50% to-night/0 to-85% md:block"
               />
               <div
                 aria-hidden="true"
-                className="absolute inset-0 hidden bg-linear-to-r from-night/70 to-night/0 to-60% md:block"
+                className="absolute inset-0 hidden bg-linear-to-r from-night/85 via-night/40 via-45% to-night/0 to-75% md:block"
               />
             </figure>
           </section>

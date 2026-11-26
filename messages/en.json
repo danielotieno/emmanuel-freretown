@@ -211,6 +211,5 @@
   "reg_step_review": "Check your details",
   "reg_step_code": "Code from the SMS",
   "reg_help_title": "Need help?",
-  "reg_help_body": "The church office can register you. Call {phone}.",
-  "home_day_sun": "Sunday"
+  "reg_help_body": "The church office can register you. Call {phone}."
 }

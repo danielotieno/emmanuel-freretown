@@ -178,8 +178,7 @@
   /* Every button answers the press at once: it settles by 2% while held. */
   .btn-primary,
   .btn-secondary,
-  .btn-on-dark,
-  .btn-outline-on-dark {
+  .btn-on-dark {
     @apply inline-flex min-h-12 items-center justify-center gap-2.5 rounded-full px-7 text-button no-underline transition-[background-color,border-color,color,transform] duration-150 ease-out select-none active:scale-[0.98] disabled:cursor-not-allowed;
   }
 
@@ -191,13 +190,9 @@
     @apply border border-line-strong bg-paper text-ink hover:border-ink disabled:opacity-60;
   }
 
-  /* On Midnight, Signal Blue or over the photo: a paper fill, or a paper outline. */
+  /* On Midnight, Signal Blue or over the photo: a paper fill. */
   .btn-on-dark {
     @apply bg-paper text-night hover:bg-mist;
-  }
-
-  .btn-outline-on-dark {
-    @apply border border-paper/70 text-paper hover:border-paper hover:bg-paper/10;
   }
 
   .btn-text {
@@ -223,20 +218,13 @@
   }
 
   /* The button whose post is on the way stays at full strength while the others dim. */
-  :is(
-    .btn-primary,
-    .btn-secondary,
-    .btn-text,
-    .btn-on-dark,
-    .btn-outline-on-dark
-  )[aria-busy="true"] {
+  :is(.btn-primary, .btn-secondary, .btn-text, .btn-on-dark)[aria-busy="true"] {
     opacity: 1;
     cursor: progress;
   }
 
   /* A busy button's icon gives way to the spinner; its words stay. */
-  :is(.btn-primary, .btn-secondary, .btn-text, .btn-on-dark, .btn-outline-on-dark)[aria-busy="true"]
-    > svg {
+  :is(.btn-primary, .btn-secondary, .btn-text, .btn-on-dark)[aria-busy="true"] > svg {
     display: none;
   }
 
@@ -260,8 +248,8 @@
 }
 
 /*
- * The homepage's one authored moment (#96): the board's tiles settle into place in turn and the
- * photo eases from a slight zoom. Transform only, so nothing is ever hidden; off under reduced
+ * The homepage's one authored moment (#96): the hero settles into place and the photo eases
+ * from a slight zoom. Transform only, so nothing is ever hidden; off under reduced
  * motion (the base layer's rule above).
  */
 @keyframes tile-rise {
@@ -278,7 +266,6 @@
 
 .tile-rise {
   animation: tile-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: var(--rise-delay, 0ms);
 }
 
 .photo-settle {

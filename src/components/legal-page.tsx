@@ -31,7 +31,7 @@ export function LegalPage(props: {
   return (
     <>
       <SiteHeader locale={locale} />
-      <main id="main" className="mx-auto max-w-prose px-4 pt-6 sm:px-6 sm:pt-12">
+      <main id="main" className="mx-auto w-full max-w-prose px-4 pt-6 sm:px-6 sm:pt-12">
         <h1 className="text-title">{props.title}</h1>
         <p className="mt-3 text-small text-ink-muted tabular-nums">
           {m.legal_version({ version: props.version }, { locale })}

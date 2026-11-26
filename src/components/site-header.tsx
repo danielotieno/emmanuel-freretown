@@ -32,7 +32,7 @@ export function SiteHeader({
     ["/#visit", m.nav_visit({}, o)],
   ] as const;
   return (
-    <header className="mx-auto max-w-content px-4 pt-4 sm:px-6 sm:pt-5 lg:px-10">
+    <header className="mx-auto w-full max-w-content px-4 pt-4 sm:px-6 sm:pt-5 lg:px-10">
       <div className="flex items-center justify-between gap-4">
         <Link
           href="/"
