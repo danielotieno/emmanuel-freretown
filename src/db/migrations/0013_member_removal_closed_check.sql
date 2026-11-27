@@ -1,0 +1,1 @@
+ALTER TABLE "member" ADD CONSTRAINT "member_redacted_closed_check" CHECK ("member"."personal_data_redacted_at" IS NULL OR "member"."status" IN ('DECEASED','TRANSFERRED_OUT'));

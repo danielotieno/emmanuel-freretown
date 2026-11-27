@@ -36,6 +36,8 @@ const EVIDENCE_NAMES: Record<string, string> = {
   FWO_CONFIRMED_BY_SECRETARY: "FWO number confirmed by the Secretary",
 };
 
+const REMOVED = "Removed after the retention period (BR-14, D45)";
+
 const DECISION_NAMES: Record<string, string> = {
   APPROVE: "Approved",
   REJECT: "Rejected",
@@ -94,6 +96,8 @@ export default async function ReviewRegistrationPage({
   ]);
   const who = (userId: string | null) => (userId ? (names.get(userId) ?? "A staff member") : "");
   const { details } = reg;
+  // Retention removed the details: BR-14 after a rejection, D45 after the member left.
+  const removed = details.fullName === null;
 
   // Why approval can't happen now. The server enforces all of these again.
   const blocks: string[] = [];
@@ -172,12 +176,12 @@ export default async function ReviewRegistrationPage({
 
         <Section title="Details">
           <dl className="divide-y divide-line">
-            <Row term="Full name">
-              {details.fullName ?? "Removed after the retention period (BR-14, D45)"}
-            </Row>
+            <Row term="Full name">{details.fullName ?? REMOVED}</Row>
             <Row term="FWO number">
               {details.fwoNumber ? (
                 <span className="tabular-nums">{details.fwoNumber}</span>
+              ) : removed ? (
+                REMOVED
               ) : (
                 "None yet (new member)"
               )}
@@ -185,8 +189,10 @@ export default async function ReviewRegistrationPage({
             <Row term="Mobile number">
               {details.noPersonalPhone ? (
                 "No personal phone"
-              ) : (
+              ) : details.phoneE164 ? (
                 <span className="tabular-nums">{details.phoneE164}</span>
+              ) : (
+                REMOVED
               )}
             </Row>
             <Row term="HBC">
@@ -194,12 +200,16 @@ export default async function ReviewRegistrationPage({
                 ? units.hbcs.get(details.hbcId)
                 : details.isNewMember && reg.status === "SUBMITTED"
                   ? "To be set: the member didn't know it (D49)"
-                  : ""}
+                  : removed
+                    ? REMOVED
+                    : ""}
             </Row>
             <Row term="Departments (declared)">
               {details.departmentIds.length
                 ? details.departmentIds.map((d) => units.departments.get(d) ?? d).join(", ")
-                : "None"}
+                : removed
+                  ? REMOVED
+                  : "None"}
             </Row>
             <Row term="SMS language">{reg.language === "sw" ? "Kiswahili" : "English"}</Row>
             {reg.channel === "ASSISTED" && (

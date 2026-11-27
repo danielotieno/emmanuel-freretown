@@ -74,6 +74,12 @@ export const member = pgTable(
       "member_redacted_check",
       sql`(${t.personalDataRedactedAt} IS NULL AND ${t.fullName} IS NOT NULL) OR (${t.personalDataRedactedAt} IS NOT NULL AND ${t.fullName} IS NULL AND ${t.phoneE164} IS NULL)`,
     ),
+    // Only a closed record is ever removed (D45), and it stays closed: never an active member
+    // without a name, whatever the application does.
+    check(
+      "member_redacted_closed_check",
+      sql`${t.personalDataRedactedAt} IS NULL OR ${t.status} IN ('DECEASED','TRANSFERRED_OUT')`,
+    ),
     check("member_phone_e164_check", sql`${t.phoneE164} ~ ${PHONE_E164_PATTERN}`),
     check(
       "member_status_check",

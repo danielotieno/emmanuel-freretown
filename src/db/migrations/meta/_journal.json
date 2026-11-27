@@ -92,6 +92,13 @@
       "when": 1795804081249,
       "tag": "0012_member_removal_function",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795805149578,
+      "tag": "0013_member_removal_closed_check",
+      "breakpoints": true
     }
   ]
 }

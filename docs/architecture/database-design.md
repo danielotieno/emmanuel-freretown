@@ -78,6 +78,8 @@ CREATE TABLE member (
   -- A name until D45's removal; after it, no name and no phone.
   CHECK ((personal_data_redacted_at IS NULL AND full_name IS NOT NULL) OR
          (personal_data_redacted_at IS NOT NULL AND full_name IS NULL AND phone_e164 IS NULL)),
+  -- Only a closed record is removed, and it stays closed (migration 0013).
+  CHECK (personal_data_redacted_at IS NULL OR status IN ('DECEASED','TRANSFERRED_OUT')),
   -- Approved from a registration or imported, never both.
   CHECK (source_registration_id IS NULL OR import_id IS NULL)
 );
@@ -379,7 +381,7 @@ On a SUBMITTED registration of a new member whose current revision has no FWO nu
 | `app_owner` | Migrations only (CI deploy step) | Owns all objects |
 | `ack_app` (login) | The application, through Hyperdrive, and local development | Member of `app_runtime` only; owns nothing; not superuser, no `CREATEROLE` or `CREATEDB`. Created or rotated with `pnpm db:app-login` (`docs/operations/environments.md`) |
 | `ack_backup` (login) | Nightly backup and weekly drift check (GitHub Actions) | Member of `pg_read_all_data` only: reads every table, including staff credentials so a restore is complete; writes nothing; owns nothing. Created or rotated with `pnpm db:backup-login` (`docs/operations/backups-and-rollback.md`) |
-| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only (including `sms_setting` and `sms_daily_usage`, migration 0005); no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`, `member_import`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `staff_rate_limit` (expired sessions, second-factor resets and expired rate-limit rows); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`); `UPDATE` on `member` only for `full_name`, `phone_e164`, `status`, `status_reason`, `language`, `updated_at` and `version` (migration 0012), so only `redact_closed_member()` can mark a member's details removed |
+| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only (including `sms_setting` and `sms_daily_usage`, migration 0005); no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`, `member_import`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `staff_rate_limit` (expired sessions, second-factor resets and expired rate-limit rows); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`); `UPDATE` on `member` only for `full_name`, `phone_e164`, `status`, `status_reason`, `language`, `updated_at` and `version` (migration 0012), so the application can't mark an existing member's details removed: only `redact_closed_member()` can. Its table-wide `INSERT` stays (Drizzle's `insert()` names every column), and the CHECKs keep any member row with `personal_data_redacted_at` closed, nameless and phoneless |
 | `readonly_ops` | Super Administrators for investigations | `SELECT` only, except staff credentials (`account`, `session`, `verification`, `two_factor`); every session is logged by the provider |
 
 ```sql
@@ -451,15 +453,71 @@ REVOKE ALL ON FUNCTION public.redact_expired_registration(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.redact_expired_registration(uuid) TO app_runtime;
 ```
 
-**Former members (D45, #26).** `redact_closed_member(member_id)` (migration 0012) is built the same way: owned by `app_owner`, `SECURITY DEFINER`, schema-qualified, `pg_temp` last, `EXECUTE` granted to `app_runtime` only. It removes a member's details only when the record is DECEASED or TRANSFERRED_OUT, not yet removed, and the latest `member.change_status` audit entry for it closed it with that status more than a year ago: the entry's `at` is the one date the application cannot set, so a status changed without its entry is never due. Then, in one statement:
+**Former members (D45, #26).** `redact_closed_member(member_id)` is built the same way as `redact_expired_registration`. It removes a member's details only when the record is DECEASED or TRANSFERRED_OUT, not yet removed, and the latest `member.change_status` audit entry for it closed it with that status more than a year ago: the entry's `at` is the one date the application cannot set, so a status changed without its entry is never due. It keeps the FWO number (D2, BR-02), status, status reason, language and HBC history, and the reasons and statuses in audit entries, which lose only the keys that hold personal values. The daily job `retention.redact_members` (`redactClosedMembers`, audit module) finds the members due with the same condition and calls it for each. Removal on request, proposed as D54 in #74, would reuse its body once decided.
 
-- the member's `full_name` and `phone_e164` become NULL and `personal_data_redacted_at` is set (the version is bumped); the FWO number, status, status reason, language and HBC history stay;
-- their `department_membership` rows are deleted;
-- their audit entries lose the keys `fullName`, `phoneE164` and `departmentIds` from `before` and `after`, and are marked `redacted_at`; reasons and statuses stay, as the member forms tell staff;
-- for the registration they were approved from: every revision's name and phone become NULL (FWO number and HBC stay, as on the member), its revision departments are deleted, its evidence loses the phone, and its audit entries lose the same keys;
-- a `member.redact` entry is written (SYSTEM).
+```sql
+REVOKE UPDATE ON member FROM app_runtime;
+GRANT UPDATE (full_name, phone_e164, status, status_reason, language, updated_at, version)
+  ON member TO app_runtime;
 
-The daily job `retention.redact_members` (`redactClosedMembers`, audit module) finds the members due with the same condition and calls the function for each, as `retention.redact` does for registrations. Removal on request, proposed as D54 in #74, would reuse this function's body once decided.
+CREATE FUNCTION public.redact_closed_member(p_member_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  v_registration_id uuid;
+  v_personal_keys text[] := ARRAY['fullName', 'phoneE164', 'departmentIds'];
+BEGIN
+  UPDATE public.member m
+     SET full_name = NULL, phone_e164 = NULL, personal_data_redacted_at = now(),
+         updated_at = now(), version = m.version + 1
+   WHERE m.id = p_member_id
+     AND m.status IN ('DECEASED', 'TRANSFERRED_OUT')
+     AND m.personal_data_redacted_at IS NULL
+     AND (SELECT a.after ->> 'status' = m.status AND a.at < now() - interval '1 year'
+            FROM public.audit_entry a
+           WHERE a.entity_type = 'member'
+             AND a.entity_id = m.id::text
+             AND a.action = 'member.change_status'
+           ORDER BY a.id DESC
+           LIMIT 1)
+  RETURNING m.source_registration_id INTO v_registration_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'member % is not eligible for removal', p_member_id;
+  END IF;
+
+  DELETE FROM public.department_membership WHERE member_id = p_member_id;
+
+  UPDATE public.audit_entry
+     SET before = before - v_personal_keys, after = after - v_personal_keys, redacted_at = now()
+   WHERE entity_type = 'member' AND entity_id = p_member_id::text;
+
+  -- The registration the member was approved from, if any: its revisions keep the FWO number
+  -- and HBC, as the member record does.
+  IF v_registration_id IS NOT NULL THEN
+    UPDATE public.registration_revision
+       SET full_name = NULL, phone_e164 = NULL, redacted_at = now()
+     WHERE registration_id = v_registration_id;
+
+    DELETE FROM public.registration_revision_department
+     WHERE registration_id = v_registration_id;
+
+    UPDATE public.verification_evidence
+       SET phone_e164 = NULL, redacted_at = now()
+     WHERE registration_id = v_registration_id;
+
+    UPDATE public.audit_entry
+       SET before = before - v_personal_keys, after = after - v_personal_keys,
+           redacted_at = now()
+     WHERE entity_type = 'registration' AND entity_id = v_registration_id::text;
+  END IF;
+
+  INSERT INTO public.audit_entry (actor_type, action, entity_type, entity_id)
+  VALUES ('SYSTEM', 'member.redact', 'member', p_member_id::text);
+END $$;
+
+REVOKE ALL ON FUNCTION public.redact_closed_member(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.redact_closed_member(uuid) TO app_runtime;
+```
 
 ## 5. Seed data (migration, idempotent)
 

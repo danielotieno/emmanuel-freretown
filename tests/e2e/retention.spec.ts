@@ -46,8 +46,12 @@ test("a removed member's record shows its FWO number and status, not their detai
   await expect(page.getByText(fullName)).toHaveCount(0);
   await expectNoAxeViolations(page);
 
-  await page.goto(`${ADMIN}/members?status=DECEASED`);
-  await expect(page.getByRole("link", { name: new RegExp(fwoNumber) })).toContainText(
-    "Name removed (D45)",
-  );
+  // Found by its FWO number, which stays (BR-02): the result shows the removal, not a name.
+  await page.goto(`${ADMIN}/members`);
+  await page.getByLabel("Name, FWO number or mobile number").fill(fwoNumber);
+  await page.getByRole("button", { name: "Search" }).click();
+  await expect(page.getByText("1 match.")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Find a member" }).getByRole("link", { name: /Name removed/ }),
+  ).toContainText(fwoNumber);
 });

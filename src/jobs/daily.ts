@@ -52,7 +52,7 @@ export const DAILY_JOBS: DailyJob[] = [
         ? checkSmsBalance(db, smsProviderFromEnv(ctx.env))
         : { skipped: "sms_not_configured" },
   },
-  { name: "session.purge", run: async (db) => ({ ...(await purgeExpiredStaffRows(db)) }) },
+  { name: "session.purge", run: (db) => purgeExpiredStaffRows(db) },
   { name: "retention.redact", run: async (db) => redaction(await redactExpiredRegistrations(db)) },
   {
     name: "retention.redact_members",

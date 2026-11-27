@@ -2,11 +2,11 @@ import { sql } from "drizzle-orm";
 import { safeQuery, type DbOrTx } from "../../db";
 
 /** Rows each table lost. */
-export interface StaffPurgeResult {
+export type StaffPurgeResult = {
   sessions: number;
   verifications: number;
   rateLimits: number;
-}
+};
 
 /**
  * Deletes Better Auth's rows once they can no longer be used (database-design.md §6,

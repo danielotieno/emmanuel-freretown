@@ -403,17 +403,41 @@ describe("retention.redact_members (D45)", () => {
     ).toBe("P0001");
   });
 
-  it("lets only the function mark a member's details removed (column privileges)", async () => {
+  it("lets only the function mark a member's details removed, and a removed member stays closed", async () => {
     const { memberId } = await closedMember("260021", "1 day");
+    // UPDATE: app_runtime may not set personal_data_redacted_at (column privileges).
     expect(
       await asApp(() =>
         pgErrorCode(
           client,
-          "UPDATE member SET full_name = NULL, phone_e164 = NULL, personal_data_redacted_at = now() WHERE id = $1",
+          `UPDATE member SET full_name = NULL, phone_e164 = NULL, personal_data_redacted_at = now()
+            WHERE id = $1`,
           [memberId],
         ),
       ),
     ).toBe("42501");
+
+    // A removed record can't be made active again, nor inserted active (CHECK).
+    const due = await closedMember("260022", "13 months");
+    expect(await asApp(() => redactClosedMembers(db))).toEqual({ redacted: 1, failed: 0 });
+    expect(
+      await asApp(() =>
+        pgErrorCode(
+          client,
+          "UPDATE member SET status = 'ACTIVE', status_reason = NULL WHERE id = $1",
+          [due.memberId],
+        ),
+      ),
+    ).toBe("23514");
+    expect(
+      await asApp(() =>
+        pgErrorCode(
+          client,
+          `INSERT INTO member (fwo_number, full_name, status, personal_data_redacted_at)
+           VALUES ('260023', NULL, 'ACTIVE', now())`,
+        ),
+      ),
+    ).toBe("23514");
   });
 });
 
