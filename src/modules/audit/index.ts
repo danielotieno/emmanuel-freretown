@@ -17,10 +17,10 @@ export {
 } from "./write";
 export { changes, type AuditValue, type AuditValues } from "./values";
 export {
-  LOG_PAGE,
+  AUDIT_PAGE,
   readLog,
   readTrail,
-  TRAIL_LIMIT,
+  type AuditPage,
   type AuditRecord,
   type TrailEntityType,
 } from "./read";

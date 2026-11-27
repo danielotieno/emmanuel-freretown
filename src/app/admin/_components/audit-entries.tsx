@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { TRAIL_LIMIT, type AuditRecord, type AuditValue } from "@/modules/audit";
+import type { AuditPage, AuditRecord, AuditValue } from "@/modules/audit";
 import { LANGUAGE_NAMES } from "../members/names";
 import { formatDateTime } from "../review/format";
 
@@ -64,15 +64,28 @@ const KEY_NAMES: Record<string, string> = {
 };
 
 /**
- * A registration's or member's audit trail (FR-11), at the foot of its page: shown only after
- * the page has opened the record, which records the access (D31).
+ * The page of entries asked for in the URL: the id of the oldest entry on the page before it,
+ * never personal data (rule 2). Anything else is the newest page.
+ */
+export function pageBefore(param: string | string[] | undefined): number | undefined {
+  return typeof param === "string" && /^\d{1,15}$/.test(param) ? Number(param) : undefined;
+}
+
+/**
+ * A registration's or member's audit trail (FR-11), a page at a time at the foot of its page,
+ * which it reaches as `path?trail=<id>`: shown only after the page has opened the record, which
+ * records the access (D31). Every page load is an opening, so the trail grows as it is read.
  */
 export function AuditTrail({
   trail,
   names,
+  path,
+  before,
 }: {
-  trail: { entries: AuditRecord[]; more: boolean };
+  trail: AuditPage;
   names: AuditNames;
+  path: string;
+  before?: number;
 }) {
   return (
     <section aria-labelledby="audit-heading" className="mt-8">
@@ -81,20 +94,51 @@ export function AuditTrail({
       </h2>
       <p className="mt-2 text-small text-ink-muted">
         Every change to this record and every time staff opened it, newest first.
-        {trail.more && ` Showing the latest ${TRAIL_LIMIT}.`}
       </p>
       <AuditEntries entries={trail.entries} names={names} />
+      <AuditPager
+        before={before}
+        next={trail.next}
+        href={(id) => `${path}${id === undefined ? "" : `?trail=${id}`}#audit-heading`}
+      />
     </section>
   );
 }
 
+/** Links to the newest page and to the page after this one, where there are any. */
+export function AuditPager({
+  before,
+  next,
+  href,
+}: {
+  before?: number;
+  next: number | null;
+  href: (before?: number) => string;
+}) {
+  if (before === undefined && next === null) return null;
+  return (
+    <nav aria-label="Pages" className="mt-6 flex gap-3">
+      {before !== undefined && (
+        <Link href={href()} className="btn-text">
+          Newest
+        </Link>
+      )}
+      {next !== null && (
+        <Link href={href(next)} className="btn-secondary">
+          Older entries
+        </Link>
+      )}
+    </nav>
+  );
+}
+
 /** Values that are codes, not text someone typed. */
-const CODE_KEYS = new Set(["status", "channel", "evidence", "cause", "method"]);
+const CODE_KEYS = new Set(["status", "channel", "evidence", "verification", "cause", "method"]);
 
 /**
  * Audit entries, newest first (FR-11). On a record's own trail they show their values; in the
- * full log (`showRecord`) each names the record it is about, and the values of entries about a
- * registration or member are withheld by the audit module, shown on that record instead.
+ * full log (`showRecord`) each names the record it is about, and values that may hold a member's
+ * details are withheld by the audit module, shown on that record instead.
  */
 export function AuditEntries({
   entries,

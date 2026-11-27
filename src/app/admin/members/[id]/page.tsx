@@ -10,7 +10,7 @@ import { staffNames } from "@/modules/access";
 import { readTrail } from "@/modules/audit";
 import { isClosedStatus, nextStatuses, openMember } from "@/modules/membership";
 import { listActiveDepartments, listActiveHbcs, unitNames } from "@/modules/organisation";
-import { AuditTrail, staffIdsIn } from "../../_components/audit-entries";
+import { AuditTrail, pageBefore, staffIdsIn } from "../../_components/audit-entries";
 import { formatDateTime } from "../../review/format";
 import { LANGUAGE_NAMES, STATUS_NAMES } from "../names";
 import { MemberForms } from "./member-forms";
@@ -46,14 +46,16 @@ export default async function MemberPage({
     requestId: (await headers()).get("x-request-id") ?? undefined,
   });
   if (!record) notFound();
-  const doneKey = (await searchParams).done;
+  const search = await searchParams;
+  const doneKey = search.done;
+  const trailBefore = pageBefore(search.trail);
   const done = typeof doneKey === "string" ? DONE_MESSAGES[doneKey] : undefined;
 
   const [units, hbcs, departments, trail] = await Promise.all([
     unitNames(db),
     listActiveHbcs(db),
     listActiveDepartments(db),
-    readTrail(db, { entityType: "member", entityId: record.id }),
+    readTrail(db, { entityType: "member", entityId: record.id }, { before: trailBefore }),
   ]);
   const names = { ...units, staff: await staffNames(db, staffIdsIn(trail.entries)) };
   const hbcName = (hbcId: string) => units.hbcs.get(hbcId) ?? "An HBC";
@@ -182,7 +184,12 @@ export default async function MemberPage({
           />
         )}
 
-        <AuditTrail trail={trail} names={names} />
+        <AuditTrail
+          trail={trail}
+          names={names}
+          path={`/members/${record.id}`}
+          before={trailBefore}
+        />
       </div>
     </main>
   );

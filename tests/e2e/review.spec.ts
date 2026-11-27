@@ -60,9 +60,11 @@ test("an administrator approves a registration from the queue (FR-4)", async ({
   await expect(admin.getByRole("heading", { level: 1, name: "Review queue" })).toBeVisible();
   await expectNoAxeViolations(admin);
   await openFromQueue(admin, eventLabel, fullName);
-  // First: the details. The audit trail at the foot of the page names it too.
-  await expect(admin.getByText("No personal phone").first()).toBeVisible();
-  await expect(admin.getByText("Met in person by an officer").first()).toBeVisible();
+  // In their own sections: the audit trail at the foot of the page names them too.
+  await expect(section(admin, "Details").getByText("No personal phone")).toBeVisible();
+  await expect(
+    section(admin, "Verification evidence").getByText("Met in person by an officer"),
+  ).toBeVisible();
   await expect(admin.getByText("E2E Officer").first()).toBeVisible();
   await expectNoAxeViolations(admin);
 
@@ -106,7 +108,7 @@ test("the capturing officer can't approve (BR-10), and a stale decision says so 
   await correction.getByLabel("Reason").fill("Wrong HBC");
   await correction.getByRole("button", { name: "Ask for a correction" }).click();
   await expect(page.getByText(/Someone else acted on this registration first/)).toBeVisible();
-  await expect(page.getByText("Registered twice by mistake").first()).toBeVisible();
+  await expect(section(page, "Decisions").getByText("Registered twice by mistake")).toBeVisible();
 });
 
 test("a Registration Officer alone can't open the queue or a registration (NFR-8)", async ({
@@ -118,3 +120,10 @@ test("a Registration Officer alone can't open the queue or a registration (NFR-8
   // A registration's page shows personal data: refused too, before anything is read.
   expect((await page.goto(`${ADMIN}/review/${randomUUID()}`))?.status()).toBe(404);
 });
+
+/** A section of the review page, by its title. */
+function section(page: Page, title: string) {
+  return page.locator("section", {
+    has: page.getByRole("heading", { level: 2, name: title, exact: true }),
+  });
+}

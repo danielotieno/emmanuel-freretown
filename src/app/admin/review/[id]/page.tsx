@@ -14,7 +14,7 @@ import {
   PRIVACY_NOTICE_VERSION,
   suggestFwoNumber,
 } from "@/modules/registration";
-import { AuditTrail, staffIdsIn } from "../../_components/audit-entries";
+import { AuditTrail, pageBefore, staffIdsIn } from "../../_components/audit-entries";
 import { formatDateTime } from "../format";
 import { RevisionList } from "../revisions";
 import { DecisionForms } from "./decision-forms";
@@ -59,7 +59,9 @@ export default async function ReviewRegistrationPage({
   const staff = await requireStaff("MEMBERSHIP_ADMIN");
   const { id } = await params;
   // Set by the issue-FWO action after it saves: only what happened, never the number (rule 2).
-  const fwoIssued = (await searchParams).done === "fwo";
+  const search = await searchParams;
+  const fwoIssued = search.done === "fwo";
+  const trailBefore = pageBefore(search.trail);
   const db = await getDb();
   const reg = await openRegistrationForReview(db, {
     registrationId: id,
@@ -67,7 +69,11 @@ export default async function ReviewRegistrationPage({
     requestId: (await headers()).get("x-request-id") ?? undefined,
   });
   if (!reg) notFound();
-  const trail = await readTrail(db, { entityType: "registration", entityId: reg.id });
+  const trail = await readTrail(
+    db,
+    { entityType: "registration", entityId: reg.id },
+    { before: trailBefore },
+  );
 
   const staffIds = [
     reg.capturedByUserId,
@@ -284,7 +290,12 @@ export default async function ReviewRegistrationPage({
           statusName={STATUS_NAMES[reg.status]}
         />
 
-        <AuditTrail trail={trail} names={{ ...units, staff: names }} />
+        <AuditTrail
+          trail={trail}
+          names={{ ...units, staff: names }}
+          path={`/review/${reg.id}`}
+          before={trailBefore}
+        />
       </div>
     </main>
   );

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { test } from "@playwright/test";
 import {
   ADMIN,
@@ -64,4 +65,13 @@ test("a Super Administrator reads the full log and opens a record from it (FR-11
   await expect(entry).toContainText("E2E Super Administrator");
   await entry.getByRole("link", { name: "Member record" }).click();
   await expect(page.getByRole("heading", { level: 1, name: fullName })).toBeVisible();
+});
+
+test("a Registration Officer sees neither the full log nor a trail (FR-11)", async ({ page }) => {
+  const { id } = await createMember(`Unseen Member ${randomDigits(6)}`);
+  await signIn(page, ["REGISTRATION_OFFICER"], "E2E Officer");
+  await expect(page.getByRole("link", { name: "Audit log" })).toHaveCount(0);
+  expect((await page.goto(`${ADMIN}/audit`))?.status()).toBe(404);
+  expect((await page.goto(`${ADMIN}/members/${id}`))?.status()).toBe(404);
+  expect((await page.goto(`${ADMIN}/review/${randomUUID()}`))?.status()).toBe(404);
 });

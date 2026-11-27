@@ -19,69 +19,75 @@ export interface AuditRecord {
   /** When retention removed the entry's values (BR-14, D45). */
   redactedAt: Date | null;
   /**
-   * In the full log, the values of an entry about a registration or member are left out: they
-   * are personal data, shown only on that record's own trail, whose opening is recorded (D31).
+   * In the full log, the values of an entry that may hold personal data are left out: they are
+   * shown only on that record's own trail, whose opening is recorded (D31).
    */
   withheld: boolean;
 }
 
-/** The records whose entries hold personal values, and that have a trail of their own. */
+/** A page of entries, newest first. `next` is the `before` for the page after, or null. */
+export interface AuditPage {
+  entries: AuditRecord[];
+  next: number | null;
+}
+
+/** The records with a trail of their own. */
 export type TrailEntityType = "registration" | "member";
 
-/** The newest entries a trail shows. */
-export const TRAIL_LIMIT = 100;
-
-/** Entries a page of the full log shows. */
-export const LOG_PAGE = 50;
+/** Entries a page shows, on a trail and in the full log. */
+export const AUDIT_PAGE = 50;
 
 /**
- * The audit trail of one registration or member (FR-11), newest first, for administrators.
- * Call it only after the record's own open function (`openRegistrationForReview`,
- * `openMember`), which records the access (D31): the trail shows the record's personal values.
- * `more` says older entries exist beyond `TRAIL_LIMIT`.
+ * Entity types whose values the full log shows: they hold no member's details. Every other
+ * type, including any added later, is withheld until it is reviewed and listed here.
+ */
+const VALUES_SHOWN_IN_LOG = new Set([
+  "hbc",
+  "department",
+  "fwo_setting",
+  "staff_user",
+  "member_import",
+]);
+
+/**
+ * A page of the audit trail of one registration or member (FR-11), newest first, with its
+ * values, for administrators. Call it only after the record's own open function
+ * (`openRegistrationForReview`, `openMember`), which records the access (D31): the trail shows
+ * the record's personal values. `before` and `next` page as in `readLog`.
  */
 export async function readTrail(
   db: DbOrTx,
   record: { entityType: TrailEntityType; entityId: string },
-): Promise<{ entries: AuditRecord[]; more: boolean }> {
-  if (!UUID.test(record.entityId)) return { entries: [], more: false };
-  const rows = await select(
-    db,
-    and(eq(auditEntry.entityType, record.entityType), eq(auditEntry.entityId, record.entityId))!,
-    TRAIL_LIMIT,
+  page: { before?: number } = {},
+): Promise<AuditPage> {
+  if (!UUID.test(record.entityId)) return { entries: [], next: null };
+  const about = and(
+    eq(auditEntry.entityType, record.entityType),
+    eq(auditEntry.entityId, record.entityId),
   );
-  return {
-    entries: rows.slice(0, TRAIL_LIMIT).map((r) => toRecord(r, false)),
-    more: rows.length > TRAIL_LIMIT,
-  };
+  return readPage(db, about, page.before, () => false);
 }
 
 /**
  * A page of the full audit log (FR-11), newest first, for Super Administrators only: the
  * caller checks the role (CLAUDE.md rule 1). `before` is the id of the oldest entry on the page
- * shown so far; `next` is the one to pass for the page after, or null on the last page. Values
- * of entries about a registration or member are withheld (see `AuditRecord.withheld`), so
- * reading the log is a list page and not recorded (D31).
+ * shown so far. Values that may hold a member's details are withheld (see `AuditRecord.withheld`),
+ * so reading the log is a list page and not recorded (D31).
  */
-export async function readLog(
-  db: DbOrTx,
-  page: { before?: number } = {},
-): Promise<{ entries: AuditRecord[]; next: number | null }> {
-  const { before } = page;
-  const rows = await select(
-    db,
-    before !== undefined && Number.isSafeInteger(before) ? lt(auditEntry.id, before) : undefined,
-    LOG_PAGE,
-  );
-  const entries = rows.slice(0, LOG_PAGE).map((r) => toRecord(r, holdsPersonalValues(r)));
-  return { entries, next: rows.length > LOG_PAGE ? entries.at(-1)!.id : null };
+export async function readLog(db: DbOrTx, page: { before?: number } = {}): Promise<AuditPage> {
+  return readPage(db, undefined, page.before, withheldFromLog);
 }
 
-type Row = Awaited<ReturnType<typeof select>>[number];
-
-/** One more row than the limit, to tell whether there are more. */
-function select(db: DbOrTx, where: SQL | undefined, limit: number) {
-  return safeQuery(() =>
+async function readPage(
+  db: DbOrTx,
+  where: SQL | undefined,
+  before: number | undefined,
+  withhold: (row: Row) => boolean,
+): Promise<AuditPage> {
+  const older =
+    before !== undefined && Number.isSafeInteger(before) ? lt(auditEntry.id, before) : undefined;
+  // One more row than the page, to tell whether there is a page after it.
+  const rows = await safeQuery(() =>
     db
       .select({
         id: auditEntry.id,
@@ -96,16 +102,31 @@ function select(db: DbOrTx, where: SQL | undefined, limit: number) {
         redactedAt: auditEntry.redactedAt,
       })
       .from(auditEntry)
-      .where(where)
+      .where(and(where, older))
       .orderBy(desc(auditEntry.id))
-      .limit(limit + 1),
+      .limit(AUDIT_PAGE + 1),
   );
+  const entries = rows.slice(0, AUDIT_PAGE).map((r) => toRecord(r, withhold(r)));
+  return { entries, next: rows.length > AUDIT_PAGE ? entries.at(-1)!.id : null };
 }
 
-function holdsPersonalValues(row: Row): boolean {
-  const record =
-    (row.entityType === "registration" || row.entityType === "member") && row.entityId !== ALL;
-  return record && (row.before !== null || row.after !== null);
+type Row = {
+  id: number;
+  at: Date;
+  actorType: "STAFF" | "PUBLIC" | "SYSTEM";
+  actorId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string;
+  before: unknown;
+  after: unknown;
+  redactedAt: Date | null;
+};
+
+function withheldFromLog(row: Row): boolean {
+  const hasValues = row.before !== null || row.after !== null;
+  const shown = row.entityId === ALL || VALUES_SHOWN_IN_LOG.has(row.entityType);
+  return hasValues && !shown;
 }
 
 function toRecord(row: Row, withheld: boolean): AuditRecord {

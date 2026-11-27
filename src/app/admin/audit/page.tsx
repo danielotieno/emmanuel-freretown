@@ -6,15 +6,15 @@ import { ArrowIcon } from "@/components/icons";
 import { staffNames } from "@/modules/access";
 import { readLog } from "@/modules/audit";
 import { unitNames } from "@/modules/organisation";
-import { AuditEntries, staffIdsIn } from "../_components/audit-entries";
+import { AuditEntries, AuditPager, pageBefore, staffIdsIn } from "../_components/audit-entries";
 
 export const metadata: Metadata = { title: "Audit log · Staff" };
 
 /**
  * The full audit log (FR-11, #24), for Super Administrators only, newest first, a page at a
  * time. Entries about a registration or member link to that record, whose page shows their
- * values and records the opening (D31); here they are withheld by the audit module, so viewing
- * the log is a list page and not recorded.
+ * values and records the opening (D31); here values that may hold a member's details are
+ * withheld by the audit module, so viewing the log is a list page and not recorded.
  */
 export default async function AuditLogPage({
   searchParams,
@@ -22,9 +22,7 @@ export default async function AuditLogPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requireStaff("SUPER_ADMIN");
-  // An entry id, never personal data (rule 2).
-  const param = (await searchParams).before;
-  const before = typeof param === "string" && /^\d{1,15}$/.test(param) ? Number(param) : undefined;
+  const before = pageBefore((await searchParams).before);
   const db = await getDb();
   const [{ entries, next }, units] = await Promise.all([readLog(db, { before }), unitNames(db)]);
   const names = { ...units, staff: await staffNames(db, staffIdsIn(entries)) };
@@ -47,20 +45,11 @@ export default async function AuditLogPage({
 
         <AuditEntries entries={entries} names={names} showRecord />
 
-        {(before !== undefined || next !== null) && (
-          <nav aria-label="Pages" className="mt-6 flex gap-3">
-            {before !== undefined && (
-              <Link href="/audit" className="btn-text">
-                Newest
-              </Link>
-            )}
-            {next !== null && (
-              <Link href={`/audit?before=${next}`} className="btn-secondary">
-                Older entries
-              </Link>
-            )}
-          </nav>
-        )}
+        <AuditPager
+          before={before}
+          next={next}
+          href={(id) => (id === undefined ? "/audit" : `/audit?before=${id}`)}
+        />
       </div>
     </main>
   );

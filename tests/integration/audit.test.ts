@@ -310,11 +310,11 @@ describe("audit.readTrail and audit.readLog (FR-11, #24)", () => {
       // The same id under another entity type is another record's trail.
       await audit.write(tx, { ...edit, action: "registration.reject", entityType: "registration" });
 
-      const { entries, more } = await audit.readTrail(tx, {
+      const { entries, next } = await audit.readTrail(tx, {
         entityType: "member",
         entityId: MEMBER,
       });
-      expect(more).toBe(false);
+      expect(next).toBeNull();
       expect(entries).toMatchObject([
         { action: "member.view", actor: staff, before: null, after: null, withheld: false },
         {
@@ -333,20 +333,22 @@ describe("audit.readTrail and audit.readLog (FR-11, #24)", () => {
     });
   });
 
-  it("shows the newest entries of a long trail and says there are more", async () => {
+  it("pages through a long trail, newest first, so no entry is out of reach", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
       await audit.writeMany(
         tx,
-        Array.from({ length: audit.TRAIL_LIMIT + 1 }, (_, i) => ({ ...edit, after: { n: i } })),
+        Array.from({ length: audit.AUDIT_PAGE + 1 }, (_, i) => ({ ...edit, after: { n: i } })),
       );
-      const { entries, more } = await audit.readTrail(tx, {
-        entityType: "member",
-        entityId: MEMBER,
-      });
-      expect(more).toBe(true);
-      expect(entries).toHaveLength(audit.TRAIL_LIMIT);
-      expect(entries[0]!.after).toEqual({ n: audit.TRAIL_LIMIT });
+      const member = { entityType: "member", entityId: MEMBER } as const;
+      const first = await audit.readTrail(tx, member);
+      expect(first.entries).toHaveLength(audit.AUDIT_PAGE);
+      expect(first.entries[0]!.after).toEqual({ n: audit.AUDIT_PAGE });
+      expect(first.next).toBe(first.entries.at(-1)!.id);
+
+      const second = await audit.readTrail(tx, member, { before: first.next! });
+      expect(second.entries.map((e) => e.after)).toEqual([{ n: 0 }]);
+      expect(second.next).toBeNull();
     });
   });
 
@@ -355,7 +357,7 @@ describe("audit.readTrail and audit.readLog (FR-11, #24)", () => {
       await asApp(tx);
       expect(await audit.readTrail(tx, { entityType: "member", entityId: "*" })).toEqual({
         entries: [],
-        more: false,
+        next: null,
       });
     });
   });
@@ -408,12 +410,29 @@ describe("audit.readTrail and audit.readLog (FR-11, #24)", () => {
     });
   });
 
+  it("withholds the values of any entity type not known to be free of member data", async () => {
+    await rolledBack(db, async (tx) => {
+      // As the owner: no module writes this type yet, as a Release 2 one might.
+      await tx.execute(sql`
+        INSERT INTO audit_entry (actor_type, action, entity_type, entity_id, after)
+        VALUES ('SYSTEM', 'candidate.nominate', 'candidate', ${ENTITY}, '{"fullName": "Test Person"}')`);
+      await asApp(tx);
+      const { entries } = await audit.readLog(tx);
+      expect(entries[0]).toMatchObject({
+        action: "candidate.nominate",
+        before: null,
+        after: null,
+        withheld: true,
+      });
+    });
+  });
+
   it("pages through the full log, newest first", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
       await audit.writeMany(
         tx,
-        Array.from({ length: audit.LOG_PAGE + 1 }, (_, i) => ({
+        Array.from({ length: audit.AUDIT_PAGE + 1 }, (_, i) => ({
           actor: staff,
           action: "hbc.rename" as const,
           entityType: "hbc" as const,
@@ -423,9 +442,9 @@ describe("audit.readTrail and audit.readLog (FR-11, #24)", () => {
       );
 
       const first = await audit.readLog(tx);
-      expect(first.entries).toHaveLength(audit.LOG_PAGE);
+      expect(first.entries).toHaveLength(audit.AUDIT_PAGE);
       expect(first.entries.map((e) => e.after)).toEqual(
-        Array.from({ length: audit.LOG_PAGE }, (_, i) => ({ n: audit.LOG_PAGE - i })),
+        Array.from({ length: audit.AUDIT_PAGE }, (_, i) => ({ n: audit.AUDIT_PAGE - i })),
       );
       expect(first.next).toBe(first.entries.at(-1)!.id);
 
