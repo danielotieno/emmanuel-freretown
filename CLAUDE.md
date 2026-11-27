@@ -53,6 +53,7 @@ Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui, Zod,
 | `admin.ackemmanuelfreretown.org` | Staff: review queue, officer desk, members, settings. Separate host, separate host-only cookie, behind Cloudflare Access |
 | `admin.ackemmanuelfreretown.org/desk` | Officer desk: assisted registration (FR-3, #18). Registration Officers only |
 | `admin.ackemmanuelfreretown.org/members` | Member records (FR-6, #22): list, search, view, edit, HBC transfer and status, and the CSV export (FR-12, #25, a POST to `/members/export`). Membership Administrators |
+| `admin.ackemmanuelfreretown.org/units` | HBCs and departments (FR-9, #23): add, rename, reorder, deactivate. Membership Administrators |
 | `admin.ackemmanuelfreretown.org/corrections` | Corrections by staff (FR-5, #21). Registration Officers and Membership Administrators |
 | `admin.ackemmanuelfreretown.org/audit` | The full audit log (FR-11, #24). Super Administrators only. Each registration's and member's own trail is on its page |
 

@@ -10,7 +10,7 @@
 
 | Module | Owns | Depends on |
 |---|---|---|
-| organisation | HBCs, departments | — |
+| organisation | HBCs, departments; their administration (FR-9) | audit |
 | registration | Registrations, revisions, decisions | organisation, verification, membership (conflict checks; on approval), notifications, audit |
 | membership | Members, HBC assignments, department memberships | organisation |
 | verification | Phone challenges (OTP), verification tokens, verification evidence, rate limits; Kenyan-number and Turnstile checks | notifications (sends the OTP), audit |

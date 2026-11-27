@@ -41,6 +41,16 @@ const ACTION_NAMES: Record<string, string> = {
   "member.change_status": "Status changed",
   "member.redact": "Personal details removed",
   "member_import.create": "Parish list imported",
+  "hbc.create": "HBC added",
+  "hbc.rename": "HBC renamed",
+  "hbc.reorder": "HBC moved in the list",
+  "hbc.deactivate": "HBC deactivated",
+  "hbc.activate": "HBC reactivated",
+  "department.create": "Department added",
+  "department.rename": "Department renamed",
+  "department.reorder": "Department moved in the list",
+  "department.deactivate": "Department deactivated",
+  "department.activate": "Department reactivated",
   "fwo_setting.update": "Highest FWO number recorded",
   "staff_user.create": "Staff account created",
   "staff_user.grant_role": "Role granted",
@@ -62,6 +72,8 @@ const KEY_NAMES: Record<string, string> = {
   sourceRegistrationId: "Registration",
   importId: "Imported from",
   consentToNotice: "Agreed to privacy notice",
+  sortOrder: "Position",
+  isActive: "Active",
 };
 
 /**

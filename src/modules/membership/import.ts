@@ -2,7 +2,7 @@ import { and, inArray } from "drizzle-orm";
 import { isUniqueViolation, safeQuery, type DbOrTx } from "../../db";
 import { departmentMembership, member, memberHbcAssignment, memberImport } from "../../db/schema";
 import * as audit from "../audit";
-import { listActiveDepartments, listActiveHbcs } from "../organisation";
+import { listActiveDepartments, listActiveHbcs, unitKey } from "../organisation";
 import { normalizeKenyanPhone } from "../verification";
 import { normalizeLineEnds, parseCsv } from "./csv";
 
@@ -109,11 +109,6 @@ export function readImportFile(text: string): ReadImportResult {
     return { ok: false, error: { kind: "too_many_rows", limit: IMPORT_MAX_ROWS } };
   }
   return { ok: true, rows };
-}
-
-/** A name compared without regard to case, spaces around and between words, or curly quotes. */
-export function unitKey(name: string): string {
-  return name.trim().replace(/\s+/g, " ").replace(/[‘’]/g, "'").toLowerCase();
 }
 
 export interface ValidImportRow {
