@@ -83,7 +83,10 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
             D48). A plain link: a client-side navigation would keep this page's policy (CSP). */}
         {step === "name" && (
           <p className="mt-3 max-w-[52ch]">
-            {text.checkFirst} <a href="/registration/status">{text.checkFirstLink}</a>
+            {text.checkFirst}{" "}
+            <a href="/registration/status" className="underline underline-offset-4">
+              {text.checkFirstLink}
+            </a>
           </p>
         )}
 

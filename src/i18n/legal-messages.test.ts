@@ -31,6 +31,9 @@ const APPROVED_NOTICES: Record<string, string> = {
   "2026-11-25": "6e24d7a33b9c8d5568966e328ce3952d9f6b382cc730836231dbfc290a0aeb73",
   // HBC reads "Home Based Cell" (#96); wording only, approved via the technical lead.
   "2026-11-26": "ef31612e194ea9d2bbe66a6ca6595f7bf601c226568efcc6d18eae83e986eccc",
+  // Elections become a stated purpose; details from the parish list (D47, D50, #106). The
+  // Vicar approves this text (D39) before #106 merges.
+  "2026-11-27": "792c915ef29cf1c99400ffe534e16de8cff85544807ee8e313970fa9a5a4df08",
 };
 
 describe("privacy notice version (BR-15, D35)", () => {
