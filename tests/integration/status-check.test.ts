@@ -198,6 +198,25 @@ describe("checkRegistrationStatus (FR-7)", { timeout: 120_000 }, () => {
     });
   });
 
+  it("says the Church Secretary will set the HBC of a new member who didn't know it (D49)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const phone = nextPhone();
+      const { reference } = await registered(tx, phone, {
+        isNewMember: true,
+        fwoNumber: "",
+        hbcId: "",
+        hbcUnknown: true,
+      });
+      expect(await check(tx, phone, reference)).toEqual({
+        ok: true,
+        status: "RECEIVED",
+        fullName: "Test Person Twenty",
+        hbcName: null,
+      });
+    });
+  });
+
   it("asks the member to contact the office after a correction request or a rejection", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);

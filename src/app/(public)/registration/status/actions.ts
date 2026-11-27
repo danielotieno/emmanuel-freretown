@@ -172,9 +172,11 @@ async function verifyAndCheck(
   }
   log.info("status_check.answered", { outcome: result.status });
   const outcome: StatusOutcome =
-    result.status === "RECEIVED" || result.status === "REGISTERED_MEMBER"
+    result.status === "RECEIVED"
       ? { status: result.status, fullName: result.fullName, hbcName: result.hbcName }
-      : { status: result.status };
+      : result.status === "REGISTERED_MEMBER"
+        ? { status: result.status, fullName: result.fullName, hbcName: result.hbcName }
+        : { status: result.status };
   // The answer replaces the form: what was typed is not sent back.
   return at("result", { outcome, values: EMPTY_STATUS_VALUES });
 }

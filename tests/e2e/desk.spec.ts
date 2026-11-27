@@ -97,6 +97,31 @@ test("a member with no personal phone is registered in person, with no SMS (BR-0
   await expect(page.getByText(en.desk_done_new_member)).toBeVisible();
 });
 
+test("a new member who doesn't know their HBC is registered, the HBC left to the Secretary (D49)", async ({
+  page,
+}) => {
+  await signIn(page, ["REGISTRATION_OFFICER"]);
+  await page.goto(`${ADMIN}/desk`);
+  await page.getByLabel(en.desk_event_title).fill(`E2E D49 ${randomDigits(6)}`);
+  await next(page);
+  await page.getByLabel(en.desk_name_label, { exact: true }).fill("Test Newcomer");
+  // Only offered once the member is a new one.
+  const unknown = page.getByRole("checkbox", { name: en.desk_hbc_unknown_label });
+  await expect(unknown).toHaveCount(0);
+  await page.getByRole("checkbox", { name: en.desk_new_member_label }).check();
+  await unknown.check();
+  await expect(page.getByLabel(en.desk_hbc_label, { exact: true })).toBeDisabled();
+  await next(page);
+  await page.getByRole("radio", { name: en.desk_phone_none }).check();
+  await next(page);
+  await confirmAll(page);
+  await expect(page.getByText(en.reg_hbc_unknown_value)).toBeVisible();
+  await page.getByRole("button", { name: en.desk_submit }).click();
+  await expect(page.getByRole("heading", { name: en.desk_done_title })).toBeVisible({
+    timeout: 30_000,
+  });
+});
+
 test("a half-filled form survives a reload and a dropped connection", async ({ page, context }) => {
   await signIn(page, ["REGISTRATION_OFFICER"]);
   await page.goto(`${ADMIN}/desk`);

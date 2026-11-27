@@ -104,8 +104,11 @@
   "reg_new_member_hint": "After you register, please see the Church Secretary, who will give you one.",
   "reg_hbc_label": "Your HBC",
   "reg_hbc_choose": "Choose your HBC",
+  "reg_hbc_unknown_label": "I don't know my HBC yet",
+  "reg_hbc_unknown_hint": "The Church Secretary will help you find it when they give you your FWO number.",
+  "reg_hbc_unknown_value": "Not known yet: the Church Secretary will set it",
   "reg_departments_label": "Your departments",
-  "reg_departments_hint": "Choose any you belong to. You can leave this empty.",
+  "reg_departments_hint": "Choose any you belong to. Leave this empty if you don't belong to one yet.",
   "reg_phone_label": "Your mobile number",
   "reg_phone_hint": "A Kenyan number, for example 0712 345 678.",
   "reg_phone_own": "Use a phone number that is yours alone. If you don't have one, the church office will register you and you will vote in person.",
@@ -243,8 +246,10 @@
   "desk_new_member_hint": "Ask them to see the Church Secretary, who will issue one.",
   "desk_hbc_label": "HBC",
   "desk_hbc_choose": "Choose an HBC",
+  "desk_hbc_unknown_label": "They don't know their HBC yet",
+  "desk_hbc_unknown_hint": "The Church Secretary sets it when they issue the FWO number.",
   "desk_departments_label": "Departments",
-  "desk_departments_hint": "Any they belong to. This can be left empty.",
+  "desk_departments_hint": "Any they belong to. Leave this empty if they don't belong to one yet.",
   "desk_phone_title": "The member's phone",
   "desk_phone_otp": "Their phone is here",
   "desk_phone_otp_hint": "We send a code to it and they read it to you. This checks the number is theirs.",
@@ -297,5 +302,6 @@
   "status_check_again": "Check another number",
   "status_help_body": "The church office can help. Call {phone}.",
   "reg_check_first": "Already registered, or on the church's list?",
-  "reg_check_first_link": "Check your registration first"
+  "reg_check_first_link": "Check your registration first",
+  "status_hbc_to_be_set": "The Church Secretary will set your HBC when they give you your FWO number."
 }

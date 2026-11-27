@@ -65,6 +65,7 @@ const FIELD_OF: Record<AssistedFieldName, DeskField | null> = {
   noPersonalPhone: "phoneMode",
   phone: "phone",
   hbcId: "hbcId",
+  hbcUnknown: "hbcId",
   departmentIds: "departmentIds",
   verification: "phoneMode",
   eventLabel: "eventLabel",

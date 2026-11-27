@@ -129,7 +129,7 @@ export const registrationRevision = pgTable(
     check(
       "registration_revision_complete_check",
       sql`${t.redactedAt} IS NOT NULL OR
-         (${t.fullName} IS NOT NULL AND ${t.hbcId} IS NOT NULL
+         (${t.fullName} IS NOT NULL AND (${t.hbcId} IS NOT NULL OR ${t.isNewMember})
           AND (${t.phoneE164} IS NOT NULL OR ${t.noPersonalPhone})
           AND (${t.fwoNumber} IS NOT NULL OR ${t.isNewMember}))`,
     ),

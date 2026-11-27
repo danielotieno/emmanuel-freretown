@@ -303,6 +303,8 @@ export type DecisionRefusal =
   | "stale"
   | "captured_by_you"
   | "no_fwo"
+  /** A new member's HBC isn't set yet (BR-04, D49). */
+  | "no_hbc"
   | "fwo_held"
   | "fwo_in_open_registration"
   | "phone_held"
@@ -406,7 +408,7 @@ async function run(
  * member, the decision, the audit entries (rule 4) and the approval SMS in the outbox (FR-8).
  *
  * Refused, writing nothing, when: someone acted first (`stale`); the actor captured it (BR-10);
- * there is no FWO number yet (BR-16); the FWO belongs to a member or to another open
+ * there is no FWO number yet (BR-16) or no HBC yet (BR-04, D49); the FWO belongs to a member or to another open
  * registration (BR-03), or the phone to a member, now, whatever the flags said at submission
  * (checked again here, and by the database's own unique indexes); or the HBC or a department
  * was deactivated since.
@@ -431,9 +433,10 @@ export async function approveRegistration(db: DbOrTx, decision: Decision): Promi
           eq(registrationRevision.revisionNo, reg.currentRevisionNo),
         ),
       );
-    // A SUBMITTED registration is never redacted, so name and HBC are always present.
-    if (!revision?.fullName || !revision.hbcId) throw new Refused("not_found");
+    // A SUBMITTED registration is never redacted, so the name is always present.
+    if (!revision?.fullName) throw new Refused("not_found");
     if (!revision.fwoNumber) throw new Refused("no_fwo");
+    if (!revision.hbcId) throw new Refused("no_hbc");
     const departmentIds = (
       await tx
         .select({ id: registrationRevisionDepartment.departmentId })

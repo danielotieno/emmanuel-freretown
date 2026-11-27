@@ -226,7 +226,7 @@ function Result({ text, outcome }: { text: StatusText; outcome: StatusOutcome })
         </h2>
         <dl className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
           <Row term={text.nameLabel}>{outcome.fullName}</Row>
-          <Row term={text.hbcLabel}>{outcome.hbcName}</Row>
+          <Row term={text.hbcLabel}>{outcome.hbcName ?? text.hbcToBeSet}</Row>
         </dl>
         <p className="flex gap-3 rounded-xl bg-mist p-4 text-ink">
           <InfoIcon className="mt-1 text-brand" />

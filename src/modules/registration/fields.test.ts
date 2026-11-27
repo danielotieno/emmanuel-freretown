@@ -115,6 +115,50 @@ describe("checkSelfRegistration (FR-1, BR-07, BR-15)", () => {
   });
 });
 
+describe("an HBC not known yet (D49)", () => {
+  const newMember = {
+    fullName: "Test Person",
+    isNewMember: true,
+    fwoNumber: "",
+    phone: "0712345678",
+    hbcId: "",
+    hbcUnknown: true,
+    departmentIds: [],
+    adultDeclared: true,
+    privacyAcknowledged: true,
+    transferConsent: true,
+  };
+
+  it("lets a new member leave the HBC for the Church Secretary to set", () => {
+    const checked = checkSelfRegistration(newMember);
+    expect(checked.ok && checked.value.hbcId).toBeNull();
+    const desk = checkAssistedRegistration({
+      ...newMember,
+      noPersonalPhone: false,
+      verification: "IN_PERSON",
+      eventLabel: "Judea HBC AGM, 17 Jan 2027",
+      readBackConfirmed: true,
+    });
+    expect(desk.ok && desk.value.hbcId).toBeNull();
+  });
+
+  it("still needs an HBC from anyone with an FWO number (BR-04)", () => {
+    expect(checkSelfRegistration({ ...newMember, isNewMember: false, fwoNumber: "0042" })).toEqual({
+      ok: false,
+      errors: { hbcId: "required" },
+    });
+  });
+
+  it("keeps an HBC chosen when the box isn't ticked", () => {
+    const checked = checkSelfRegistration({ ...newMember, hbcUnknown: false, hbcId: "hbc-1" });
+    expect(checked.ok && checked.value.hbcId).toBe("hbc-1");
+    expect(checkSelfRegistration({ ...newMember, hbcUnknown: false })).toEqual({
+      ok: false,
+      errors: { hbcId: "required" },
+    });
+  });
+});
+
 describe("checkEventLabel (FR-3)", () => {
   it("trims, collapses spaces and keeps 2 to 120 characters", () => {
     expect(checkEventLabel("  Judea HBC AGM,  17 Jan 2027 ")).toEqual({

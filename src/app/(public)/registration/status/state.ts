@@ -16,7 +16,9 @@ export type StatusErrorField = keyof StatusValues | "code";
 
 /** What the result step shows: FR-7's answers. The name and HBC only for a match (D48). */
 export type StatusOutcome =
-  | { status: "RECEIVED" | "REGISTERED_MEMBER"; fullName: string; hbcName: string }
+  | { status: "REGISTERED_MEMBER"; fullName: string; hbcName: string }
+  /** `hbcName` null: a new member's HBC, to be set by the Church Secretary (D49). */
+  | { status: "RECEIVED"; fullName: string; hbcName: string | null }
   | { status: "CONTACT_OFFICE" | "NOT_FOUND" };
 
 export interface StatusState {

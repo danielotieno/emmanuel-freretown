@@ -28,6 +28,8 @@ export interface DeskValues {
   isNewMember: boolean;
   fwoNumber: string;
   hbcId: string;
+  /** D49: a new member who doesn't know their HBC yet. */
+  hbcUnknown: boolean;
   departmentIds: string[];
   phoneMode: PhoneMode;
   phone: string;
@@ -43,7 +45,7 @@ export type DeskErrorField = DeskField | "code";
 /** The fields each step asks for. */
 export const DESK_STEP_FIELDS: Partial<Record<DeskStep, DeskField[]>> = {
   event: ["eventLabel"],
-  member: ["fullName", "isNewMember", "fwoNumber", "hbcId", "departmentIds"],
+  member: ["fullName", "isNewMember", "fwoNumber", "hbcId", "hbcUnknown", "departmentIds"],
   // The SMS language is asked with each member's phone, so it never carries over unseen.
   phone: ["phoneMode", "phone", "language"],
   confirm: ["readBackConfirmed", "adultDeclared", "privacyAcknowledged", "transferConsent"],
@@ -64,6 +66,7 @@ export function emptyDeskValues(event?: { eventLabel: string; language: "en" | "
     isNewMember: false,
     fwoNumber: "",
     hbcId: "",
+    hbcUnknown: false,
     departmentIds: [],
     phoneMode: "",
     phone: "",
@@ -113,6 +116,7 @@ export function readDeskValues(input: unknown): DeskValues {
     isNewMember: ticked(o, "isNewMember"),
     fwoNumber: text(o, "fwoNumber"),
     hbcId: text(o, "hbcId", 64),
+    hbcUnknown: ticked(o, "hbcUnknown"),
     departmentIds: departments
       .filter((d): d is string => typeof d === "string")
       .map((d) => d.slice(0, 64))

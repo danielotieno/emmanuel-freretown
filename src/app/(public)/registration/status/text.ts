@@ -34,6 +34,7 @@ export function statusText(locale: Locale) {
     registerLink: m.status_register_link({}, o),
     nameLabel: m.status_name_label({}, o),
     hbcLabel: m.status_hbc_label({}, o),
+    hbcToBeSet: m.status_hbc_to_be_set({}, o),
     wrongNote: m.status_wrong_note({}, o),
     checkAgain: m.status_check_again({}, o),
     helpTitle: m.reg_help_title({}, o),

@@ -149,7 +149,7 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
                   <span className="text-brand tabular-nums sm:col-span-2">{item.reference}</span>
                   <span className="sm:col-span-3">{item.fullName}</span>
                   <span className="text-ink-muted sm:col-span-2">
-                    {item.hbcId ? units.hbcs.get(item.hbcId) : ""}
+                    {item.hbcId ? units.hbcs.get(item.hbcId) : "HBC to be set"}
                   </span>
                   <span className="text-small text-ink-muted sm:col-span-3">
                     {item.channel === "SELF" ? "Self" : `Assisted · ${item.eventLabel ?? ""}`}

@@ -7,7 +7,7 @@ import { getDb } from "@/app/_lib/db";
 import { requireStaff } from "@/app/_lib/staff";
 import { AlertIcon, ArrowIcon, CheckIcon } from "@/components/icons";
 import { staffNames } from "@/modules/access";
-import { unitNames } from "@/modules/organisation";
+import { listActiveHbcs, unitNames } from "@/modules/organisation";
 import {
   openRegistrationForReview,
   PRIVACY_NOTICE_VERSION,
@@ -73,10 +73,11 @@ export default async function ReviewRegistrationPage({
   // A new member waiting for the FWO number the Secretary issues (BR-16, #101).
   const waitingForFwo =
     reg.status === "SUBMITTED" && reg.details.isNewMember && !reg.details.fwoNumber;
-  const [units, names, suggestion] = await Promise.all([
+  const [units, names, suggestion, activeHbcs] = await Promise.all([
     unitNames(db),
     staffNames(db, staffIds),
     waitingForFwo ? suggestFwoNumber(db) : null,
+    waitingForFwo && !reg.details.hbcId ? listActiveHbcs(db) : null,
   ]);
   const who = (userId: string | null) => (userId ? (names.get(userId) ?? "A staff member") : "");
   const { details } = reg;
@@ -91,6 +92,11 @@ export default async function ReviewRegistrationPage({
   if (!details.fwoNumber) {
     blocks.push(
       "No FWO number yet: the Church Secretary must issue one and enter it before approval (BR-16).",
+    );
+  }
+  if (!details.hbcId && reg.status === "SUBMITTED") {
+    blocks.push(
+      "No HBC yet: the member didn't know it. The Church Secretary sets it with the FWO number (BR-04, D49).",
     );
   }
   if (reg.live.fwoHeldByMember) {
@@ -168,7 +174,11 @@ export default async function ReviewRegistrationPage({
                 <span className="tabular-nums">{details.phoneE164}</span>
               )}
             </Row>
-            <Row term="HBC">{details.hbcId ? units.hbcs.get(details.hbcId) : ""}</Row>
+            <Row term="HBC">
+              {details.hbcId
+                ? units.hbcs.get(details.hbcId)
+                : "To be set: the member didn't know it (D49)"}
+            </Row>
             <Row term="Departments (declared)">
               {details.departmentIds.length
                 ? details.departmentIds.map((d) => units.departments.get(d) ?? d).join(", ")
@@ -229,6 +239,7 @@ export default async function ReviewRegistrationPage({
             version={reg.version}
             suggestion={suggestion}
             noticeChanged={details.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION}
+            hbcs={activeHbcs}
           />
         )}
 

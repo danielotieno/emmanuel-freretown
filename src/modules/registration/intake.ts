@@ -130,7 +130,8 @@ export async function insertFirstRevision(
     fullName: string;
     fwoNumber: string | null;
     phoneE164: string | null;
-    hbcId: string;
+    /** Null: a new member's HBC, to be set by the Church Secretary (D49). */
+    hbcId: string | null;
     departmentIds: string[];
     isNewMember: boolean;
     /** BR-06: recorded by an officer only. */

@@ -210,6 +210,15 @@ function StepForm(props: {
               </select>
               <ChevronIcon className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-ink-muted" />
             </div>
+            {/* D49: only a new member may leave the HBC to the Church Secretary. */}
+            {values.isNewMember && (
+              <Tick
+                name="hbcUnknown"
+                checked={values.hbcUnknown}
+                label={text.hbcUnknownLabel}
+                hint={text.hbcUnknownHint}
+              />
+            )}
           </Question>
         )}
 
@@ -310,7 +319,9 @@ function StepForm(props: {
                   <span className="tabular-nums">{values.fwoNumber}</span>
                 )}
               </Row>
-              <Row term={text.hbcLabel}>{hbcName}</Row>
+              <Row term={text.hbcLabel}>
+                {values.isNewMember && values.hbcUnknown ? text.hbcUnknownValue : hbcName}
+              </Row>
               <Row term={text.departmentsLabel}>
                 {departmentNames.length ? departmentNames.join(", ") : text.none}
               </Row>
