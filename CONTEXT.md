@@ -55,7 +55,7 @@ Use these terms exactly, in conversation, code, tests and docs.
 | **Position** | A seat being filled, e.g. Chairperson. HBC elections fill Chairperson, Vice Chairperson, Secretary, Assistant Secretary, Treasurer; department elections Chairperson, Vice Chairperson, Secretary, Treasurer; the PCC election Parish Secretary, Parish Treasurer, People's Warden (D55) |
 | **Candidate** | A member nominated for one position. One candidacy at a time per election round; free to stand again after losing or withdrawing, not after being elected (D56) |
 | **Nomination** | Made beforehand or from the floor; closes before voting opens |
-| **Electorate** | The frozen list of members eligible to vote in an election, taken when nominations close. HBC and department membership count as at the day nominations open (D54) |
+| **Electorate** | The frozen list of members eligible to vote in an election, taken when nominations close. HBC and department membership count as at the moment nominations open (D54) |
 | **Participation** | The record that a member has voted. Never linked to their ballot |
 | **Ballot** | The encrypted choices of one voter. No member reference, no timestamp |
 | **Personal phone** | A phone number that belongs to one member only. No two active or inactive members share a number. A member may have none |
