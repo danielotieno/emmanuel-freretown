@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Request } from "@playwright/test";
 import en from "../../messages/en.json" with { type: "json" };
 import sw from "../../messages/sw.json" with { type: "json" };
+import { waitForStillness } from "./motion";
 
 // The self-registration journey (issue #16, FR-1) on all four viewports. The server runs in test
 // mode (E2E_TEST_MODE, src/app/_lib/env.ts): no SMS is sent and the code is always 000000.
@@ -194,11 +195,13 @@ test.describe("languages", () => {
 });
 
 test("has no WCAG 2.2 AA violations on the first step and the review", async ({ page }) => {
-  const scan = () =>
-    new AxeBuilder({ page })
+  const scan = async () => {
+    await waitForStillness(page);
+    return new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .exclude("iframe") // Turnstile's challenge frame is Cloudflare's
       .analyze();
+  };
   await page.goto("/registration");
   expect((await scan()).violations).toEqual([]);
   await fillDetails(page);
