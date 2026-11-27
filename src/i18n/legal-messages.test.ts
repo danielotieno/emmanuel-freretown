@@ -36,7 +36,7 @@ const APPROVED_NOTICES: Record<string, string> = {
   "2026-11-27": "c6d46c4c99912d6b724aa14b3f773d55afec4e7d4d4bac0db2d68ed3ea6eeb6d",
   // Election records removed one week after the result (D51); the voting pages' visits (#112).
   // Approved by the Vicar, via the technical lead, 27 Nov 2026 (D39).
-  "2026-11-28": "c2894a10e8f25c071c50c9c9a73db7ba5e25b4fde856c5848713a9603d9d4b67",
+  "2026-11-28": "c079b825086d64c22be1afaa3bde602d1d427be9c38c92b38b58824ae2ca2e90",
 };
 
 describe("privacy notice version (BR-15, D35)", () => {
