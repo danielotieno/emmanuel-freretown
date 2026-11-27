@@ -65,6 +65,8 @@ Use these terms exactly, in conversation, code, tests and docs.
 | **Unopposed** | The only candidate for a position; elected without a vote |
 | **Re-run** | A new vote for one position between only the candidates tied for first place |
 | **Pilot** | A non-binding election run alongside paper; paper is official and electronic results stay sealed until the paper result is declared |
+| **Turnout** | How many members could vote in an election, and how many voted online, manually, and at a pilot both. Kept after the records of who voted are removed (D53) |
+| **Complaint** | A challenge to an election's result, raised within 5 days of the final result. While one is open, the records it concerns are not removed (D53) |
 
 ## Avoid
 
