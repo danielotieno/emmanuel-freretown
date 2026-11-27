@@ -18,13 +18,17 @@ import { m } from "@/paraglide/messages";
 export function SiteHeader({
   locale,
   onRegistration = false,
+  onStatusCheck = false,
 }: {
   locale: Locale;
   /** On /registration the form's own button is the page's one solid pill, so Register is outlined. */
   onRegistration?: boolean;
+  /** The status check (FR-7) has its own solid button too, so Register is outlined there as well. */
+  onStatusCheck?: boolean;
 }) {
   const o = { locale };
   const current = onRegistration ? ("page" as const) : undefined;
+  const outlined = onRegistration || onStatusCheck;
   const links = [
     ["/#about", m.nav_about({}, o)],
     ["/#services", m.nav_services({}, o)],
@@ -60,7 +64,7 @@ export function SiteHeader({
             href="/registration"
             aria-current={current}
             className={`hidden min-h-11 items-center gap-2 rounded-full px-5 text-button no-underline transition-[background-color,transform] duration-150 select-none active:scale-[0.98] md:inline-flex ${
-              onRegistration
+              outlined
                 ? "border border-brand bg-paper text-brand hover:bg-mist"
                 : "bg-brand text-paper hover:bg-brand-deep"
             }`}

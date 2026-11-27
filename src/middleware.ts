@@ -3,6 +3,7 @@ import { contentSecurityPolicy, usesTurnstile } from "./lib/csp";
 import { isAdminHost } from "./lib/hosts";
 
 const ADMIN_PREFIX = "/admin";
+const STATUS_CHECK_PATH = "/registration/status";
 
 /**
  * Edge middleware, not Next 16's proxy.ts: proxy.ts always runs on the Node runtime, which
@@ -14,7 +15,8 @@ const ADMIN_PREFIX = "/admin";
  *    route handler and server action checks the staff session and role itself.
  * 2. Sets a per-request nonce-based Content-Security-Policy. Next.js reads the nonce from the
  *    request header and applies it to its own scripts, so pages must render dynamically.
- * 3. Sets the request id that every log line for this request carries (NFR-9), and returns it
+ * 3. Sends `Cache-Control: no-store` on the status check (FR-7, #20).
+ * 4. Sets the request id that every log line for this request carries (NFR-9), and returns it
  *    as X-Request-Id so a staff member can quote it when reporting a problem.
  */
 export function middleware(request: NextRequest) {
@@ -43,7 +45,13 @@ export function middleware(request: NextRequest) {
 
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("X-Request-Id", requestId);
+  // The status check's answers are personal (FR-7): no browser or cache may keep them.
+  if (!adminHost && isStatusCheck(pathname)) response.headers.set("Cache-Control", "no-store");
   return response;
+}
+
+function isStatusCheck(pathname: string): boolean {
+  return pathname === STATUS_CHECK_PATH || pathname.startsWith(`${STATUS_CHECK_PATH}/`);
 }
 
 /**

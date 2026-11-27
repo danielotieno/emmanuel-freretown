@@ -12,6 +12,8 @@ export function registrationText(locale: Locale) {
   return {
     title: m.reg_title({}, o),
     intro: m.reg_intro({}, o),
+    checkFirst: m.reg_check_first({}, o),
+    checkFirstLink: m.reg_check_first_link({}, o),
     continue: m.reg_continue({}, o),
     back: m.reg_back({}, o),
     sendCode: m.reg_send_code({}, o),
