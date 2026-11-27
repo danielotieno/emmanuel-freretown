@@ -102,7 +102,7 @@ Score = impact × likelihood, each from 1 (low) to 5 (high), assessed with the c
 
 Regulation 49(1)(d) treats any change that may raise the risk to members as needing a DPIA. Update this assessment, and submit it again where s. 31(5) applies, before:
 
-- **Release 2 elections, including the 13 December pilot.** These add who voted (participation records), candidates and encrypted ballots, and so a new risk to ballot secrecy (`docs/architecture/domain-model.md`, "Known gaps in ballot secrecy"). Already decided for it: election records that name a member (the electorate, participation, check-ins) are removed one week after the election's final result is declared (D51); nomination records two weeks after it; results keep only who was elected, with totals (D52).
+- **Release 2 elections, including the 13 December pilot.** These add who voted (participation records), candidates and encrypted ballots, and so a new risk to ballot secrecy (`docs/architecture/domain-model.md`, "Known gaps in ballot secrecy"). Already decided for it: election records that name a member (the electorate, participation, check-ins) are removed one week after the election's final result is declared (D51); nomination records two weeks after it; results keep only who was elected, with totals (D52); turnout counts naming no one are kept, and complaints must be raised within 5 days, removal waiting while one is open (D53).
 - Adding member logins, new data fields, new processors, or sharing with any body outside the parish.
 
 ## Part 5: Sign-off and outcomes

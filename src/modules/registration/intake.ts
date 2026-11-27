@@ -19,7 +19,7 @@ import { generateReference } from "./reference";
  * The privacy notice the member acknowledges, recorded with every revision (BR-15). Raise it
  * whenever the notice at /privacy changes (#27).
  */
-export const PRIVACY_NOTICE_VERSION = "2026-11-29";
+export const PRIVACY_NOTICE_VERSION = "2026-11-30";
 
 /**
  * BR-03 and BR-06: whether the FWO is held by a member or another open registration, and whether
