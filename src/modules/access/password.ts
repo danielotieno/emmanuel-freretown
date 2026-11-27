@@ -42,9 +42,17 @@ export async function changeOwnPassword(
   if (newPassword.length < MIN_PASSWORD_LENGTH) return { ok: false, reason: "too_short" };
   if (newPassword.length > MAX_PASSWORD_LENGTH) return { ok: false, reason: "too_long" };
   if (newPassword === currentPassword) return { ok: false, reason: "unchanged" };
-  const newHash = await hashPassword(newPassword);
   try {
     await db.transaction(async (tx) => {
+      // The user row first, then the login: the order a Super Administrator's reset takes
+      // (accounts.ts), so a change and a reset at the same moment queue instead of deadlocking.
+      await safeQuery(() =>
+        tx
+          .select({ id: userTable.id })
+          .from(userTable)
+          .where(eq(userTable.id, userId))
+          .for("no key update"),
+      );
       const credential = and(eq(account.userId, userId), eq(account.providerId, "credential"));
       const [found] = await safeQuery(() =>
         tx.select({ hash: account.password }).from(account).where(credential).for("update"),
@@ -56,6 +64,7 @@ export async function changeOwnPassword(
       ) {
         throw new Refused("wrong_password");
       }
+      const newHash = await hashPassword(newPassword);
       await safeQuery(() => tx.update(account).set({ password: newHash }).where(credential));
       await safeQuery(() =>
         tx.update(userTable).set({ mustChangePassword: false }).where(eq(userTable.id, userId)),

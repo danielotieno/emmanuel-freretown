@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { getDb } from "@/app/_lib/db";
 import { requireStaff } from "@/app/_lib/staff";
 import { AlertIcon, ArrowIcon, CheckIcon } from "@/components/icons";
-import { listStaff, STAFF_ROLES, type StaffChangeRefusal } from "@/modules/access";
+import { listStaff, STAFF_ROLES } from "@/modules/access";
 import { ROLE_NAMES } from "../../_components/role-names";
 import {
   grantRoleAction,
@@ -36,11 +36,8 @@ export default async function StaffAccountPage({
   if (!account) notFound();
   const search = await searchParams;
   const own = account.id === staff.userId;
-  const done = typeof search.done === "string" ? DONE_MESSAGES[search.done] : undefined;
-  const refused =
-    typeof search.refused === "string" && search.refused in REFUSAL_MESSAGES
-      ? REFUSAL_MESSAGES[search.refused as StaffChangeRefusal]
-      : undefined;
+  const done = messageFor(DONE_MESSAGES, search.done);
+  const refused = messageFor(REFUSAL_MESSAGES, search.refused);
 
   return (
     <main className="min-h-dvh bg-cloud pb-16">
@@ -158,6 +155,11 @@ export default async function StaffAccountPage({
       </div>
     </main>
   );
+}
+
+/** The message for a code in the URL; own keys only, so `?done=constructor` finds nothing. */
+function messageFor(messages: Record<string, string>, code: unknown): string | undefined {
+  return typeof code === "string" && Object.hasOwn(messages, code) ? messages[code] : undefined;
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {

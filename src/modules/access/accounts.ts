@@ -209,15 +209,15 @@ class Refused extends Error {
  * account queue. FOR NO KEY UPDATE, not FOR UPDATE: a sign-in inserting a session (whose foreign
  * key takes FOR KEY SHARE on the user) must not wait for it. A refusal rolls everything back.
  */
-async function change<T>(
+async function change(
   db: DbOrTx,
   c: Change,
-  run: (tx: Transaction) => Promise<T>,
+  run: (tx: Transaction) => Promise<void>,
   { allowSelf = false } = {},
-): Promise<{ ok: true; value: T } | { ok: false; reason: StaffChangeRefusal }> {
+): Promise<StaffChangeResult> {
   if (!allowSelf && c.userId === c.actor.userId) return { ok: false, reason: "self" };
   try {
-    const value = await db.transaction(async (tx) => {
+    await db.transaction(async (tx) => {
       const found = await safeQuery(() =>
         tx
           .select({ id: userTable.id })
@@ -226,9 +226,9 @@ async function change<T>(
           .for("no key update"),
       );
       if (found.length === 0) throw new Refused("not_found");
-      return run(tx);
+      await run(tx);
     });
-    return { ok: true, value };
+    return { ok: true };
   } catch (error) {
     if (error instanceof Refused) return { ok: false, reason: error.reason };
     throw error;
@@ -282,22 +282,16 @@ export async function endSessions(tx: Transaction, userId: string, keep?: string
   return ended.length;
 }
 
-const unwrap = <T>(
-  result: { ok: true; value: T } | { ok: false; reason: StaffChangeRefusal },
-): StaffChangeResult => (result.ok ? { ok: true } : result);
-
 /** Grants a role, GLOBAL. Refused as unchanged if they hold it already. */
 export async function grantRole(
   db: DbOrTx,
   c: Change & { role: StaffRole },
 ): Promise<StaffChangeResult> {
   try {
-    return unwrap(
-      await change(db, c, (tx) => insertGrant(tx, c.userId, c.role, c.actor, c.requestId), {
-        // Granting yourself a role is allowed: a Super Administrator may also staff the desk.
-        allowSelf: true,
-      }),
-    );
+    return await change(db, c, (tx) => insertGrant(tx, c.userId, c.role, c.actor, c.requestId), {
+      // Granting yourself a role is allowed: a Super Administrator may also staff the desk.
+      allowSelf: true,
+    });
   } catch (error) {
     // role_assignment_active_uq: one active grant per user, role and scope.
     if (isUniqueViolation(error)) return { ok: false, reason: "unchanged" };
@@ -307,43 +301,42 @@ export async function grantRole(
 
 /**
  * Revokes a role. Takes effect on the staff member's next request: `requireStaff` reads the
- * grants every time. The last active Super Administrator keeps the role (D59); the active
- * Super Administrator grants are locked first, so two revoking each other can't both succeed.
+ * grants every time. The last active Super Administrator keeps the role (D59). The active
+ * Super Administrator grants are locked first, so concurrent revokes queue; under READ
+ * COMMITTED the one that waited counts again without the grant just revoked.
  */
 export async function revokeRole(
   db: DbOrTx,
   c: Change & { role: StaffRole },
 ): Promise<StaffChangeResult> {
-  return unwrap(
-    await change(db, c, async (tx) => {
-      if (c.role === "SUPER_ADMIN") {
-        const superAdmins = await safeQuery(() =>
-          tx
-            .select({ id: roleAssignment.id })
-            .from(roleAssignment)
-            .where(and(eq(roleAssignment.role, "SUPER_ADMIN"), isNull(roleAssignment.revokedAt)))
-            .for("update"),
-        );
-        if (superAdmins.length <= 1) throw new Refused("last_super_admin");
-      }
-      const revoked = await safeQuery(() =>
+  return change(db, c, async (tx) => {
+    if (c.role === "SUPER_ADMIN") {
+      const superAdmins = await safeQuery(() =>
         tx
-          .update(roleAssignment)
-          .set({ revokedAt: new Date() })
-          .where(
-            and(
-              eq(roleAssignment.userId, c.userId),
-              eq(roleAssignment.role, c.role),
-              eq(roleAssignment.scopeType, "GLOBAL"),
-              isNull(roleAssignment.revokedAt),
-            ),
-          )
-          .returning({ id: roleAssignment.id }),
+          .select({ id: roleAssignment.id })
+          .from(roleAssignment)
+          .where(and(eq(roleAssignment.role, "SUPER_ADMIN"), isNull(roleAssignment.revokedAt)))
+          .for("update"),
       );
-      if (revoked.length === 0) throw new Refused("unchanged");
-      await audit.write(tx, entry(c, "revoke_role", { before: { role: c.role, scope: "GLOBAL" } }));
-    }),
-  );
+      if (superAdmins.length <= 1) throw new Refused("last_super_admin");
+    }
+    const revoked = await safeQuery(() =>
+      tx
+        .update(roleAssignment)
+        .set({ revokedAt: new Date() })
+        .where(
+          and(
+            eq(roleAssignment.userId, c.userId),
+            eq(roleAssignment.role, c.role),
+            eq(roleAssignment.scopeType, "GLOBAL"),
+            isNull(roleAssignment.revokedAt),
+          ),
+        )
+        .returning({ id: roleAssignment.id }),
+    );
+    if (revoked.length === 0) throw new Refused("unchanged");
+    await audit.write(tx, entry(c, "revoke_role", { before: { role: c.role, scope: "GLOBAL" } }));
+  });
 }
 
 /**
@@ -352,23 +345,21 @@ export async function revokeRole(
  * goes back to false too, so that set-up is audited (`staff_user.enable_second_factor`).
  */
 export async function resetSecondFactor(db: DbOrTx, c: Change): Promise<StaffChangeResult> {
-  return unwrap(
-    await change(db, c, async (tx) => {
-      const removed = await safeQuery(() =>
-        tx.delete(twoFactor).where(eq(twoFactor.userId, c.userId)).returning({ id: twoFactor.id }),
-      );
-      const flagged = await safeQuery(() =>
-        tx
-          .update(userTable)
-          .set({ twoFactorEnabled: false })
-          .where(and(eq(userTable.id, c.userId), eq(userTable.twoFactorEnabled, true)))
-          .returning({ id: userTable.id }),
-      );
-      if (removed.length === 0 && flagged.length === 0) throw new Refused("unchanged");
-      const sessionsEnded = await endSessions(tx, c.userId);
-      await audit.write(tx, entry(c, "reset_second_factor", { after: { sessionsEnded } }));
-    }),
-  );
+  return change(db, c, async (tx) => {
+    const removed = await safeQuery(() =>
+      tx.delete(twoFactor).where(eq(twoFactor.userId, c.userId)).returning({ id: twoFactor.id }),
+    );
+    const flagged = await safeQuery(() =>
+      tx
+        .update(userTable)
+        .set({ twoFactorEnabled: false })
+        .where(and(eq(userTable.id, c.userId), eq(userTable.twoFactorEnabled, true)))
+        .returning({ id: userTable.id }),
+    );
+    if (removed.length === 0 && flagged.length === 0) throw new Refused("unchanged");
+    const sessionsEnded = await endSessions(tx, c.userId);
+    await audit.write(tx, entry(c, "reset_second_factor", { after: { sessionsEnded } }));
+  });
 }
 
 /**
@@ -377,8 +368,9 @@ export async function resetSecondFactor(db: DbOrTx, c: Change): Promise<StaffCha
  */
 export async function resetPassword(db: DbOrTx, c: Change): Promise<TemporaryPasswordResult> {
   const password = temporaryPassword();
-  const passwordHash = await hashPassword(password);
   const result = await change(db, c, async (tx) => {
+    // Hashed here, after the cheap refusals (own account, unknown user).
+    const passwordHash = await hashPassword(password);
     const updated = await safeQuery(() =>
       tx
         .update(account)
@@ -401,11 +393,9 @@ export async function resetPassword(db: DbOrTx, c: Change): Promise<TemporaryPas
  * roles and removing them from the Cloudflare Access allow-list). Unchanged if they had none.
  */
 export async function revokeSessions(db: DbOrTx, c: Change): Promise<StaffChangeResult> {
-  return unwrap(
-    await change(db, c, async (tx) => {
-      const sessionsEnded = await endSessions(tx, c.userId);
-      if (sessionsEnded === 0) throw new Refused("unchanged");
-      await audit.write(tx, entry(c, "revoke_sessions", { after: { sessionsEnded } }));
-    }),
-  );
+  return change(db, c, async (tx) => {
+    const sessionsEnded = await endSessions(tx, c.userId);
+    if (sessionsEnded === 0) throw new Refused("unchanged");
+    await audit.write(tx, entry(c, "revoke_sessions", { after: { sessionsEnded } }));
+  });
 }
