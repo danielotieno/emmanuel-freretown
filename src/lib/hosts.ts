@@ -41,6 +41,19 @@ export function adminOrigin(host: string | null | undefined): string | null {
   return `${isSecureCookieHost(value) ? "https" : "http"}://${value}`;
 }
 
+/**
+ * Whether a POST to the staff host came from the staff portal itself. Server actions get this
+ * check from Next.js and Better Auth's endpoints from Better Auth; a route handler that changes
+ * anything must make it. SameSite=Lax cookies alone don't stop a form on another page of the
+ * same site (the public site, staging) from posting here with the staff session. Browsers send
+ * Origin with every POST; a request without one carries no browser session, so it is left to the
+ * staff check.
+ */
+export function isSameOriginPost(headers: Headers): boolean {
+  const origin = headers.get("origin");
+  return origin === null || origin === adminOrigin(headers.get("host"));
+}
+
 /** The public site that goes with each staff host. */
 const PUBLIC_HOSTNAME_OF: Readonly<Record<string, string>> = {
   "admin.ackemmanuelfreretown.org": "ackemmanuelfreretown.org",

@@ -37,8 +37,8 @@ function filtersOf(search: Search): MemberListFilters {
 
 /**
  * The member records (FR-6, #22), for Membership Administrators and Super Administrators: by
- * name, filtered by HBC and status, and a search that posts its terms. Viewing the list is not
- * recorded (D31); a search and opening a record are.
+ * name, filtered by HBC and status, a search that posts its terms, and the CSV export (FR-12,
+ * #25). Viewing the list is not recorded (D31); a search, opening a record and an export are.
  */
 export default async function MembersPage({ searchParams }: { searchParams: Promise<Search> }) {
   await requireStaff("MEMBERSHIP_ADMIN");
@@ -111,6 +111,27 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                 : `${total} ${total === 1 ? "member" : "members"}.`}
           </p>
           <MemberList items={items} />
+        </section>
+
+        <section aria-labelledby="export-heading" className="mt-12">
+          <h2 id="export-heading" className="text-subtitle">
+            Export
+          </h2>
+          <p className="mt-2 text-ink-muted">
+            Every active member as a CSV file: FWO number, name, mobile number, HBC and departments.
+            Each download is recorded in the audit log, with how many members it holds.
+          </p>
+          <p className="mt-2 text-ink-muted">
+            The file holds members&rsquo; personal details. Keep it only where it is needed, and
+            delete it when you are done. To keep FWO numbers like 0042 as written, open it in Excel
+            with Data › From Text/CSV and set the fwo_number column to Text (D29).
+          </p>
+          {/* A POST, so no link or reload runs an export (src/app/admin/members/export). */}
+          <form method="post" action="/members/export" className="mt-4">
+            <button type="submit" className="btn-secondary">
+              Download the CSV
+            </button>
+          </form>
         </section>
       </div>
     </main>

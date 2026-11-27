@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeKenyanPhone } from "./phone";
+import { formatKenyanPhone, normalizeKenyanPhone } from "./phone";
 
 describe("normalizeKenyanPhone (BR-06, FR-2)", () => {
   it.each([
@@ -34,5 +34,15 @@ describe("normalizeKenyanPhone (BR-06, FR-2)", () => {
     "+2547123456789",
   ])("refuses %j", (input) => {
     expect(normalizeKenyanPhone(input)).toBeNull();
+  });
+});
+
+describe("formatKenyanPhone (FR-12)", () => {
+  it.each([
+    ["+254712345678", "0712 345 678"],
+    ["+254110000001", "0110 000 001"],
+  ])("writes %s as %s, which normalizes back to it", (e164, local) => {
+    expect(formatKenyanPhone(e164)).toBe(local);
+    expect(normalizeKenyanPhone(local)).toBe(e164);
   });
 });

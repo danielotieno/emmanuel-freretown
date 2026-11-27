@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { adminOrigin, isAdminHost, isSecureCookieHost, publicOrigin } from "./hosts";
+import {
+  adminOrigin,
+  isAdminHost,
+  isSameOriginPost,
+  isSecureCookieHost,
+  publicOrigin,
+} from "./hosts";
 
 describe("isSecureCookieHost", () => {
   it("is secure on the public and staff hosts", () => {
@@ -60,6 +66,35 @@ describe("adminOrigin", () => {
 
   it("is null on any other host", () => {
     expect(adminOrigin("ackemmanuelfreretown.org")).toBeNull();
+  });
+});
+
+describe("isSameOriginPost", () => {
+  const post = (host: string, origin?: string) => new Headers(origin ? { host, origin } : { host });
+
+  it("accepts a POST from the staff portal itself", () => {
+    expect(
+      isSameOriginPost(
+        post("admin.ackemmanuelfreretown.org", "https://admin.ackemmanuelfreretown.org"),
+      ),
+    ).toBe(true);
+    expect(isSameOriginPost(post("admin.localhost:3100", "http://admin.localhost:3100"))).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    "https://ackemmanuelfreretown.org",
+    "https://staging.ackemmanuelfreretown.org",
+    "https://admin-staging.ackemmanuelfreretown.org",
+    "http://admin.ackemmanuelfreretown.org",
+    "null",
+  ])("refuses a POST from %s, even on the same site", (origin) => {
+    expect(isSameOriginPost(post("admin.ackemmanuelfreretown.org", origin))).toBe(false);
+  });
+
+  it("leaves a request without Origin to the staff check (no browser session)", () => {
+    expect(isSameOriginPost(post("admin.ackemmanuelfreretown.org"))).toBe(true);
   });
 });
 

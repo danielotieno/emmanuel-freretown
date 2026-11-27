@@ -1,7 +1,8 @@
 /**
  * A small CSV reader for the import of the parish list (FR-13, #104): RFC 4180 fields, quoted
  * or not, with doubled quotes inside quotes and line breaks inside quoted fields; CRLF or LF
- * line ends. No dependency (CLAUDE.md rule 11): the files are a few hundred rows.
+ * line ends. And a writer for the export (FR-12, #25). No dependency (CLAUDE.md rule 11): the
+ * files are a few hundred rows.
  */
 
 export type CsvResult = { ok: true; rows: string[][] } | { ok: false; error: "unclosed_quote" };
@@ -76,4 +77,24 @@ export function decodeCsvFile(bytes: Uint8Array): string | null {
 /** CRLF and lone CR become LF, so the same file always has the same text and digest. */
 export function normalizeLineEnds(text: string): string {
   return text.replace(/\r\n?/g, "\n");
+}
+
+/**
+ * Writes rows as CSV for Excel (FR-12): a UTF-8 byte-order mark, so Excel reads accented names
+ * as UTF-8; CRLF line ends; every field quoted, quotes doubled (RFC 4180). Each field is made
+ * safe from spreadsheet formula injection first (`spreadsheetSafe`).
+ */
+export function toCsv(rows: string[][]): string {
+  const line = (row: string[]) =>
+    row.map((field) => `"${spreadsheetSafe(field).replace(/"/g, '""')}"`).join(",");
+  return `\uFEFF${rows.map(line).join("\r\n")}\r\n`;
+}
+
+/**
+ * A spreadsheet runs a cell that starts with =, +, - or @ as a formula, and a tab or carriage
+ * return can start one too, so a name typed as `=HYPERLINK(…)` could act when the file is
+ * opened (OWASP, "CSV injection"). Such a value gets a leading apostrophe, which makes it text.
+ */
+export function spreadsheetSafe(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
 }
