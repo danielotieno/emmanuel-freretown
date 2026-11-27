@@ -5,7 +5,7 @@ The parish website and membership registry at ackemmanuelfreretown.org. Start wi
 ## Requirements
 
 - Node.js 24 (`.nvmrc`) and pnpm 10 (`corepack enable`)
-- A PostgreSQL database for local work and integration tests. **Docker is not needed.** Use your development branch in the `ack-nonprod` Neon project (ask the technical lead), or any local PostgreSQL 15+ you already have. Production is Neon, Postgres 18. The integration database's name must contain `test`: the suite wipes it.
+- A PostgreSQL database for local work and integration tests. **Docker is not needed.** Use your development branch in the `ack-nonprod` Neon project (ask the technical lead), or a local PostgreSQL 18, which matches production (Neon) and CI (`postgres:18`). For the integration tests a local Postgres 18 is recommended: see [Running the integration tests locally](#running-the-integration-tests-locally). The integration database's name must contain `test`: the suite wipes it.
 
 ## First run
 
@@ -21,24 +21,56 @@ Run `pnpm i18n:watch` in a second terminal while editing `messages/*.json`.
 
 ## Commands
 
-| Command                        | What it does                                                                                 |
-| ------------------------------ | -------------------------------------------------------------------------------------------- |
-| `pnpm dev`                     | Next.js dev server with Cloudflare bindings                                                  |
-| `pnpm build` / `pnpm start`    | Production Node build and server (used by Playwright)                                        |
-| `pnpm preview`                 | Build the Worker with OpenNext and run it locally in workerd                                 |
-| `pnpm deploy`                  | Build and deploy to Cloudflare Workers                                                       |
-| `pnpm check`                   | Types, lint, dependency rules, formatting and unit tests                                     |
-| `pnpm test`                    | Unit tests (Vitest)                                                                          |
-| `pnpm test:integration`        | Integration tests against real Postgres at `TEST_DATABASE_URL` (wiped and migrated each run) |
-| `pnpm e2e`                     | Playwright on the four DESIGN.md viewports, with axe and the 200 KB budget (port 3100)       |
-| `pnpm db:generate`             | Generate a migration from `src/db/schema`                                                    |
-| `pnpm db:custom --name=<name>` | Create an empty SQL migration for what Drizzle cannot express                                |
-| `pnpm db:migrate`              | Apply migrations to `DATABASE_URL` (owner role). Never `drizzle-kit push`                    |
-| `pnpm db:app-login`            | Create the app's database login, or rotate its password; prints its connection string once   |
-| `pnpm db:backup-login`         | Create the read-only backup login (`ack_backup`), or rotate its password                     |
-| `pnpm db:drift`                | Compare a live database's schema with one built from the migrations                          |
-| `pnpm auth:schema`             | Regenerate `src/db/schema/auth.ts` from the Better Auth config                               |
-| `pnpm gen`                     | Compile Paraglide messages and generate `cloudflare-env.d.ts`                                |
+| Command                        | What it does                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------ |
+| `pnpm dev`                     | Next.js dev server with Cloudflare bindings                                                |
+| `pnpm build` / `pnpm start`    | Production Node build and server (used by Playwright)                                      |
+| `pnpm preview`                 | Build the Worker with OpenNext and run it locally in workerd                               |
+| `pnpm deploy`                  | Build and deploy to Cloudflare Workers                                                     |
+| `pnpm check`                   | Types, lint, dependency rules, formatting and unit tests                                   |
+| `pnpm test`                    | Unit tests (Vitest)                                                                        |
+| `pnpm test:integration`        | Integration tests at `TEST_DATABASE_URL`, wiped and migrated each run (local Postgres 18)  |
+| `pnpm e2e`                     | Playwright on the four DESIGN.md viewports, with axe and the 200 KB budget (port 3100)     |
+| `pnpm db:generate`             | Generate a migration from `src/db/schema`                                                  |
+| `pnpm db:custom --name=<name>` | Create an empty SQL migration for what Drizzle cannot express                              |
+| `pnpm db:migrate`              | Apply migrations to `DATABASE_URL` (owner role). Never `drizzle-kit push`                  |
+| `pnpm db:app-login`            | Create the app's database login, or rotate its password; prints its connection string once |
+| `pnpm db:backup-login`         | Create the read-only backup login (`ack_backup`), or rotate its password                   |
+| `pnpm db:drift`                | Compare a live database's schema with one built from the migrations                        |
+| `pnpm auth:schema`             | Regenerate `src/db/schema/auth.ts` from the Better Auth config                             |
+| `pnpm gen`                     | Compile Paraglide messages and generate `cloudflare-env.d.ts`                              |
+
+### Running the integration tests locally
+
+Point `TEST_DATABASE_URL` at a local Postgres 18, for example Homebrew's. Docker is still not
+needed. Against a remote Neon branch the full suite took about 29 minutes from Kenya, with
+timeouts in `assisted-registration.test.ts`; locally all 245 tests run in about 22 seconds.
+
+```bash
+brew install postgresql@18
+```
+
+```bash
+brew services start postgresql@18
+```
+
+```bash
+createdb -h localhost --template=template0 --locale-provider=builtin --locale=C.UTF-8 ack_test
+```
+
+`postgresql@18` is keg-only: if `createdb` is not found, run `brew link postgresql@18`.
+
+Create the database with Neon's locale (builtin `C.UTF-8`), as above, or order-sensitive tests
+fail. macOS's default `en_US.UTF-8` sorts `_` before `.`, so
+`tests/integration/member-import.test.ts` ("audits every member and the batch") finds
+`member_import.create` before `member.create`. Then, in `.env`:
+
+```dotenv
+TEST_DATABASE_URL=postgres://<your macOS user>@localhost:5432/ack_test
+```
+
+The name must contain `test` (`tests/integration/env.ts`): the suite wipes the database and
+migrates it again on every run.
 
 ### Running Playwright locally
 

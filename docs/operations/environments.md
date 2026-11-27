@@ -33,7 +33,7 @@ Neon lives in the technical lead's personal Neon account (D40). A Neon account h
 
 1. Project **`ack-production`**: Postgres **18**, region **AWS Europe Central 1 (Frankfurt)**. In its settings, set the restore window (history retention) to **7 days**. Its only branch is the default, **`production`**. Delete any other branch Neon creates. The only other branches it should ever have are the short-lived restore branches the deploy pipeline makes before a migration (#7).
 2. Project **`ack-nonprod`**: Postgres 18, same region. Keep its restore window short (1 day is plenty) to keep its storage cost near zero.
-3. In `ack-nonprod`, rename the default branch to **`staging`**. Create one branch per developer from it (for example `dev-<initials>`) and, on each developer branch, a second database named `ack_test` for the integration tests. "Reset from parent" refreshes a developer branch from staging. Nothing in this project is ever copied from production.
+3. In `ack-nonprod`, rename the default branch to **`staging`**. Create one branch per developer from it (for example `dev-<initials>`) and, on each developer branch, a second database named `ack_test` if you run the integration tests there. A local Postgres 18 is faster and recommended for them (README, "Running the integration tests locally"): the full suite takes minutes against a remote branch and seconds locally. "Reset from parent" refreshes a developer branch from staging. Nothing in this project is ever copied from production.
 
 Notes:
 - **The region can't be changed after a project is created.** If a project is in the wrong region, delete it (while it holds no real data) and create it again.
