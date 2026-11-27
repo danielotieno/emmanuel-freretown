@@ -19,7 +19,7 @@ export function CorrectionForm(props: {
     fullName: string;
     fwoNumber: string;
     noPersonalPhone: boolean;
-    /** As stored, +254…; shown in the local form. */
+    /** As stored, +254…; the form accepts it as it is, or in the local form (0712…). */
     phone: string;
     /** "unknown" for a new member whose HBC isn't known yet (D49). */
     hbcId: string;

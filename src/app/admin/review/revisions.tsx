@@ -48,6 +48,14 @@ function Details(props: {
   units: { hbcs: Map<string, string>; departments: Map<string, string> };
 }) {
   const r = props.revision;
+  // BR-14: retention removes a rejected or withdrawn registration's details from every revision.
+  if (r.fullName === null) {
+    return (
+      <p className="px-5 py-4 text-ink-muted">
+        Details removed after the retention period (BR-14).
+      </p>
+    );
+  }
   return (
     <dl className="divide-y divide-line">
       <Row term="Full name">{r.fullName}</Row>
