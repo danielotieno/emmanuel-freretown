@@ -4,6 +4,7 @@ import { expect as baseExpect, type BrowserContext, type Page } from "@playwrigh
 import { hashPassword } from "better-auth/crypto";
 import { Client } from "pg";
 import en from "../../messages/en.json" with { type: "json" };
+import { waitForStillness } from "./motion";
 
 // Shared by the staff-portal journeys (desk.spec.ts, review.spec.ts): synthetic staff users
 // created in the e2e database with the owner's credentials (DATABASE_URL), signing in and
@@ -207,6 +208,7 @@ export async function confirmAll(page: Page) {
 }
 
 export async function expectNoAxeViolations(page: Page) {
+  await waitForStillness(page);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();

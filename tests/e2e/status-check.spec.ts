@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Request } from "@playwright/test";
 import en from "../../messages/en.json" with { type: "json" };
+import { waitForStillness } from "./motion";
 
 // The status-check journey (issue #20, FR-7, D24, D48) on all four viewports. The server runs in
 // test mode (E2E_TEST_MODE): no SMS is sent and the code is always 000000. Turnstile uses
@@ -123,11 +124,13 @@ test("is sent with Cache-Control: no-store", async ({ request }) => {
 });
 
 test("has no WCAG 2.2 AA violations on the first step and the review", async ({ page }) => {
-  const scan = () =>
-    new AxeBuilder({ page })
+  const scan = async () => {
+    await waitForStillness(page);
+    return new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .exclude("iframe")
       .analyze();
+  };
   await page.goto("/registration/status");
   expect((await scan()).violations).toEqual([]);
   await page.getByLabel(en.status_phone_label).fill(`07${randomDigits(8)}`);
