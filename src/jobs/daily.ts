@@ -1,4 +1,9 @@
-import { redactExpiredRegistrations } from "../modules/audit";
+import { purgeExpiredStaffRows } from "../modules/access";
+import {
+  redactClosedMembers,
+  redactExpiredRegistrations,
+  type RedactionResult,
+} from "../modules/audit";
 import {
   checkSmsBalance,
   isSmsConfigured,
@@ -47,14 +52,18 @@ export const DAILY_JOBS: DailyJob[] = [
         ? checkSmsBalance(db, smsProviderFromEnv(ctx.env))
         : { skipped: "sms_not_configured" },
   },
+  { name: "session.purge", run: async (db) => ({ ...(await purgeExpiredStaffRows(db)) }) },
+  { name: "retention.redact", run: async (db) => redaction(await redactExpiredRegistrations(db)) },
   {
-    name: "retention.redact",
-    run: async (db): Promise<JobResult> => {
-      const { redacted, failed, firstFailure } = await redactExpiredRegistrations(db);
-      return firstFailure ? { redacted, failed, firstFailure } : { redacted, failed };
-    },
+    name: "retention.redact_members",
+    run: async (db) => redaction(await redactClosedMembers(db)),
   },
 ];
+
+/** A redaction's counts, with the first failure's code only when there was one. */
+function redaction({ redacted, failed, firstFailure }: RedactionResult): JobResult {
+  return firstFailure ? { redacted, failed, firstFailure } : { redacted, failed };
+}
 
 export interface RunDeps {
   /** Opens a database handle. Each job gets its own, closed when the job ends. */

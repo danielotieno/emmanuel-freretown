@@ -425,7 +425,6 @@ describe("privilege coverage", () => {
   const RUNTIME_UPDATE = new Set([
     "hbc",
     "department",
-    "member",
     "member_hbc_assignment",
     "department_membership",
     "phone_challenge",
@@ -453,6 +452,25 @@ describe("privilege coverage", () => {
     "staff_rate_limit",
   ]);
   const CREDENTIALS = new Set(["account", "session", "verification", "two_factor"]);
+
+  it("lets app_runtime change only the member columns its work changes (D45, #26)", async () => {
+    const { rows } = await db.query<{ column: string }>(`
+      SELECT a.attname AS column
+        FROM pg_attribute a
+       WHERE a.attrelid = 'public.member'::regclass AND a.attnum > 0 AND NOT a.attisdropped
+         AND has_column_privilege('app_runtime', a.attrelid, a.attnum, 'UPDATE')
+       ORDER BY 1`);
+    // Not personal_data_redacted_at: only redact_closed_member() (owner) sets it.
+    expect(rows.map((r) => r.column)).toEqual([
+      "full_name",
+      "language",
+      "phone_e164",
+      "status",
+      "status_reason",
+      "updated_at",
+      "version",
+    ]);
+  });
 
   it("matches the documented grants for every table", async () => {
     const { rows } = await db.query<{

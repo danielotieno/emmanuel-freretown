@@ -172,7 +172,9 @@ export default async function ReviewRegistrationPage({
 
         <Section title="Details">
           <dl className="divide-y divide-line">
-            <Row term="Full name">{details.fullName}</Row>
+            <Row term="Full name">
+              {details.fullName ?? "Removed after the retention period (BR-14, D45)"}
+            </Row>
             <Row term="FWO number">
               {details.fwoNumber ? (
                 <span className="tabular-nums">{details.fwoNumber}</span>

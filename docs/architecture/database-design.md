@@ -62,7 +62,7 @@ CREATE TABLE member_import (
 CREATE TABLE member (
   id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   fwo_number              text NOT NULL CHECK (fwo_number ~ '^[0-9]+$'),
-  full_name               text NOT NULL CHECK (length(btrim(full_name)) BETWEEN 2 AND 120),
+  full_name               text CHECK (full_name IS NULL OR length(btrim(full_name)) BETWEEN 2 AND 120),
   phone_e164              text CHECK (phone_e164 ~ '^\+254[17][0-9]{8}$'),   -- null = no personal phone
   status                  text NOT NULL DEFAULT 'ACTIVE'
                           CHECK (status IN ('ACTIVE','INACTIVE','DECEASED','TRANSFERRED_OUT')),
@@ -73,7 +73,11 @@ CREATE TABLE member (
   created_at              timestamptz NOT NULL DEFAULT now(),
   updated_at              timestamptz NOT NULL DEFAULT now(),
   version                 integer NOT NULL DEFAULT 0,
+  personal_data_redacted_at timestamptz,   -- D45 (#26): set only by redact_closed_member()
   CHECK (status = 'ACTIVE' OR status_reason IS NOT NULL),
+  -- A name until D45's removal; after it, no name and no phone.
+  CHECK ((personal_data_redacted_at IS NULL AND full_name IS NOT NULL) OR
+         (personal_data_redacted_at IS NOT NULL AND full_name IS NULL AND phone_e164 IS NULL)),
   -- Approved from a registration or imported, never both.
   CHECK (source_registration_id IS NULL OR import_id IS NULL)
 );
@@ -375,7 +379,7 @@ On a SUBMITTED registration of a new member whose current revision has no FWO nu
 | `app_owner` | Migrations only (CI deploy step) | Owns all objects |
 | `ack_app` (login) | The application, through Hyperdrive, and local development | Member of `app_runtime` only; owns nothing; not superuser, no `CREATEROLE` or `CREATEDB`. Created or rotated with `pnpm db:app-login` (`docs/operations/environments.md`) |
 | `ack_backup` (login) | Nightly backup and weekly drift check (GitHub Actions) | Member of `pg_read_all_data` only: reads every table, including staff credentials so a restore is complete; writes nothing; owns nothing. Created or rotated with `pnpm db:backup-login` (`docs/operations/backups-and-rollback.md`) |
-| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only (including `sms_setting` and `sms_daily_usage`, migration 0005); no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`, `member_import`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `staff_rate_limit` (expired sessions, second-factor resets and expired rate-limit rows); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`) |
+| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only (including `sms_setting` and `sms_daily_usage`, migration 0005); no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`, `member_import`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `staff_rate_limit` (expired sessions, second-factor resets and expired rate-limit rows); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`); `UPDATE` on `member` only for `full_name`, `phone_e164`, `status`, `status_reason`, `language`, `updated_at` and `version` (migration 0012), so only `redact_closed_member()` can mark a member's details removed |
 | `readonly_ops` | Super Administrators for investigations | `SELECT` only, except staff credentials (`account`, `session`, `verification`, `two_factor`); every session is logged by the provider |
 
 ```sql
@@ -447,6 +451,16 @@ REVOKE ALL ON FUNCTION public.redact_expired_registration(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.redact_expired_registration(uuid) TO app_runtime;
 ```
 
+**Former members (D45, #26).** `redact_closed_member(member_id)` (migration 0012) is built the same way: owned by `app_owner`, `SECURITY DEFINER`, schema-qualified, `pg_temp` last, `EXECUTE` granted to `app_runtime` only. It removes a member's details only when the record is DECEASED or TRANSFERRED_OUT, not yet removed, and the latest `member.change_status` audit entry for it closed it with that status more than a year ago: the entry's `at` is the one date the application cannot set, so a status changed without its entry is never due. Then, in one statement:
+
+- the member's `full_name` and `phone_e164` become NULL and `personal_data_redacted_at` is set (the version is bumped); the FWO number, status, status reason, language and HBC history stay;
+- their `department_membership` rows are deleted;
+- their audit entries lose the keys `fullName`, `phoneE164` and `departmentIds` from `before` and `after`, and are marked `redacted_at`; reasons and statuses stay, as the member forms tell staff;
+- for the registration they were approved from: every revision's name and phone become NULL (FWO number and HBC stay, as on the member), its revision departments are deleted, its evidence loses the phone, and its audit entries lose the same keys;
+- a `member.redact` entry is written (SYSTEM).
+
+The daily job `retention.redact_members` (`redactClosedMembers`, audit module) finds the members due with the same condition and calls the function for each, as `retention.redact` does for registrations. Removal on request, proposed as D54 in #74, would reuse this function's body once decided.
+
 ## 5. Seed data (migration, idempotent)
 
 ```sql
@@ -476,9 +490,11 @@ Neon suspends compute after 5 idle minutes and bills by the hour awake. A job th
 | `otp.purge` | Daily | Delete `phone_challenge` rows older than 24 hours |
 | `ratelimit.purge` | Daily | Delete expired buckets |
 | `sms.purge` | Daily | Delete outbox rows older than 90 days |
+| `session.purge` | Daily | Delete Better Auth `session` and `verification` rows past their expiry, and `staff_rate_limit` counters untouched for a day (#26) |
 | `retention.redact` | Daily | Call `redact_expired_registration` for each eligible registration |
+| `retention.redact_members` | Daily | Call `redact_closed_member` for each member marked deceased or transferred out more than a year ago (D45, #26) |
 
-The Worker entry is `src/jobs/worker.ts` (#10). The daily Cron Trigger (`0 1 * * *`, 04:00 in Mombasa) runs the jobs in `src/jobs/daily.ts` in turn, each with its own database handle. A failing job is logged and reported to Sentry, and the rest still run. All are implemented (#10, #13, #14). Jobs get the Worker's env and the queue binding, for the SMS secrets and the sweep. Queue messages carry `{ type, id }` only; the consumer acknowledges malformed or unknown messages and retries failed ones after 30 s, 1, 2 and 4 minutes: five attempts in all (`max_retries: 4`). A handler is told when it is on its last attempt, so it can record the failure (e.g. mark an SMS FAILED, as §6 requires).
+The Worker entry is `src/jobs/worker.ts` (#10). The daily Cron Trigger (`0 1 * * *`, 04:00 in Mombasa) runs the jobs in `src/jobs/daily.ts` in turn, each with its own database handle. A failing job is logged and reported to Sentry, and the rest still run. All are implemented (#10, #13, #14, #26). What each kind of personal data is kept for, everywhere it lives, is in `docs/compliance/retention-schedule.md`. Jobs get the Worker's env and the queue binding, for the SMS secrets and the sweep. Queue messages carry `{ type, id }` only; the consumer acknowledges malformed or unknown messages and retries failed ones after 30 s, 1, 2 and 4 minutes: five attempts in all (`max_retries: 4`). A handler is told when it is on its last attempt, so it can record the failure (e.g. mark an SMS FAILED, as §6 requires).
 
 **SMS sending (#14, D43).** `enqueueSms` writes the outbox row in the caller's transaction; after the commit, `sendNow` sends it from Next.js `after()` with a database handle of its own (the request's handle is closed by another `after()` task running at the same time), and on anything but a send queues `sms.dispatch` in 30 seconds; the queue then backs off (30 s, 1, 2, 4 minutes). A message is never lost to an outage (FR-8): a failure the provider may recover from (timeout, network, 5xx, balance, token) leaves the row PENDING, and after the queue's attempts the daily `sms.sweep` retries it each day. A row is FAILED only when the provider rejects the request (`0422`), a delivery report says undeliverable, or it has been PENDING for 7 days (`expired`). The row is locked (`FOR UPDATE SKIP LOCKED`) during a send, so a message is never sent twice at once. The outbox id goes to Mobile Sasa as the v2 `trackingId`; Mobile Sasa refuses the same text to the same number once it has been delivered that day (`0409`), which the outbox treats as sent. That stops most double sends on retry, though a retry while the first is still queued with the carrier can still go out. `last_error` holds only codes (`0422`, `http_502`, `timeout`, `expired`, a delivery status), never provider text. Account problems (balance, token, sender) alert staff through Sentry. The daily jobs run at 04:00 Nairobi time, so messages held by yesterday's cap reach members then.
 

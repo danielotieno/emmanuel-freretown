@@ -38,7 +38,8 @@ export const member = pgTable(
   {
     id: id(),
     fwoNumber: text("fwo_number").notNull(),
-    fullName: text("full_name").notNull(),
+    /** Null only once D45's removal has run (`personal_data_redacted_at`). */
+    fullName: text("full_name"),
     /** null = no personal phone (BR-06) */
     phoneE164: text("phone_e164"),
     status: text("status", { enum: ["ACTIVE", "INACTIVE", "DECEASED", "TRANSFERRED_OUT"] })
@@ -56,10 +57,23 @@ export const member = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     version: integer("version").notNull().default(0),
+    /**
+     * When D45's removal took the member's name, phone and departments, one year after they
+     * were marked deceased or transferred out. Set only by `redact_closed_member` (owner).
+     */
+    personalDataRedactedAt: tz("personal_data_redacted_at"),
   },
   (t) => [
     check("member_fwo_number_check", sql`${t.fwoNumber} ~ ${FWO_PATTERN}`),
-    check("member_full_name_check", sql`length(btrim(${t.fullName})) BETWEEN 2 AND 120`),
+    check(
+      "member_full_name_check",
+      sql`${t.fullName} IS NULL OR length(btrim(${t.fullName})) BETWEEN 2 AND 120`,
+    ),
+    // A name until D45's removal; after it, no name and no phone.
+    check(
+      "member_redacted_check",
+      sql`(${t.personalDataRedactedAt} IS NULL AND ${t.fullName} IS NOT NULL) OR (${t.personalDataRedactedAt} IS NOT NULL AND ${t.fullName} IS NULL AND ${t.phoneE164} IS NULL)`,
+    ),
     check("member_phone_e164_check", sql`${t.phoneE164} ~ ${PHONE_E164_PATTERN}`),
     check(
       "member_status_check",

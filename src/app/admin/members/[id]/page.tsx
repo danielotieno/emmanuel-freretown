@@ -12,7 +12,7 @@ import { isClosedStatus, nextStatuses, openMember } from "@/modules/membership";
 import { listActiveDepartments, listActiveHbcs, unitNames } from "@/modules/organisation";
 import { AuditTrail, pageBefore, staffIdsIn } from "../../_components/audit-entries";
 import { formatDateTime } from "../../review/format";
-import { LANGUAGE_NAMES, STATUS_NAMES } from "../names";
+import { LANGUAGE_NAMES, REMOVED_NAME, STATUS_NAMES } from "../names";
 import { MemberForms } from "./member-forms";
 
 export const metadata: Metadata = { title: "Member · Staff" };
@@ -78,7 +78,7 @@ export default async function MemberPage({
           <ArrowIcon className="rotate-180" />
           Members
         </Link>
-        <h1 className="mt-4 text-title">{record.fullName}</h1>
+        <h1 className="mt-4 text-title">{record.fullName ?? REMOVED_NAME}</h1>
         <p className="mt-2 text-ink-muted">
           FWO <span className="tabular-nums">{record.fwoNumber}</span> ·{" "}
           {STATUS_NAMES[record.status]}
@@ -96,7 +96,10 @@ export default async function MemberPage({
             <span>
               This record is closed: the member is {STATUS_NAMES[record.status].toLowerCase()}. It
               can be viewed but not changed, and their mobile number is free for another member
-              (D20). Their details are removed one year after the change (D45).
+              (D20).{" "}
+              {record.personalDataRedactedAt
+                ? `Their name, mobile number and departments were removed on ${formatDateTime(record.personalDataRedactedAt)}, one year after the change (D45). The FWO number is kept so it is never issued again.`
+                : "Their name, mobile number and departments are removed one year after the change (D45)."}
             </span>
           </p>
         )}
@@ -106,13 +109,15 @@ export default async function MemberPage({
             Record
           </h2>
           <dl className="in-card mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-paper text-card">
-            <Row term="Full name">{record.fullName}</Row>
+            <Row term="Full name">{record.fullName ?? "Removed (D45)"}</Row>
             <Row term="FWO number">
               <span className="tabular-nums">{record.fwoNumber}</span>
             </Row>
             <Row term="Mobile number">
               {record.phoneE164 ? (
                 <span className="tabular-nums">{record.phoneE164}</span>
+              ) : record.personalDataRedactedAt ? (
+                "Removed (D45)"
               ) : (
                 "No personal phone"
               )}
@@ -127,7 +132,9 @@ export default async function MemberPage({
                         `${units.departments.get(d.departmentId) ?? "A department"}${d.state === "DECLARED" ? " (declared)" : ""}`,
                     )
                     .join(", ")
-                : "None"}
+                : record.personalDataRedactedAt
+                  ? "Removed (D45)"
+                  : "None"}
             </Row>
             <Row term="Status">
               {STATUS_NAMES[record.status]}
@@ -171,7 +178,7 @@ export default async function MemberPage({
             memberId={record.id}
             version={record.version}
             current={{
-              fullName: record.fullName,
+              fullName: record.fullName ?? "",
               noPersonalPhone: record.phoneE164 === null,
               phone: record.phoneE164 ?? "",
               language: record.language,

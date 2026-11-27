@@ -50,6 +50,17 @@ function ownerClient(): Client {
   return new Client({ connectionString: url });
 }
 
+/** Runs one statement as the e2e database's owner, for setup the application can't do. */
+export async function asOwner(text: string, values: unknown[] = []): Promise<void> {
+  const client = ownerClient();
+  await client.connect();
+  try {
+    await client.query(text, values);
+  } finally {
+    await client.end();
+  }
+}
+
 /** The staff users this worker created, disabled when its tests are done. */
 const created: string[] = [];
 

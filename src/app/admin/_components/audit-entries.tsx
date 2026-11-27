@@ -39,6 +39,7 @@ const ACTION_NAMES: Record<string, string> = {
   "member.edit": "Details changed",
   "member.transfer_hbc": "Moved to another HBC",
   "member.change_status": "Status changed",
+  "member.redact": "Personal details removed",
   "member_import.create": "Parish list imported",
   "fwo_setting.update": "Highest FWO number recorded",
   "staff_user.create": "Staff account created",
@@ -197,38 +198,49 @@ function recordOf(e: AuditRecord, names: AuditNames): ReactNode {
   }
 }
 
+/**
+ * An entry's values. Retention may have removed some (D45 keeps the reasons and statuses) or all
+ * of them (BR-14); what is left still shows, after a note of when.
+ */
 function Values({ entry, names }: { entry: AuditRecord; names: AuditNames }) {
-  if (entry.redactedAt) {
-    return (
-      <p className="mt-1 text-small text-ink-muted">
-        Details removed {formatDateTime(entry.redactedAt)} under the retention rules.
-      </p>
-    );
-  }
+  const removed = entry.redactedAt && (
+    <p className="mt-1 text-small text-ink-muted">
+      Personal details removed {formatDateTime(entry.redactedAt)} under the retention rules.
+    </p>
+  );
   if (entry.withheld) {
-    return <p className="mt-1 text-small text-ink-muted">Details on the record.</p>;
+    return (
+      <>
+        {removed}
+        <p className="mt-1 text-small text-ink-muted">Details on the record.</p>
+      </>
+    );
   }
   const before = entry.before ?? {};
   const after = entry.after ?? {};
   const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
-  if (keys.length === 0) return null;
   return (
-    <dl className="mt-2 grid gap-x-4 gap-y-1 text-small sm:grid-cols-3">
-      {keys.map((key) => (
-        <div key={key} className="contents">
-          <dt className="text-ink-muted">{labelOf(key)}</dt>
-          <dd className="sm:col-span-2">
-            {key in before && (
-              <>
-                {valueOf(key, before[key]!, names)} <span aria-hidden="true">→</span>
-                <span className="sr-only">changed to</span>{" "}
-              </>
-            )}
-            {key in after ? valueOf(key, after[key]!, names) : "None"}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <>
+      {removed}
+      {keys.length > 0 && (
+        <dl className="mt-2 grid gap-x-4 gap-y-1 text-small sm:grid-cols-3">
+          {keys.map((key) => (
+            <div key={key} className="contents">
+              <dt className="text-ink-muted">{labelOf(key)}</dt>
+              <dd className="sm:col-span-2">
+                {key in before && (
+                  <>
+                    {valueOf(key, before[key]!, names)} <span aria-hidden="true">→</span>
+                    <span className="sr-only">changed to</span>{" "}
+                  </>
+                )}
+                {key in after ? valueOf(key, after[key]!, names) : "None"}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </>
   );
 }
 
