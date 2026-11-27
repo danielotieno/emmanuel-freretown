@@ -91,7 +91,7 @@ Every state change calls `audit.write(tx, entry)` inside the transaction that ma
 - Each eligible voter casts at most one vote per position (D16).
 - Candidates are nominated beforehand or from the floor (D17).
 - Every approved, active member of the HBC is eligible, whether or not they attend (D18). Imported members count as approved on the day of the import (D47).
-- Electorates by level (D54): an HBC election, that HBC's members; a department election, its confirmed roster (a member of two departments votes in both); the parish (PCC) election, every approved, active member. HBC and department membership count as at the day nominations open.
+- Electorates by level (D54): an HBC election, that HBC's members; a department election, its confirmed roster (a member of two departments votes in both); the parish (PCC) election, every approved, active member. HBC and department membership count as at the moment nominations open; a leader may still confirm a membership declared before then, and the list check may remove someone who does not belong.
 - Each member votes once per election, and the vote is final; there is no voting again (D27, D54).
 - Positions (D55): HBC, the five above; department, Chairperson, Vice Chairperson, Secretary, Treasurer; PCC, Parish Secretary, Parish Treasurer, People's Warden. Appointed and ex officio PCC seats are not run by the system.
 - 13 December 2026 is a non-binding pilot; paper results are official (D19). It runs online voting alongside paper if the 4 December go/no-go passes, and otherwise electronic check-in only (D37).
@@ -100,8 +100,8 @@ Every state change calls `audit.write(tx, entry)` inside the transaction that ma
 - A position with a single accepted candidate when nominations close is filled unopposed; no vote is held for it (E3).
 - Voting is open for a window of a few hours on the election day (E2).
 - Department elections use rosters confirmed by department leaders before nominations close (E4).
-- `/vote` lists every open election the member is eligible for after one phone code, each submitted on its own. Members see no counts while voting is open; turnout is for the committee only. After the final result, eligible members see per-candidate counts during the 5-day complaint window, then winners and totals (D57).
-- During an election, a phone change for a member of its electorate needs a second staff user's approval; any phone change texts the old number; leaders check their lists before the freeze; the committee sees an integrity report before voting opens (D58).
+- `/vote` lists every open election the member is eligible for after one phone code, each submitted on its own. Members see no counts while voting is open; turnout is for the committee only. After the final result, eligible members see per-candidate counts during the 5-day complaint window, then winners and totals; once D51 removes the electorate, current members of that HBC, department or the parish. A pilot's online result is never shown to members (D57).
+- During an election, changing or removing the phone of a member eligible for it needs a second staff user's approval; any phone change texts the old number; leaders check their lists before the freeze; the committee sees an integrity report, from 30 days before nominations open to the freeze, before voting opens (D58).
 
 ### Entities
 
@@ -111,7 +111,7 @@ Every state change calls `audit.write(tx, entry)` inside the transaction that ma
 | Election | round (none for a pilot), title, scope (HBC/DEPARTMENT/PARISH + id), status, is_pilot, voting_opens_at, voting_closes_at | One per HBC, department or parish contest |
 | Position | election, name, seats (1), order | Seeded from the template for the election's scope (D55): five for an HBC, four for a department, three for the PCC |
 | Candidate | position, member, source (PRE/FLOOR), nominated_by, seconded_by, status | Must be in the electorate. The nomination (nominated_by, seconded_by) and unsuccessful candidates are removed, with the audit entries about them, two weeks after the election's final result (D52) |
-| ElectorateEntry | election, member, remote_allowed | Frozen snapshot taken when nominations close, from HBC and department membership as at the day nominations opened (D54); `remote_allowed` is true when the member has a personal phone on record (E1) |
+| ElectorateEntry | election, member, remote_allowed | Frozen snapshot taken when nominations close, from HBC and department membership as at the moment nominations opened (D54); `remote_allowed` is true when the member has a personal phone on record (E1) |
 | VoterParticipation | election, member, channel (ONLINE/MANUAL), recorded_by (officer, for MANUAL), voted_at | "Who voted" — unique per member per election, across both channels. A manual check-in is refused if the member already voted online, and an online vote is refused after a manual check-in. At a pilot, a check-in after an online vote is recorded separately and never refuses the paper ballot (D38); how it is stored is for the elections data model (#32). Removed, with the electorate, the check-ins and the audit entries about them, one week after the election's final result: the last re-run's, where there is one, since a re-run reuses the parent's electorate (D51) |
 | PaperTally | election, position, candidate (or ABSTAIN), votes, entered_by, confirmed_by | Manual ballot totals; requires two different officers. Final results = online tally + paper tally. Per-candidate rows are removed one week after the final result, keeping the totals per position (D52) |
 | Ballot | random id, election, sealed payload | "What was voted" — no member reference, no timestamp |
@@ -139,7 +139,7 @@ Floor nominations are entered by the presiding officer while the election is in 
 5. The electorate and candidate list cannot change after NOMINATIONS_CLOSED.
 6. A candidate must be in that election's electorate.
 7. For a pilot election, results stay sealed until the paper result has been declared.
-8. A member has at most one candidacy that is nominated, accepted or elected per election round, and none after being elected in it (D56). Enforced by the database, against the kept office-holder record as well as Candidate rows.
+8. A member has at most one candidacy that is nominated, accepted, tied awaiting a re-run, or elected per election round, and none after being elected in it (D56). Enforced by the database, against the kept office-holder record as well as Candidate rows.
 
 ### Ballot secrecy
 
@@ -166,8 +166,8 @@ The design above does not yet give secret ballots. These must be resolved in an 
 | E2 | Voting window | Resolved: a few hours on election day. Exact opening and closing times are set per election by the election officer. |
 | E3 | Candidacy rules | Resolved: one candidacy at a time per election round (D56, which replaces one position per person per election); unopposed candidates elected without a vote; voters may abstain on any position; a tie for first place triggers a re-run between only the tied candidates (see below). |
 | E4 | Department electorates | Resolved: department leaders confirm rosters before nominations close. Requires a roster confirmation screen before the 24 January department elections. |
-| E5 | Parish (PCC) elections | **Resolved (D55):** the elected seats are Parish Secretary, Parish Treasurer and People's Warden; every approved, active member votes (D54). Background: some PCC seats are elected (People's Warden, possibly executive office bearers), others are appointed (Vicar's Warden) or held by right of office (clergy). The system runs only elected seats; positions carry `filled_by` = `ELECTION` or `APPOINTMENT`. The exact list must come from the ACK Constitution and Diocese of Mombasa rules as applied in this parish, confirmed by the Vicar, not from a generic summary. |
-| E6 | Electorate cut-off | Resolved: a member is eligible only if approved before nominations open; an imported member, if imported before then (D47). HBC and department membership count as at the same day (D54). |
+| E5 | Parish (PCC) elections | **Decided (D55), pending the Vicar's confirmation against the ACK Constitution and Diocese rules:** the elected seats are Parish Secretary, Parish Treasurer and People's Warden; every approved, active member votes (D54). Background: some PCC seats are elected (People's Warden, possibly executive office bearers), others are appointed (Vicar's Warden) or held by right of office (clergy). The system runs only elected seats; positions carry `filled_by` = `ELECTION` or `APPOINTMENT`. The exact list must come from the ACK Constitution and Diocese of Mombasa rules as applied in this parish, confirmed by the Vicar, not from a generic summary. |
+| E6 | Electorate cut-off | Resolved: a member is eligible only if approved before nominations open; an imported member, if imported before then (D47). HBC and department membership count as at the same moment (D54). |
 
 ### Re-runs
 
