@@ -28,23 +28,21 @@ export const PRIVACY_NOTICE_VERSION = "2026-11-30";
 export async function conflictFlags(
   tx: Transaction,
   details: { fwoNumber: string | null; phoneE164: string | null },
+  /** A correction's own registration (FR-5), which is open and must not conflict with itself. */
+  exceptRegistrationId?: string,
 ): Promise<{ fwoConflict: boolean; phoneConflict: boolean }> {
   // Both FWO checks always run: skipping the second when the first matches would make the
   // answer measurably faster exactly when the FWO is a member's (rule 3).
   let fwoConflict = false;
   if (details.fwoNumber !== null) {
     const heldByMember = await fwoBelongsToMember(tx, details.fwoNumber);
-    const inOpenRegistration = await fwoInOpenRegistration(tx, details.fwoNumber);
+    const inOpenRegistration =
+      (await openRegistrationsWithFwo(tx, details.fwoNumber, exceptRegistrationId)).length > 0;
     fwoConflict = heldByMember || inOpenRegistration;
   }
   const phoneConflict =
     details.phoneE164 !== null && (await phoneBelongsToMember(tx, details.phoneE164));
   return { fwoConflict, phoneConflict };
-}
-
-/** BR-03: another registration still open for review with this FWO on its current revision. */
-async function fwoInOpenRegistration(tx: Transaction, fwoNumber: string): Promise<boolean> {
-  return (await openRegistrationsWithFwo(tx, fwoNumber)).length > 0;
 }
 
 /**

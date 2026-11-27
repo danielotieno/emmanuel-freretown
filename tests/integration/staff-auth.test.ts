@@ -507,9 +507,26 @@ describe("requireStaff: authorisation for every role/action pair (NFR-8)", () =>
           const expected = MAY[held].includes(needed) ? "allowed" : "forbidden";
           expect(await refusal(requireStaff(browser.request(), needed)), needed).toBe(expected);
         }
+        // Corrections (FR-5, #21): a Registration Officer or a Membership Administrator.
+        expect(
+          await refusal(
+            requireStaff(browser.request(), ["REGISTRATION_OFFICER", "MEMBERSHIP_ADMIN"]),
+          ),
+          "corrections",
+        ).toBe("allowed");
       });
     });
   }
+
+  it("a list of one role is that role: a Super Administrator is not a Registration Officer", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const { browser } = await enrolled(tx, ["SUPER_ADMIN"]);
+      expect(await refusal(requireStaff(browser.request(), ["REGISTRATION_OFFICER"]))).toBe(
+        "forbidden",
+      );
+    });
+  });
 
   it("refuses a staff user whose roles have all been revoked", async () => {
     await rolledBack(db, async (tx) => {

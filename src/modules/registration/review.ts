@@ -1,4 +1,4 @@
-import { and, asc, count, eq, isNotNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, lt, sql, type SQL } from "drizzle-orm";
 import { safeQuery, type DbOrTx, type Transaction } from "../../db";
 import {
   registration,
@@ -114,6 +114,19 @@ export async function listQueueEvents(db: DbOrTx): Promise<string[]> {
   return rows.map((r) => r.eventLabel!);
 }
 
+export interface RevisionDetails {
+  revisionNo: number;
+  fullName: string | null;
+  fwoNumber: string | null;
+  phoneE164: string | null;
+  noPersonalPhone: boolean;
+  hbcId: string | null;
+  departmentIds: string[];
+  privacyNoticeVersion: string;
+  submittedByUserId: string | null;
+  submittedAt: Date;
+}
+
 export interface RegistrationForReview {
   id: string;
   reference: string;
@@ -143,7 +156,19 @@ export interface RegistrationForReview {
     submittedByUserId: string | null;
     submittedAt: Date;
   };
-  evidence: { kind: string; actorUserId: string | null; eventLabel: string | null; at: Date }[];
+  evidence: {
+    kind: string;
+    actorUserId: string | null;
+    eventLabel: string | null;
+    at: Date;
+    /** A code checked a phone number that a correction has since replaced (FR-5). */
+    forEarlierPhone: boolean;
+  }[];
+  /**
+   * The earlier revisions, newest first (BR-09): what was submitted before each correction or
+   * FWO number. Empty while there is only one.
+   */
+  earlierRevisions: RevisionDetails[];
   decisions: { action: string; reason: string | null; actorUserId: string; at: Date }[];
   /** Checked now, not at submission: what would block approval today. */
   live: {
@@ -209,47 +234,92 @@ export async function openRegistrationForReview(
   // What would block approval today. Only asked while it can still be approved: once approved,
   // the FWO and phone belong to this registration's own member.
   const waiting = row.status === "SUBMITTED";
-  const [departments, evidence, decisions, fwoHeldByMember, phoneHeldByMember, fwoInOpen] =
-    await Promise.all([
-      safeQuery(() =>
-        db
-          .select({ id: registrationRevisionDepartment.departmentId })
-          .from(registrationRevisionDepartment)
-          .where(
-            and(
-              eq(registrationRevisionDepartment.registrationId, registrationId),
-              eq(registrationRevisionDepartment.revisionNo, row.revisionNo),
-            ),
+  const [
+    departments,
+    evidence,
+    decisions,
+    earlier,
+    earlierDepartments,
+    fwoHeldByMember,
+    phoneHeldByMember,
+    fwoInOpen,
+  ] = await Promise.all([
+    safeQuery(() =>
+      db
+        .select({ id: registrationRevisionDepartment.departmentId })
+        .from(registrationRevisionDepartment)
+        .where(
+          and(
+            eq(registrationRevisionDepartment.registrationId, registrationId),
+            eq(registrationRevisionDepartment.revisionNo, row.revisionNo),
           ),
-      ),
-      safeQuery(() =>
-        db
-          .select({
-            kind: verificationEvidence.kind,
-            actorUserId: verificationEvidence.actorUserId,
-            eventLabel: verificationEvidence.eventLabel,
-            at: verificationEvidence.at,
-          })
-          .from(verificationEvidence)
-          .where(eq(verificationEvidence.registrationId, registrationId))
-          .orderBy(asc(verificationEvidence.at)),
-      ),
-      safeQuery(() =>
-        db
-          .select({
-            action: registrationDecision.action,
-            reason: registrationDecision.reason,
-            actorUserId: registrationDecision.actorUserId,
-            at: registrationDecision.at,
-          })
-          .from(registrationDecision)
-          .where(eq(registrationDecision.registrationId, registrationId))
-          .orderBy(asc(registrationDecision.at)),
-      ),
-      waiting && row.fwoNumber ? fwoBelongsToMember(db, row.fwoNumber) : false,
-      waiting && row.phoneE164 ? phoneBelongsToMember(db, row.phoneE164) : false,
-      waiting && row.fwoNumber ? openRegistrationsWithFwo(db, row.fwoNumber, registrationId) : [],
-    ]);
+        ),
+    ),
+    safeQuery(() =>
+      db
+        .select({
+          kind: verificationEvidence.kind,
+          actorUserId: verificationEvidence.actorUserId,
+          eventLabel: verificationEvidence.eventLabel,
+          at: verificationEvidence.at,
+          phoneE164: verificationEvidence.phoneE164,
+        })
+        .from(verificationEvidence)
+        .where(eq(verificationEvidence.registrationId, registrationId))
+        .orderBy(asc(verificationEvidence.at)),
+    ),
+    safeQuery(() =>
+      db
+        .select({
+          action: registrationDecision.action,
+          reason: registrationDecision.reason,
+          actorUserId: registrationDecision.actorUserId,
+          at: registrationDecision.at,
+        })
+        .from(registrationDecision)
+        .where(eq(registrationDecision.registrationId, registrationId))
+        .orderBy(asc(registrationDecision.at)),
+    ),
+    safeQuery(() =>
+      db
+        .select({
+          revisionNo: registrationRevision.revisionNo,
+          fullName: registrationRevision.fullName,
+          fwoNumber: registrationRevision.fwoNumber,
+          phoneE164: registrationRevision.phoneE164,
+          noPersonalPhone: registrationRevision.noPersonalPhone,
+          hbcId: registrationRevision.hbcId,
+          privacyNoticeVersion: registrationRevision.privacyNoticeVersion,
+          submittedByUserId: registrationRevision.submittedByUserId,
+          submittedAt: registrationRevision.submittedAt,
+        })
+        .from(registrationRevision)
+        .where(
+          and(
+            eq(registrationRevision.registrationId, registrationId),
+            lt(registrationRevision.revisionNo, row.revisionNo),
+          ),
+        )
+        .orderBy(desc(registrationRevision.revisionNo)),
+    ),
+    safeQuery(() =>
+      db
+        .select({
+          revisionNo: registrationRevisionDepartment.revisionNo,
+          id: registrationRevisionDepartment.departmentId,
+        })
+        .from(registrationRevisionDepartment)
+        .where(
+          and(
+            eq(registrationRevisionDepartment.registrationId, registrationId),
+            lt(registrationRevisionDepartment.revisionNo, row.revisionNo),
+          ),
+        ),
+    ),
+    waiting && row.fwoNumber ? fwoBelongsToMember(db, row.fwoNumber) : false,
+    waiting && row.phoneE164 ? phoneBelongsToMember(db, row.phoneE164) : false,
+    waiting && row.fwoNumber ? openRegistrationsWithFwo(db, row.fwoNumber, registrationId) : [],
+  ]);
 
   return {
     id: row.id,
@@ -278,8 +348,17 @@ export async function openRegistrationForReview(
       submittedByUserId: row.submittedByUserId,
       submittedAt: row.revisionSubmittedAt,
     },
-    evidence,
+    evidence: evidence.map(({ phoneE164, ...e }) => ({
+      ...e,
+      forEarlierPhone: e.kind === "PHONE_OTP" && phoneE164 !== null && phoneE164 !== row.phoneE164,
+    })),
     decisions,
+    earlierRevisions: earlier.map((r) => ({
+      ...r,
+      departmentIds: earlierDepartments
+        .filter((d) => d.revisionNo === r.revisionNo)
+        .map((d) => d.id),
+    })),
     live: { fwoHeldByMember, phoneHeldByMember, fwoInOpenRegistrations: fwoInOpen },
   };
 }

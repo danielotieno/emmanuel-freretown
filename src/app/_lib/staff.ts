@@ -13,10 +13,10 @@ import {
   type AccessJwtPolicy,
   type Auth,
   type EnrollingStaff,
+  type RoleRequirement,
   type Scope,
   type Staff,
   type StaffRequest,
-  type StaffRole,
 } from "@/modules/access";
 import { adminOrigin } from "@/lib/hosts";
 import { getDb } from "./db";
@@ -83,12 +83,13 @@ async function refuse(error: unknown): Promise<never> {
  *
  *   const staff = await requireStaff("MEMBERSHIP_ADMIN");
  *
- * The role is always written out: `null` means any staff member with an active role, and is
- * for pages every staff member may see, never for actions.
+ * The role is always written out: one role, a list of roles any one of which will do (work two
+ * roles share, such as corrections), or `null` for any staff member with an active role, which
+ * is for pages every staff member may see, never for actions.
  * Returns the signed-in staff member, or redirects to sign-in or enrolment, or answers 404.
  * The checks themselves are `requireStaff` in src/modules/access.
  */
-export async function requireStaff(role: StaffRole | null, scope?: Scope): Promise<Staff> {
+export async function requireStaff(role: RoleRequirement, scope?: Scope): Promise<Staff> {
   const req = await staffRequest();
   if (!req) notFound();
   try {

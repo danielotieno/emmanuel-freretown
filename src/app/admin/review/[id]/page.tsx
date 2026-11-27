@@ -14,6 +14,7 @@ import {
   suggestFwoNumber,
 } from "@/modules/registration";
 import { formatDateTime } from "../format";
+import { RevisionList } from "../revisions";
 import { DecisionForms } from "./decision-forms";
 import { IssueFwoForm } from "./issue-fwo-form";
 
@@ -69,6 +70,7 @@ export default async function ReviewRegistrationPage({
     reg.details.submittedByUserId,
     ...reg.evidence.map((e) => e.actorUserId),
     ...reg.decisions.map((d) => d.actorUserId),
+    ...reg.earlierRevisions.map((r) => r.submittedByUserId),
   ].filter((x): x is string => !!x);
   // A new member waiting for the FWO number the Secretary issues (BR-16, #101).
   const waitingForFwo =
@@ -196,9 +198,19 @@ export default async function ReviewRegistrationPage({
             <Row term="Privacy notice">Version {details.privacyNoticeVersion}</Row>
             <Row term="Revision">
               {reg.revisionNo} · {formatDateTime(details.submittedAt)}
+              {details.submittedByUserId ? ` · by ${who(details.submittedByUserId)}` : ""}
             </Row>
           </dl>
         </Section>
+
+        {reg.earlierRevisions.length > 0 && (
+          <RevisionList
+            title="Earlier revisions"
+            revisions={reg.earlierRevisions}
+            units={units}
+            who={who}
+          />
+        )}
 
         <Section title="Verification evidence">
           {reg.evidence.length === 0 ? (
@@ -208,6 +220,11 @@ export default async function ReviewRegistrationPage({
               {reg.evidence.map((e, i) => (
                 <li key={i} className="px-5 py-4">
                   {EVIDENCE_NAMES[e.kind] ?? e.kind}
+                  {e.forEarlierPhone && (
+                    <span className="block text-ink-muted">
+                      For an earlier number: a correction has changed the phone since.
+                    </span>
+                  )}
                   <span className="block text-small text-ink-muted">
                     {[who(e.actorUserId), e.eventLabel, formatDateTime(e.at)]
                       .filter(Boolean)
@@ -243,6 +260,14 @@ export default async function ReviewRegistrationPage({
             noticeChanged={details.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION}
             hbcs={activeHbcs}
           />
+        )}
+
+        {reg.status === "CORRECTION_REQUESTED" && (
+          <p className="mt-10">
+            <Link href={`/corrections/${reg.id}`} className="btn-secondary">
+              Enter the correction
+            </Link>
+          </p>
         )}
 
         <DecisionForms
