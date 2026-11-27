@@ -51,6 +51,13 @@ function ours(csv: string): string[][] {
   return [header!, ...rows.filter((r) => /^'?25\d{4}$/.test(r[0]!))];
 }
 
+/** Members in the export, not counting the header. */
+function rowCount(csv: string): number {
+  const parsed = parseCsv(csv.slice(1));
+  if (!parsed.ok) throw new Error("unreadable export");
+  return parsed.rows.length - 1;
+}
+
 describe("exportActiveMembers (FR-12)", () => {
   it("exports active members only, by name, with phone, HBC and open departments", async () => {
     await rolledBack(db, async (tx) => {
@@ -71,8 +78,8 @@ describe("exportActiveMembers (FR-12)", () => {
       }
       await tx.execute(sql`SET LOCAL ROLE app_runtime`);
 
-      const result = await exportActiveMembers(tx, { actor: ADMIN });
-      expect(ours(result.csv)).toEqual([
+      const csv = await exportActiveMembers(tx, { actor: ADMIN });
+      expect(ours(csv)).toEqual([
         ["fwo_number", "full_name", "phone", "hbc", "departments"],
         ["250001", "Test Alpha", "", "Judea", ""],
         ["250002", "Test Bravo", "0700 250 002", "Judea", "English Choir"],
@@ -81,7 +88,7 @@ describe("exportActiveMembers (FR-12)", () => {
       const { rows } = await tx.execute<{ n: number }>(
         sql`SELECT count(*)::int AS n FROM member WHERE status = 'ACTIVE'`,
       );
-      expect(result.rows).toBe(rows[0]!.n);
+      expect(rowCount(csv)).toBe(rows[0]!.n);
     });
   });
 
@@ -89,7 +96,7 @@ describe("exportActiveMembers (FR-12)", () => {
     await rolledBack(db, async (tx) => {
       await aMember(tx, { fwo: "250003", name: '=HYPERLINK("http://example.org")', phone: null });
       await tx.execute(sql`SET LOCAL ROLE app_runtime`);
-      const { csv } = await exportActiveMembers(tx, { actor: ADMIN });
+      const csv = await exportActiveMembers(tx, { actor: ADMIN });
       expect(ours(csv)[1]).toEqual([
         "250003",
         `'=HYPERLINK("http://example.org")`,
@@ -104,7 +111,7 @@ describe("exportActiveMembers (FR-12)", () => {
     await rolledBack(db, async (tx) => {
       await aMember(tx, { fwo: "250004", name: "Test Charlie", phone: "+254700250004" });
       await tx.execute(sql`SET LOCAL ROLE app_runtime`);
-      const { rows: exported } = await exportActiveMembers(tx, {
+      const csv = await exportActiveMembers(tx, {
         actor: ADMIN,
         requestId: "req-25",
       });
@@ -120,7 +127,7 @@ describe("exportActiveMembers (FR-12)", () => {
         entity_type: "member",
         entity_id: "*",
         before: null,
-        after: { rows: exported },
+        after: { rows: rowCount(csv) },
         request_id: "req-25",
         recent: true,
       });

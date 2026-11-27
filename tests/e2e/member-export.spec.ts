@@ -44,11 +44,24 @@ test("an administrator downloads the active members as CSV (FR-12)", async ({ pa
   expect(csv).toContain(`"${fwoNumber}","${fullName}","","Judea",""\r\n`);
   // The download leaves the page where it was, with no personal data in its URL (rule 2).
   expect(page.url()).toBe(`${ADMIN}/members`);
+
+  // A form on another page of the same site posts with the session (SameSite=Lax): refused.
+  const sameSite = await page.request.post(`${ADMIN}/members/export`, {
+    headers: { Origin: ADMIN.replace("admin.", "") },
+  });
+  expect(sameSite.status()).toBe(404);
+  expect(await sameSite.text()).not.toContain("fwo_number");
 });
 
 test("a Registration Officer can't export (FR-12, requirements §3)", async ({ page }) => {
   await signIn(page, ["REGISTRATION_OFFICER"], "E2E Officer");
   const response = await page.request.post(`${ADMIN}/members/export`);
   expect(response.status()).toBe(404);
+  expect(await response.text()).not.toContain("fwo_number");
+});
+
+test("a signed-out request gets no export", async ({ request }) => {
+  const response = await request.post(`${ADMIN}/members/export`, { maxRedirects: 0 });
+  expect(response.headers()["content-type"] ?? "").not.toContain("text/csv");
   expect(await response.text()).not.toContain("fwo_number");
 });
