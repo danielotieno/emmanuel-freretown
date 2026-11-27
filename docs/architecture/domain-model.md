@@ -41,7 +41,8 @@ A module changes only its own tables. Cross-module work goes through the other m
 | RegistrationRevision | revision_no, full_name, fwo_number, phone, hbc, departments, adult_declared, privacy_notice_version, submitted_by, submitted_at | Immutable snapshot; a correction adds a revision |
 | RegistrationDecision | action (APPROVE/REJECT/REQUEST_CORRECTION/WITHDRAW), reason, actor, at | History of reviewer actions |
 | PhoneChallenge | phone, purpose, code_hash, expires_at, attempts, verified_at, token_hash, consumed_at | One OTP and its single-use verification token: `verified_at` and `token_hash` are set when the right code is entered, `consumed_at` when a submission redeems the token (#15). Short-lived; purged after 24 hours |
-| VerificationEvidence | registration, kind (PHONE_OTP/IN_PERSON/FWO_CONFIRMED_BY_SECRETARY), actor, event_label, at | Many per registration |
+| VerificationEvidence | registration, kind (PHONE_OTP/IN_PERSON/FWO_CONFIRMED_BY_SECRETARY), actor, event_label, at | Many per registration. FWO_CONFIRMED_BY_SECRETARY is recorded when the Church Secretary enters the FWO number they issued to a new member (BR-16, #101) |
+| FwoSetting | highest_issued, updated_by, updated_at | D30: one row, the highest FWO number ever issued; raised whenever a higher number is issued |
 | Member | fwo_number, full_name, phone, status, status_reason, language, source_registration or import | The official record. Approved from a registration, or imported from the parish list (D47), never both |
 | MemberImport | imported_by, consent_confirmed_on, privacy_notice_version, rows_imported, rows_skipped | One import of the parish list (FR-13). Immutable; never holds the file or a row |
 | MemberHbcAssignment | member, hbc, valid_from, valid_to | Exactly one open period per member |

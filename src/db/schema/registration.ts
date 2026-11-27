@@ -182,3 +182,23 @@ export const registrationDecision = pgTable(
     index("registration_decision_reg_idx").on(t.registrationId, t.at),
   ],
 );
+
+/**
+ * D30: the highest FWO number ever issued, recorded once by the Church Secretary and raised
+ * whenever a higher one is issued (#101). One row.
+ */
+export const fwoSetting = pgTable(
+  "fwo_setting",
+  {
+    id: id(),
+    singleton: boolean("singleton").notNull().default(true),
+    highestIssued: text("highest_issued").notNull(),
+    updatedAt: updatedAt(),
+    updatedByUserId: text("updated_by_user_id").notNull(),
+  },
+  (t) => [
+    check("fwo_setting_singleton_check", sql`${t.singleton}`),
+    uniqueIndex("fwo_setting_singleton_uq").on(t.singleton),
+    check("fwo_setting_highest_issued_check", sql`${t.highestIssued} ~ ${FWO_PATTERN}`),
+  ],
+);

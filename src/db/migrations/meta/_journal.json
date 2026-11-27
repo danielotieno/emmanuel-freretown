@@ -64,6 +64,13 @@
       "when": 1795754977507,
       "tag": "0008_member_import",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795758753849,
+      "tag": "0009_fwo_setting",
+      "breakpoints": true
     }
   ]
 }

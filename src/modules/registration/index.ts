@@ -26,6 +26,16 @@ export {
   type AssistedRegistrationResult,
   type AssistedRegistrationSubmission,
 } from "./assisted-registration";
+export {
+  getHighestFwoIssued,
+  issueFwoNumber,
+  setHighestFwoIssued,
+  suggestFwoNumber,
+  type HighestFwoIssued,
+  type IssueFwoRefusal,
+  type IssueFwoResult,
+  type SetHighestResult,
+} from "./fwo";
 export { PRIVACY_NOTICE_VERSION } from "./intake";
 export { importParishList } from "./parish-import";
 export { REFERENCE_PATTERN } from "./reference";

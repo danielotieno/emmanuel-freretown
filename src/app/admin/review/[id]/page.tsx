@@ -5,12 +5,17 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { getDb } from "@/app/_lib/db";
 import { requireStaff } from "@/app/_lib/staff";
-import { AlertIcon, ArrowIcon } from "@/components/icons";
+import { AlertIcon, ArrowIcon, CheckIcon } from "@/components/icons";
 import { staffNames } from "@/modules/access";
 import { unitNames } from "@/modules/organisation";
-import { openRegistrationForReview } from "@/modules/registration";
+import {
+  openRegistrationForReview,
+  PRIVACY_NOTICE_VERSION,
+  suggestFwoNumber,
+} from "@/modules/registration";
 import { formatDateTime } from "../format";
 import { DecisionForms } from "./decision-forms";
+import { IssueFwoForm } from "./issue-fwo-form";
 
 export const metadata: Metadata = { title: "Registration · Review · Staff" };
 
@@ -42,11 +47,15 @@ const DECISION_NAMES: Record<string, string> = {
  */
 export default async function ReviewRegistrationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const staff = await requireStaff("MEMBERSHIP_ADMIN");
   const { id } = await params;
+  // Set by the issue-FWO action after it saves: only what happened, never the number (rule 2).
+  const fwoIssued = (await searchParams).done === "fwo";
   const db = await getDb();
   const reg = await openRegistrationForReview(db, {
     registrationId: id,
@@ -61,7 +70,14 @@ export default async function ReviewRegistrationPage({
     ...reg.evidence.map((e) => e.actorUserId),
     ...reg.decisions.map((d) => d.actorUserId),
   ].filter((x): x is string => !!x);
-  const [units, names] = await Promise.all([unitNames(db), staffNames(db, staffIds)]);
+  // A new member waiting for the FWO number the Secretary issues (BR-16, #101).
+  const waitingForFwo =
+    reg.status === "SUBMITTED" && reg.details.isNewMember && !reg.details.fwoNumber;
+  const [units, names, suggestion] = await Promise.all([
+    unitNames(db),
+    staffNames(db, staffIds),
+    waitingForFwo ? suggestFwoNumber(db) : null,
+  ]);
   const who = (userId: string | null) => (userId ? (names.get(userId) ?? "A staff member") : "");
   const { details } = reg;
 
@@ -109,6 +125,12 @@ export default async function ReviewRegistrationPage({
           {reg.channel === "SELF" ? "Self-registration" : "Assisted registration"} · submitted{" "}
           {formatDateTime(reg.submittedAt)}
         </p>
+        {fwoIssued && (
+          <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
+            <CheckIcon size="size-5" />
+            <span>FWO number entered. The registration can now be approved.</span>
+          </p>
+        )}
 
         {(reg.fwoConflict || reg.phoneConflict || details.isNewMember) && (
           <ul className="mt-6 space-y-2">
@@ -199,6 +221,15 @@ export default async function ReviewRegistrationPage({
               ))}
             </ul>
           </Section>
+        )}
+
+        {waitingForFwo && (
+          <IssueFwoForm
+            registrationId={reg.id}
+            version={reg.version}
+            suggestion={suggestion}
+            noticeChanged={details.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION}
+          />
         )}
 
         <DecisionForms

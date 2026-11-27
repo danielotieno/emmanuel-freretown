@@ -17,7 +17,7 @@ export type StaffActor = { type: "STAFF"; userId: string };
  * here when a module first audits a new kind of record.
  */
 export type AuditEntityType =
-  "registration" | "member" | "member_import" | "hbc" | "department" | "staff_user";
+  "registration" | "member" | "member_import" | "fwo_setting" | "hbc" | "department" | "staff_user";
 
 /**
  * One audit entry. The action is `<entity type>.<verb>` in snake_case, e.g.
