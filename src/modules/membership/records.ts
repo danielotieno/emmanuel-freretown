@@ -138,7 +138,8 @@ export function checkMemberDetails(
 export interface MemberListItem {
   id: string;
   fwoNumber: string;
-  fullName: string;
+  /** Null once D45's removal has run. */
+  fullName: string | null;
   status: MemberStatus;
   hbcName: string;
 }
@@ -266,10 +267,13 @@ export async function searchMembers(
 export interface MemberRecord {
   id: string;
   fwoNumber: string;
-  fullName: string;
-  /** Null: no personal phone (BR-06). */
+  /** Null once D45's removal has run (`personalDataRedactedAt`). */
+  fullName: string | null;
+  /** Null: no personal phone (BR-06), or removed (D45). */
   phoneE164: string | null;
   status: MemberStatus;
+  /** When D45 removed the name, phone and departments; null while they are held. */
+  personalDataRedactedAt: Date | null;
   /** The reason given for the latest status change; null if it never changed. */
   statusReason: string | null;
   language: "en" | "sw";
@@ -305,6 +309,7 @@ export async function openMember(
         phoneE164: member.phoneE164,
         status: member.status,
         statusReason: member.statusReason,
+        personalDataRedactedAt: member.personalDataRedactedAt,
         language: member.language,
         importedAt: memberImport.createdAt,
         createdAt: member.createdAt,
@@ -447,7 +452,7 @@ async function changeMember<Field extends string>(
 interface LockedMember {
   status: MemberStatus;
   version: number;
-  fullName: string;
+  fullName: string | null;
   phoneE164: string | null;
   language: "en" | "sw";
 }

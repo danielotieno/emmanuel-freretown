@@ -24,4 +24,4 @@ export {
   type AuditRecord,
   type TrailEntityType,
 } from "./read";
-export { redactExpiredRegistrations, type RedactionResult } from "./retention";
+export { redactClosedMembers, redactExpiredRegistrations, type RedactionResult } from "./retention";

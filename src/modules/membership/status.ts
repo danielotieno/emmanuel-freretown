@@ -32,5 +32,7 @@ export async function findActiveMemberForStatusCheck(
       .where(and(which, eq(member.phoneE164, match.phoneE164), eq(member.status, "ACTIVE")))
       .limit(1),
   );
-  return rows[0] ?? null;
+  // A member whose details D45 removed has no phone, so never matches; the check is for types.
+  const row = rows[0];
+  return row?.fullName ? { fullName: row.fullName, hbcName: row.hbcName } : null;
 }

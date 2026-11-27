@@ -405,6 +405,8 @@ describe("member_import privileges and constraints", () => {
       await asApp(tx);
       const result = await confirm(tx);
       if (!result.ok) throw new Error("import refused");
+      // As the owner: app_runtime may not change source_registration_id at all (#26).
+      await tx.execute(sql`RESET ROLE`);
       const code = await tx
         .transaction((savepoint) =>
           savepoint.execute(sql`

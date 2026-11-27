@@ -69,7 +69,8 @@ export async function exportActiveMembers(
     [...EXPORT_COLUMNS],
     ...members.map((m) => [
       m.fwoNumber,
-      m.fullName,
+      // Active members always have a name: only closed records lose it (D45).
+      m.fullName ?? "",
       m.phoneE164 ? formatKenyanPhone(m.phoneE164) : "",
       m.hbc,
       m.departments,
