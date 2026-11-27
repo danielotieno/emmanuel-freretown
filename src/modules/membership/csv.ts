@@ -61,13 +61,19 @@ export function parseCsv(text: string): CsvResult {
 /**
  * Decodes an uploaded file as UTF-8, refusing anything that isn't (Excel's "CSV UTF-8" format;
  * its older "CSV" format is Windows-1252, which would turn accented names into nonsense). A
- * byte-order mark is removed.
+ * byte-order mark is removed, and line ends become LF: a browser posting the text back in a form
+ * turns every line end into CRLF, so the preview and the confirmation must agree on one form.
  */
 export function decodeCsvFile(bytes: Uint8Array): string | null {
   try {
     const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    return text.startsWith("﻿") ? text.slice(1) : text;
+    return normalizeLineEnds(text.startsWith("﻿") ? text.slice(1) : text);
   } catch {
     return null;
   }
+}
+
+/** CRLF and lone CR become LF, so the same file always has the same text and digest. */
+export function normalizeLineEnds(text: string): string {
+  return text.replace(/\r\n?/g, "\n");
 }

@@ -46,7 +46,9 @@ export default async function ImportPage() {
               </li>
               <li>The first row holds these column headings, in any order:</li>
             </ul>
-            <pre className="mt-3 overflow-x-auto rounded-xl bg-cloud p-3 text-small">{header}</pre>
+            <pre className="mt-3 rounded-xl bg-cloud p-3 text-small break-all whitespace-pre-wrap">
+              {header}
+            </pre>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               <li>
                 <strong>fwo_number</strong>: digits only. Format the column as Text in Excel before

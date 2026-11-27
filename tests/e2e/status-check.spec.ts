@@ -6,7 +6,7 @@ import en from "../../messages/en.json" with { type: "json" };
 // test mode (E2E_TEST_MODE): no SMS is sent and the code is always 000000. Turnstile uses
 // Cloudflare's always-pass test keys. Every test uses its own synthetic phone and IP.
 
-test.describe.configure({ timeout: 120_000 });
+test.describe.configure({ timeout: 240_000 });
 
 const PAGE_WEIGHT_BUDGET_BYTES = 200 * 1024; // NFR-2
 const TEST_CODE = "000000";
@@ -73,6 +73,9 @@ test("shows a member's own registration after the code: status, name, HBC (FR-7,
   page,
 }) => {
   const { phone, reference } = await register(page);
+  // Registering just sent this phone a code; FR-2 allows the next one after 60 seconds, so a
+  // member checking straight away is asked to wait. Wait it out, as they would.
+  await page.waitForTimeout(61_000);
   // From the registration page's link, as a member who is unsure would.
   await page.goto("/registration");
   await page.getByRole("link", { name: en.reg_check_first_link }).click();

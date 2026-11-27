@@ -1,7 +1,13 @@
+import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../../src/db";
 import { importMembers, previewImport } from "../../src/modules/membership";
+import {
+  checkAssistedRegistration,
+  importParishList,
+  submitAssistedRegistration,
+} from "../../src/modules/registration";
 import { connectTestDrizzle, PG, rolledBack } from "./db";
 
 // The import of the parish list (issue #104, FR-13, D47) against real Postgres, as app_runtime,
@@ -104,7 +110,14 @@ describe("importMembers (FR-13, D47)", () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
       const result = await confirm(tx);
-      expect(result).toEqual({ ok: true, importId: expect.any(String), imported: 3, skipped: 1 });
+      expect(result).toEqual({
+        ok: true,
+        importId: expect.any(String),
+        imported: 3,
+        skipped: 1,
+        fwoNumbers: ["10401", "010402", "10404"],
+        phones: ["+254712104001", "+254712104004"],
+      });
       if (!result.ok) return;
 
       const batch = await tx.execute<Record<string, unknown>>(sql`
@@ -243,14 +256,125 @@ describe("importMembers (FR-13, D47)", () => {
     });
   });
 
+  it("imports the text previewed even when its line ends come back as CRLF", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const preview = await previewImport(tx, FILE);
+      if (!preview.ok) throw new Error("test file invalid");
+      const result = await importMembers(tx, {
+        text: FILE.replace(/\n/g, "\r\n"),
+        digest: preview.digest,
+        expectedCount: preview.toImport,
+        consentConfirmedOn: CONSENT,
+        privacyNoticeVersion: NOTICE,
+        actor: ADMIN,
+      });
+      expect(result).toMatchObject({ ok: true, imported: 3 });
+    });
+  });
+
   it("refuses a file with nothing to import", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
       const text = "fwo_number,full_name,phone,hbc\n1,Test Person,,Narnia";
-      expect(await confirm(tx, text, { count: 0 })).toEqual({
+      expect(await confirm(tx, text, { count: 0 })).toMatchObject({
         ok: false,
         reason: "nothing_to_import",
+        preview: { ok: true, toImport: 0, skipped: [{ rowNumber: 2, problems: ["hbc_unknown"] }] },
       });
+    });
+  });
+});
+
+describe("importParishList (FR-13, BR-03, BR-06)", () => {
+  it("flags open registrations whose FWO number or phone the import made a member's", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const { rows: hbcRows } = await tx.execute<{ id: string }>(
+        sql`SELECT id FROM hbc WHERE name = 'Judea'`,
+      );
+      const submit = async (fwoNumber: string, phone: string) => {
+        const checked = checkAssistedRegistration({
+          fullName: "Test Registrant",
+          isNewMember: false,
+          fwoNumber,
+          noPersonalPhone: false,
+          phone,
+          hbcId: hbcRows[0]!.id,
+          departmentIds: [],
+          verification: "IN_PERSON",
+          eventLabel: "Judea HBC AGM, 17 Jan 2027",
+          adultDeclared: true,
+          privacyAcknowledged: true,
+          transferConsent: true,
+          readBackConfirmed: true,
+        });
+        if (!checked.ok) throw new Error("test fields invalid");
+        const result = await submitAssistedRegistration(
+          tx,
+          {
+            submissionId: randomUUID(),
+            registration: checked.value,
+            officer: { type: "STAFF", userId: "test-officer-104" },
+            language: "en",
+          },
+          "test-otp-secret-0123456789abcdef",
+        );
+        if (!result.ok) throw new Error("test registration refused");
+        return result.registrationId;
+      };
+      // Submitted before the import, so neither was flagged then.
+      const sameFwo = await submit("10401", "0712104901");
+      const samePhone = await submit("10499", "0712104004");
+      const unrelated = await submit("10498", "0712104902");
+
+      const preview = await previewImport(tx, FILE);
+      if (!preview.ok) throw new Error("test file invalid");
+      const result = await importParishList(tx, {
+        text: FILE,
+        digest: preview.digest,
+        expectedCount: preview.toImport,
+        consentConfirmedOn: CONSENT,
+        actor: ADMIN,
+        requestId: "req-flag",
+      });
+      expect(result).toMatchObject({ ok: true, imported: 3 });
+
+      const flags = await tx.execute<{
+        id: string;
+        fwo_conflict: boolean;
+        phone_conflict: boolean;
+        version: number;
+      }>(sql`
+        SELECT id, fwo_conflict, phone_conflict, version FROM registration
+         WHERE id IN (${sameFwo}, ${samePhone}, ${unrelated})`);
+      const byId = new Map(flags.rows.map((r) => [r.id, r]));
+      expect(byId.get(sameFwo)).toMatchObject({
+        fwo_conflict: true,
+        phone_conflict: false,
+        version: 1,
+      });
+      expect(byId.get(samePhone)).toMatchObject({
+        fwo_conflict: false,
+        phone_conflict: true,
+        version: 1,
+      });
+      expect(byId.get(unrelated)).toMatchObject({
+        fwo_conflict: false,
+        phone_conflict: false,
+        version: 0,
+      });
+
+      const audit = await tx.execute<{ entity_id: string; after: unknown }>(sql`
+        SELECT entity_id, after FROM audit_entry
+         WHERE action = 'registration.flag_conflict' AND request_id = 'req-flag'
+         ORDER BY entity_id`);
+      expect(new Map(audit.rows.map((r) => [r.entity_id, r.after]))).toEqual(
+        new Map<string, unknown>([
+          [sameFwo, { fwoConflict: true, cause: "member_import" }],
+          [samePhone, { phoneConflict: true, cause: "member_import" }],
+        ]),
+      );
     });
   });
 });

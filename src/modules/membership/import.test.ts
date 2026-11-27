@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { decodeCsvFile, parseCsv } from "./csv";
+import { decodeCsvFile, normalizeLineEnds, parseCsv } from "./csv";
 import {
   checkImportRows,
   IMPORT_MAX_ROWS,
   importDigest,
   readImportFile,
   unitKey,
+  unitsByKey,
   type ImportLookups,
 } from "./import";
 
@@ -42,6 +43,11 @@ describe("decodeCsvFile", () => {
   it("reads UTF-8 and drops a byte-order mark", () => {
     const bytes = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode("a,é")]);
     expect(decodeCsvFile(bytes)).toBe("a,é");
+  });
+
+  it("turns every line end into LF, as the confirmation must match the preview", () => {
+    expect(decodeCsvFile(new TextEncoder().encode("a\r\nb\rc\n"))).toBe("a\nb\nc\n");
+    expect(normalizeLineEnds('a\r\n"x\ny"')).toBe('a\n"x\ny"');
   });
 
   it("refuses text that isn't UTF-8, such as Excel's older Windows-1252 CSV", () => {
@@ -178,10 +184,35 @@ describe("checkImportRows (FR-13)", () => {
     expect(valid.map((v) => v.rowNumber)).toEqual([6, 7]);
   });
 
+  it("counts a name's length in characters as the database does, not UTF-16 units", () => {
+    // "😀" is one character but two UTF-16 units: a name of it alone is too short.
+    expect(check(["1,😀,,Judea,,"]).skipped).toEqual([
+      { rowNumber: 2, problems: ["name_too_short"] },
+    ]);
+    expect(check([`2,${"😀".repeat(120)},,Judea,,`]).valid).toHaveLength(1);
+  });
+
+  it("skips a row with control characters the database would refuse", () => {
+    expect(check(["1,Test\u0000Person,,Judea,,"]).skipped).toEqual([
+      { rowNumber: 2, problems: ["control_characters"] },
+    ]);
+  });
+
   it("reports a missing FWO number and name", () => {
     expect(check([",,0712000001,Judea,,"]).skipped).toEqual([
       { rowNumber: 2, problems: ["fwo_missing", "name_missing"] },
     ]);
+  });
+});
+
+describe("unitsByKey", () => {
+  it("matches neither of two units whose names differ only in case or apostrophes", () => {
+    const map = unitsByKey([
+      { id: "a", name: "St Paul's" },
+      { id: "b", name: "st paul’s" },
+      { id: "c", name: "Judea" },
+    ]);
+    expect([...map]).toEqual([["judea", "c"]]);
   });
 });
 

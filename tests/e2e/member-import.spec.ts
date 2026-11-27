@@ -112,9 +112,11 @@ test("explains a file without the required columns", async ({ page }) => {
     buffer: Buffer.from("name,phone\nTest Person,0712000000"),
   });
   await page.getByRole("button", { name: "Check the file" }).click();
-  await expect(page.getByRole("alert")).toContainText(
-    "These column headings are missing: fwo_number, full_name, hbc.",
-  );
+  // Next's route announcer is an alert too, so find the message by its text.
+  await expect(page.getByText("This file can't be read.")).toBeVisible();
+  await expect(
+    page.getByText("These column headings are missing: fwo_number, full_name, hbc."),
+  ).toBeVisible();
 });
 
 test("a Registration Officer alone can't open the import (NFR-8)", async ({ page }) => {

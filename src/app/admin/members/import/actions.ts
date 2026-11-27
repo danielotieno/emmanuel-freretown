@@ -7,18 +7,17 @@ import { requireStaff } from "@/app/_lib/staff";
 import {
   decodeCsvFile,
   IMPORT_MAX_BYTES,
-  importMembers,
   previewImport,
   type ImportFileError,
   type ImportPreview,
 } from "@/modules/membership";
-import { PRIVACY_NOTICE_VERSION } from "@/modules/registration";
+import { importParishList } from "@/modules/registration";
 import type { ImportState } from "./state";
 
 /**
  * The import of the parish list (FR-13, D47, #104): one action for its three posts. Preview
- * reads the uploaded file in memory and shows what would be imported; confirm posts the same
- * text back with its digest, the count the administrator saw and the Vicar's consent
+ * reads the uploaded file in memory and shows what would be imported; confirm imports the text
+ * the preview returned, with its digest, the count the administrator saw and the Vicar's consent
  * confirmation; restart clears the page. Only a Membership Administrator (or a Super
  * Administrator) may use it, checked first (CLAUDE.md rule 1). Logs carry counts and outcomes,
  * never the file or a row (rule 2). Staff screens are English-only in Release 1 (NFR-5).
@@ -56,12 +55,13 @@ async function confirm(
   userId: string,
 ): Promise<ImportState> {
   const log = await getLogger();
-  const text = String(form.get("text") ?? "");
   const digest = String(form.get("digest") ?? "");
   const expectedCount = Number(form.get("expectedCount"));
   const consentConfirmedOn = String(form.get("consentConfirmedOn") ?? "");
   const consentGiven = form.get("consentGiven") === "on";
 
+  // The text comes from the preview's state, not a form field: a browser rewrites line ends in
+  // posted fields, and the digest must match the text previewed exactly.
   const back = previous.step === "preview" ? previous : null;
   if (!back || back.digest !== digest) {
     return {
@@ -78,12 +78,12 @@ async function confirm(
   }
 
   const requestId = (await headers()).get("x-request-id") ?? undefined;
-  const result = await importMembers(await getDb(), {
+  const text = back.text;
+  const result = await importParishList(await getDb(), {
     text,
     digest,
     expectedCount: Number.isInteger(expectedCount) ? expectedCount : -1,
     consentConfirmedOn,
-    privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
     actor: { type: "STAFF", userId },
     requestId,
   });
@@ -102,7 +102,10 @@ async function confirm(
         detail: fileErrorDetail(result.error),
       };
     case "nothing_to_import":
-      return { ...back, error: "No row can be imported now. Fix the rows below and upload again." };
+      return {
+        ...previewState(text, result.preview),
+        error: "No row can be imported now. Fix the rows below and upload again.",
+      };
     case "registry_changed":
       return {
         ...previewState(text, result.preview),

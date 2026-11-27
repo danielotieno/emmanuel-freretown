@@ -24,6 +24,7 @@ const PROBLEMS: Record<ImportProblem, string> = {
   department_unknown: "A department is not one of the active departments",
   language_invalid: "Language is not en, sw or blank",
   extra_cells: "More cells than column headings: is there a comma in a name without quotes?",
+  control_characters: "Contains invisible control characters: retype the cell",
 };
 
 /**
@@ -56,7 +57,7 @@ export function ImportForm() {
 
   if (state.step === "upload") {
     return (
-      <form action={action} className="mt-8 space-y-5">
+      <form action={action} noValidate className="mt-8 space-y-5">
         <ErrorBox message={state.error} detail={state.detail} />
         <div className="space-y-2">
           <label htmlFor="file" className="text-subtitle">
@@ -67,7 +68,6 @@ export function ImportForm() {
             name="file"
             type="file"
             accept=".csv,text/csv"
-            required
             className="block w-full rounded-xl border border-line bg-paper p-3"
           />
         </div>
@@ -96,7 +96,13 @@ export function ImportForm() {
               Skipped rows are not imported. Fix them in the spreadsheet and import them later in a
               file of their own.
             </p>
-            <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
+            {/* Focusable, so the table can be scrolled by keyboard on a narrow screen. */}
+            <div
+              role="region"
+              aria-label="Skipped rows"
+              tabIndex={0}
+              className="overflow-x-auto rounded-2xl border border-line bg-paper"
+            >
               <table className="w-full text-left">
                 <caption className="sr-only">Skipped rows and why</caption>
                 <thead className="border-b border-line text-small text-ink-muted">
@@ -132,10 +138,10 @@ export function ImportForm() {
       {toImport > 0 ? (
         <form
           action={action}
+          noValidate
           className="space-y-5 rounded-2xl border border-line bg-paper p-5 sm:p-6"
         >
           <h2 className="text-subtitle">Confirm the import</h2>
-          <input type="hidden" name="text" value={state.text} />
           <input type="hidden" name="digest" value={state.digest} />
           <input type="hidden" name="expectedCount" value={toImport} />
           <div className="space-y-2">
@@ -147,7 +153,6 @@ export function ImportForm() {
               id="consentConfirmedOn"
               name="consentConfirmedOn"
               type="date"
-              required
               aria-invalid={state.consentDateError ? true : undefined}
               aria-describedby="consentConfirmedOn-error"
               className="field max-w-[16rem]"

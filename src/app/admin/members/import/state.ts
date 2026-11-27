@@ -2,7 +2,8 @@ import type { SkippedImportRow } from "@/modules/membership";
 
 /**
  * The import page's state (FR-13, #104). The file's text comes back to the administrator's own
- * browser with the preview and is posted again to confirm, so the server never keeps it.
+ * browser with the preview and returns with the confirmation, as this state: the server never
+ * keeps it.
  */
 export type ImportState =
   | { step: "upload"; error?: string; detail?: string[] }

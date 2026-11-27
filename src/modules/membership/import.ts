@@ -4,7 +4,7 @@ import { departmentMembership, member, memberHbcAssignment, memberImport } from 
 import * as audit from "../audit";
 import { listActiveDepartments, listActiveHbcs } from "../organisation";
 import { normalizeKenyanPhone } from "../verification";
-import { parseCsv } from "./csv";
+import { normalizeLineEnds, parseCsv } from "./csv";
 
 /**
  * The import of the parish list (D47, FR-13, #104). The Church Secretary's cleaned list arrives
@@ -51,7 +51,11 @@ export type ImportProblem =
   | "hbc_unknown" // BR-04: no active HBC of that name
   | "department_unknown" // BR-05: no active department of that name
   | "language_invalid"
-  | "extra_cells"; // more cells than headers: often an unquoted comma in a name
+  | "extra_cells" // more cells than headers: often an unquoted comma in a name
+  | "control_characters"; // invisible characters the database refuses
+
+/** Control characters other than tab and line ends. */
+const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
 
 export interface ImportRow {
   /** The row's number in the spreadsheet: the header is row 1. */
@@ -195,6 +199,10 @@ function checkRow(row: ImportRow, lookups: ImportLookups): CheckedRow {
   const problems: ImportProblem[] = [];
   const cell = (column: Column) => (row.cells[column] ?? "").trim();
   if (row.extraCells) problems.push("extra_cells");
+  // A control character (a NUL byte, say) would make the database refuse the whole import.
+  if (Object.values(row.cells).some((v) => CONTROL.test(v ?? ""))) {
+    problems.push("control_characters");
+  }
 
   // BR-01: digits only, kept exactly as written: "0042" and "42" are different numbers (D29).
   const fwo = cell("fwo_number");
@@ -206,11 +214,12 @@ function checkRow(row: ImportRow, lookups: ImportLookups): CheckedRow {
     if (lookups.heldFwoNumbers.has(fwo)) problems.push("fwo_held");
   }
 
-  // The same rule as the registration forms and the database CHECK: 2–120 characters.
+  // The database CHECK's rule: 2–120 characters, counted as Postgres counts them (code points).
   const name = cell("full_name").replace(/\s+/g, " ");
+  const nameLength = [...name].length;
   if (!name) problems.push("name_missing");
-  else if (name.length < 2) problems.push("name_too_short");
-  else if (name.length > 120) problems.push("name_too_long");
+  else if (nameLength < 2) problems.push("name_too_short");
+  else if (nameLength > 120) problems.push("name_too_long");
 
   // Blank: no personal phone (BR-06). Otherwise a Kenyan mobile held by no member.
   const phone = cell("phone");
@@ -296,11 +305,27 @@ async function loadLookups(db: DbOrTx, rows: ImportRow[]): Promise<ImportLookups
             ),
         );
   return {
-    hbcs: new Map(hbcs.map((h) => [unitKey(h.name), h.id])),
-    departments: new Map(departments.map((d) => [unitKey(d.name), d.id])),
+    hbcs: unitsByKey(hbcs),
+    departments: unitsByKey(departments),
     heldFwoNumbers: new Set(heldFwo.map((r) => r.v)),
     heldPhones: new Set(heldPhone.map((r) => r.v).filter((v): v is string => v !== null)),
   };
+}
+
+/**
+ * Active units by `unitKey`. Two units whose names differ only in case, spacing or apostrophes
+ * share a key: neither is matched, so no row goes to the wrong one by chance.
+ */
+export function unitsByKey(units: { id: string; name: string }[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const ambiguous = new Set<string>();
+  for (const unit of units) {
+    const key = unitKey(unit.name);
+    if (map.has(key)) ambiguous.add(key);
+    map.set(key, unit.id);
+  }
+  for (const key of ambiguous) map.delete(key);
+  return map;
 }
 
 /** The SHA-256 of the file's text, so the confirmation is tied to the file previewed. */
@@ -320,7 +345,8 @@ export type ImportPreview =
   | { ok: false; error: ImportFileError };
 
 /** FR-13's preview: what would be imported and what skipped, and why. Stores nothing. */
-export async function previewImport(db: DbOrTx, text: string): Promise<ImportPreview> {
+export async function previewImport(db: DbOrTx, input: string): Promise<ImportPreview> {
+  const text = normalizeLineEnds(input);
   const read = readImportFile(text);
   if (!read.ok) return read;
   const { valid, skipped } = checkImportRows(read.rows, await loadLookups(db, read.rows));
@@ -328,8 +354,18 @@ export async function previewImport(db: DbOrTx, text: string): Promise<ImportPre
 }
 
 export type ImportResult =
-  | { ok: true; importId: string; imported: number; skipped: number }
-  | { ok: false; reason: "file_changed" | "nothing_to_import" }
+  | {
+      ok: true;
+      importId: string;
+      imported: number;
+      skipped: number;
+      /** For flagging open registrations (BR-03, BR-06): in memory only, never logged. */
+      fwoNumbers: string[];
+      phones: string[];
+    }
+  | { ok: false; reason: "file_changed" }
+  /** No row can be imported now: here is the fresh check. */
+  | { ok: false; reason: "nothing_to_import"; preview: ImportPreview }
   /** The registry changed since the preview: preview again. */
   | { ok: false; reason: "registry_changed"; preview: ImportPreview }
   | { ok: false; reason: "file"; error: ImportFileError };
@@ -360,17 +396,24 @@ export async function importMembers(
     requestId?: string;
   },
 ): Promise<ImportResult> {
-  if ((await importDigest(request.text)) !== request.digest) {
+  const text = normalizeLineEnds(request.text);
+  if ((await importDigest(text)) !== request.digest) {
     return { ok: false, reason: "file_changed" };
   }
-  const read = readImportFile(request.text);
+  const read = readImportFile(text);
   if (!read.ok) return { ok: false, reason: "file", error: read.error };
 
   try {
     return await safeQuery(() =>
       db.transaction(async (tx): Promise<ImportResult> => {
         const { valid, skipped } = checkImportRows(read.rows, await loadLookups(tx, read.rows));
-        if (valid.length === 0) return { ok: false, reason: "nothing_to_import" };
+        if (valid.length === 0) {
+          return {
+            ok: false,
+            reason: "nothing_to_import",
+            preview: { ok: true, digest: request.digest, toImport: 0, skipped },
+          };
+        }
         if (valid.length !== request.expectedCount) {
           return {
             ok: false,
@@ -463,7 +506,14 @@ export async function importMembers(
             requestId: request.requestId,
           },
         ]);
-        return { ok: true, importId, imported: valid.length, skipped: skipped.length };
+        return {
+          ok: true,
+          importId,
+          imported: valid.length,
+          skipped: skipped.length,
+          fwoNumbers: rows.map((row) => row.fwoNumber),
+          phones: rows.map((row) => row.phoneE164).filter((p): p is string => p !== null),
+        };
       }),
     );
   } catch (error) {
@@ -471,7 +521,7 @@ export async function importMembers(
       return {
         ok: false,
         reason: "registry_changed",
-        preview: await previewImport(db, request.text),
+        preview: await previewImport(db, text),
       };
     }
     throw error;
