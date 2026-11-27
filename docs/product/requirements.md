@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | Draft v0.7 — member import, name on the status check, unknown HBC, registering to vote (D47–D50); DPIA timing open (Q28) |
-| Date | 26 November 2026 |
+| Status | Draft v0.8 — retention of election records (D51); DPIA timing open (Q28) |
+| Date | 27 November 2026 |
 | Mandate | Approved by the Vicar and PCC (record minute/resolution reference here) |
 | Target | Build complete Thursday 26 November 2026; announced at services Sunday 29 November; registration open about 30 November – 1 December |
 | Go/no-go review | Before registration opens to the public (criteria in §10) |
@@ -67,6 +67,7 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Freret
 | D48 | After the code and a match on both the verified phone and the FWO number or reference, the status check also shows the full name on record, so the member can confirm the record is theirs and spot a misspelt name (amends FR-7, D14). Departments are still not shown. Every non-match still gets one and the same message, which now links to registration. A lookup by FWO number without a code is ruled out: FWO numbers are printed on envelopes (D3), so it would reveal the congregation's names, HBCs and phones to anyone | Danny (technical lead), 26 Nov 2026 (#102) |
 | D49 | A new member (BR-16) who does not know their HBC may register with "I don't know my HBC yet". The Church Secretary sets the HBC when issuing the FWO number. Approval is impossible until both are set, so every member still has exactly one HBC (BR-04). Only new members have this choice, on the public form and at the officer desk alike; others choose their HBC, with the desk's help if needed. Departments stay optional (BR-05) | Danny (technical lead), 26 Nov 2026 (#102) |
 | D50 | The homepage and the registration page say plainly that registering is how a member becomes able to vote: approved members vote in their HBC's elections (D18), if approved before nominations open (D22), online with a personal phone or in person without one (D21). Members already on the parish list (D47) are told first to check their status rather than register again. Because the privacy notice lists elections only as a future purpose, a new version listing them, approved by the Vicar (D39), ships with this wording | Danny (technical lead), 26 Nov 2026 (#102) |
+| D51 | Records of who could vote and who voted are removed one week after the election's final result is declared (the last re-run's, where there is one, #36; at a pilot, after the paper result, D38): the electorate list, the record that a member voted (when, and online or in person) and an officer's check-in, and the audit entries about them, as D45 does. Ballots carry no member reference (CLAUDE.md rule 7) and are not covered; ballots and results are governed by the elections ADR (#31). Candidate and nomination records are not covered either: they are for the elections data model (#32), and the privacy notice covers them before nominations open (#115). The removal is automatic and audited, like D13 and D45, and the privacy notice says so | The Vicar, via the technical lead, 27 Nov 2026 (#112) |
 
 ## 3. Roles in Release 1
 
