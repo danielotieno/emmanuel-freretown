@@ -47,6 +47,13 @@ export default async function AdminHome() {
           </Link>
         </p>
       )}
+      {reviewer && (
+        <p className="mt-4">
+          <Link href="/fwo" className="btn-secondary">
+            FWO numbers
+          </Link>
+        </p>
+      )}
       <div className="mt-8">
         <SignOutButton />
       </div>

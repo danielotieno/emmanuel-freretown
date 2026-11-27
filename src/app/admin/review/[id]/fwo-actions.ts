@@ -1,0 +1,59 @@
+"use server";
+
+import { refresh } from "next/cache";
+import { headers } from "next/headers";
+import { getDb } from "@/app/_lib/db";
+import { getLogger } from "@/app/_lib/log";
+import { requireStaff } from "@/app/_lib/staff";
+import { issueFwoNumber, type IssueFwoRefusal } from "@/modules/registration";
+
+/**
+ * The Church Secretary enters the FWO number they issued to a new member (BR-16, D30, #101).
+ * Only a Membership Administrator (or a Super Administrator) may, checked first (CLAUDE.md
+ * rule 1); the registration module checks everything else. Staff screens are English-only.
+ */
+
+export interface IssueFwoState {
+  error?: string;
+  done?: boolean;
+}
+
+const REFUSALS: Record<IssueFwoRefusal, string> = {
+  not_found: "This registration no longer exists.",
+  stale:
+    "Someone else acted on this registration first, or it changed since you opened it. Its latest state is shown.",
+  not_waiting_for_fwo: "This registration isn't a new member waiting for an FWO number.",
+  no_setting:
+    "Record the highest FWO number ever issued first (FWO numbers, on the staff home page), so the suggestion can't reuse an old number (D30).",
+  fwo_invalid: "Use digits only (BR-01).",
+  fwo_held: "This FWO number already belongs to a member (BR-02). Issue another.",
+  fwo_in_open_registration:
+    "Another registration waiting for review has this FWO number (BR-03). Issue another.",
+};
+
+export async function issueFwoAction(
+  _previous: IssueFwoState,
+  form: FormData,
+): Promise<IssueFwoState> {
+  const staff = await requireStaff("MEMBERSHIP_ADMIN");
+  const id = form.get("registrationId");
+  const version = Number(form.get("version"));
+  const fwoNumber = form.get("fwoNumber");
+  const result = await issueFwoNumber(await getDb(), {
+    registrationId: typeof id === "string" ? id : "",
+    version: Number.isInteger(version) ? version : -1,
+    fwoNumber: typeof fwoNumber === "string" ? fwoNumber : "",
+    actor: { type: "STAFF", userId: staff.userId },
+    requestId: (await headers()).get("x-request-id") ?? undefined,
+  });
+  const log = await getLogger();
+  if (!result.ok) {
+    log.info("review.fwo_refused", { reason: result.reason });
+    if (result.reason === "stale") refresh();
+    return { error: REFUSALS[result.reason] };
+  }
+  log.info("review.fwo_issued");
+  // Show the registration with its new revision: approval is now possible.
+  refresh();
+  return { done: true };
+}

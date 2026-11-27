@@ -8,9 +8,10 @@ import { requireStaff } from "@/app/_lib/staff";
 import { AlertIcon, ArrowIcon } from "@/components/icons";
 import { staffNames } from "@/modules/access";
 import { unitNames } from "@/modules/organisation";
-import { openRegistrationForReview } from "@/modules/registration";
+import { openRegistrationForReview, suggestFwoNumber } from "@/modules/registration";
 import { formatDateTime } from "../format";
 import { DecisionForms } from "./decision-forms";
+import { IssueFwoForm } from "./issue-fwo-form";
 
 export const metadata: Metadata = { title: "Registration · Review · Staff" };
 
@@ -61,7 +62,14 @@ export default async function ReviewRegistrationPage({
     ...reg.evidence.map((e) => e.actorUserId),
     ...reg.decisions.map((d) => d.actorUserId),
   ].filter((x): x is string => !!x);
-  const [units, names] = await Promise.all([unitNames(db), staffNames(db, staffIds)]);
+  // A new member waiting for the FWO number the Secretary issues (BR-16, #101).
+  const waitingForFwo =
+    reg.status === "SUBMITTED" && reg.details.isNewMember && !reg.details.fwoNumber;
+  const [units, names, suggestion] = await Promise.all([
+    unitNames(db),
+    staffNames(db, staffIds),
+    waitingForFwo ? suggestFwoNumber(db) : null,
+  ]);
   const who = (userId: string | null) => (userId ? (names.get(userId) ?? "A staff member") : "");
   const { details } = reg;
 
@@ -199,6 +207,10 @@ export default async function ReviewRegistrationPage({
               ))}
             </ul>
           </Section>
+        )}
+
+        {waitingForFwo && (
+          <IssueFwoForm registrationId={reg.id} version={reg.version} suggestion={suggestion} />
         )}
 
         <DecisionForms
