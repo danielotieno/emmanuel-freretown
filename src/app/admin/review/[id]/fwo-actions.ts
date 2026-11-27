@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getDb } from "@/app/_lib/db";
 import { getLogger } from "@/app/_lib/log";
 import { requireStaff } from "@/app/_lib/staff";
@@ -15,7 +16,6 @@ import { issueFwoNumber, type IssueFwoRefusal } from "@/modules/registration";
 
 export interface IssueFwoState {
   error?: string;
-  done?: boolean;
 }
 
 const REFUSALS: Record<IssueFwoRefusal, string> = {
@@ -59,7 +59,8 @@ export async function issueFwoAction(
     return { error: REFUSALS[result.reason] };
   }
   log.info("review.fwo_issued");
-  // Show the registration with its new revision: approval is now possible.
-  refresh();
-  return { done: true };
+  // Back to the registration with its new revision, saying so: the issue form is gone now
+  // (nothing is waiting), so the confirmation is the page's, not the form's. The id is the
+  // registration's uuid, already in this URL; nothing personal is added (rule 2).
+  redirect(`/review/${typeof id === "string" ? id : ""}?done=fwo`);
 }

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { AlertIcon, CheckIcon } from "@/components/icons";
+import { AlertIcon } from "@/components/icons";
 import { issueFwoAction } from "./fwo-actions";
 
 /**
@@ -24,12 +24,6 @@ export function IssueFwoForm(props: {
         Issue an FWO number
       </h2>
       <div className="in-card mt-3 space-y-4 rounded-2xl border border-line bg-paper p-5 sm:p-6">
-        {state.done && (
-          <p role="status" className="flex gap-3 rounded-xl bg-mist p-4">
-            <CheckIcon size="size-5" />
-            <span>FWO number entered. The registration can now be approved.</span>
-          </p>
-        )}
         {state.error && (
           <p
             role="alert"

@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { getDb } from "@/app/_lib/db";
 import { requireStaff } from "@/app/_lib/staff";
-import { AlertIcon, ArrowIcon } from "@/components/icons";
+import { AlertIcon, ArrowIcon, CheckIcon } from "@/components/icons";
 import { staffNames } from "@/modules/access";
 import { unitNames } from "@/modules/organisation";
 import {
@@ -47,11 +47,15 @@ const DECISION_NAMES: Record<string, string> = {
  */
 export default async function ReviewRegistrationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const staff = await requireStaff("MEMBERSHIP_ADMIN");
   const { id } = await params;
+  // Set by the issue-FWO action after it saves: only what happened, never the number (rule 2).
+  const fwoIssued = (await searchParams).done === "fwo";
   const db = await getDb();
   const reg = await openRegistrationForReview(db, {
     registrationId: id,
@@ -121,6 +125,12 @@ export default async function ReviewRegistrationPage({
           {reg.channel === "SELF" ? "Self-registration" : "Assisted registration"} · submitted{" "}
           {formatDateTime(reg.submittedAt)}
         </p>
+        {fwoIssued && (
+          <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
+            <CheckIcon size="size-5" />
+            <span>FWO number entered. The registration can now be approved.</span>
+          </p>
+        )}
 
         {(reg.fwoConflict || reg.phoneConflict || details.isNewMember) && (
           <ul className="mt-6 space-y-2">
