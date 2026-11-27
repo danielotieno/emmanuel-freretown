@@ -9,11 +9,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  // GitHub's runner for a private repo has 2 vCPUs, so Playwright's default (half the CPUs) is
-  // 1 worker. Much of each test waits on the server and Postgres, so 4 workers cut the run by about
-  // 30% (#133); past that the 2 vCPUs are the limit. Each staff test signs in as its own user from
-  // a random CF-Connecting-IP, so parallel workers rarely share a rate-limit bucket. Locally, the
-  // default still applies.
+  // GitHub's runner had 2 vCPUs while the repository was private, so Playwright's default (half the
+  // CPUs) was 1 worker. Much of each test waits on the server and Postgres, so 4 workers cut the
+  // run by about 30% (#133). Public repositories get 4 vCPUs (since 27 Nov 2026, #146); 4 workers
+  // still fit. Each staff test signs in as its own user from a random CF-Connecting-IP, so parallel
+  // workers rarely share a rate-limit bucket. Locally, the default still applies.
   workers: process.env.CI ? 4 : undefined,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {

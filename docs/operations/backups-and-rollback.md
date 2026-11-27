@@ -6,7 +6,7 @@ How code reaches staging and production, how to undo a bad deploy, and how the d
 
 | # | Item | Status |
 |---|---|---|
-| 1 | GitHub environments `staging` and `production`, deployments from `main` only | Done 24 Nov 2026. Required reviewers aren't available on this repository's plan, so production deploys only when started by hand |
+| 1 | GitHub environments `staging` and `production`, deployments from `main` only | Done 24 Nov 2026. Production deploys only when started by hand: that is the approval. Required reviewers became available when the repository went public (row 11) but aren't set up |
 | 2 | Deploy workflow (`.github/workflows/deploy.yml`) | Configured 24 Nov 2026. The first two staging runs failed at the Worker upload after migrating (#49: no local Hyperdrive string for the environment's proxy). Fix in #53, which also builds the Worker before migrating; confirmed once the first staging run after merge passes |
 | 3 | Cloudflare API token for deploys | Done 24 Nov 2026: `github-deploy-ack-emmanuel`, this account and zone only, expires Nov 2027. Remove its R2 permission if the R2 token list still shows it. Queues (edit) added 25 Nov 2026 for the job queue (#10) |
 | 4 | Neon API key and project id for restore branches | Done 24 Nov 2026 (`NEON_PROJECT_ID` = `ack-production`'s id) |
@@ -16,6 +16,7 @@ How code reaches staging and production, how to undo a bad deploy, and how the d
 | 8 | Nightly backup (`backup.yml`) running | First manual run after this merges |
 | 9 | Weekly drift check (`drift.yml`) running | First manual run after this merges |
 | 10 | Restore drill performed before go-live, then monthly | Not started |
+| 11 | Repository public, so GitHub Actions runs free (billing had blocked CI); `main` protected (the three CI jobs must pass, no force-push or deletion, administrators may bypass in an emergency); workflows on outside contributors' PRs need approval; secret scanning with push protection | Done 27 Nov 2026, with the Vicar's agreement, after an audit of the history, issues and PRs found no secrets or members' data (#146). Everything in commits, issues, PRs and workflow logs is public: CLAUDE.md rule 2 matters more than ever |
 
 ## How deploys work
 
