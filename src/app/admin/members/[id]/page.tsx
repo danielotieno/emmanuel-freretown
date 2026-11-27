@@ -6,8 +6,11 @@ import type { ReactNode } from "react";
 import { getDb } from "@/app/_lib/db";
 import { requireStaff } from "@/app/_lib/staff";
 import { ArrowIcon, CheckIcon, InfoIcon } from "@/components/icons";
+import { staffNames } from "@/modules/access";
+import { readTrail } from "@/modules/audit";
 import { isClosedStatus, nextStatuses, openMember } from "@/modules/membership";
 import { listActiveDepartments, listActiveHbcs, unitNames } from "@/modules/organisation";
+import { AuditTrail, pageBefore, staffIdsIn } from "../../_components/audit-entries";
 import { formatDateTime } from "../../review/format";
 import { LANGUAGE_NAMES, STATUS_NAMES } from "../names";
 import { MemberForms } from "./member-forms";
@@ -21,10 +24,11 @@ const DONE_MESSAGES: Record<string, string> = {
 };
 
 /**
- * One member record (FR-6, #22), for Membership Administrators and Super Administrators.
- * Opening it is recorded as access to personal data (D31) by the membership module, before
- * anything is shown. A deceased or transferred-out member's record is read-only. The forms only
- * offer what the rules allow; the server actions check everything again.
+ * One member record (FR-6, #22), for Membership Administrators and Super Administrators, with
+ * its audit trail (FR-11, #24). Opening it is recorded as access to personal data (D31) by the
+ * membership module, before anything is shown. A deceased or transferred-out member's record is
+ * read-only. The forms only offer what the rules allow; the server actions check everything
+ * again.
  */
 export default async function MemberPage({
   params,
@@ -42,14 +46,18 @@ export default async function MemberPage({
     requestId: (await headers()).get("x-request-id") ?? undefined,
   });
   if (!record) notFound();
-  const doneKey = (await searchParams).done;
+  const search = await searchParams;
+  const doneKey = search.done;
+  const trailBefore = pageBefore(search.trail);
   const done = typeof doneKey === "string" ? DONE_MESSAGES[doneKey] : undefined;
 
-  const [units, hbcs, departments] = await Promise.all([
+  const [units, hbcs, departments, trail] = await Promise.all([
     unitNames(db),
     listActiveHbcs(db),
     listActiveDepartments(db),
+    readTrail(db, { entityType: "member", entityId: record.id }, { before: trailBefore }),
   ]);
+  const names = { ...units, staff: await staffNames(db, staffIdsIn(trail.entries)) };
   const hbcName = (hbcId: string) => units.hbcs.get(hbcId) ?? "An HBC";
   const closed = isClosedStatus(record.status);
   // Departments the member already belongs to stay offered, even if deactivated since.
@@ -175,6 +183,13 @@ export default async function MemberPage({
             departments={offered}
           />
         )}
+
+        <AuditTrail
+          trail={trail}
+          names={names}
+          path={`/members/${record.id}`}
+          before={trailBefore}
+        />
       </div>
     </main>
   );

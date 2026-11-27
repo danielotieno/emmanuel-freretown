@@ -15,9 +15,8 @@ export default async function AdminHome() {
   const roles = [...new Set(staff.grants.map((g) => ROLE_NAMES[g.role]))];
   // Only to show the links: each page checks the role itself (CLAUDE.md rule 1).
   const officer = staff.grants.some((g) => g.role === "REGISTRATION_OFFICER");
-  const reviewer = staff.grants.some(
-    (g) => g.role === "MEMBERSHIP_ADMIN" || g.role === "SUPER_ADMIN",
-  );
+  const superAdmin = staff.grants.some((g) => g.role === "SUPER_ADMIN");
+  const reviewer = superAdmin || staff.grants.some((g) => g.role === "MEMBERSHIP_ADMIN");
   return (
     <main className="mx-auto max-w-form px-4 py-10">
       <h1 className="text-4xl">Staff area</h1>
@@ -65,6 +64,13 @@ export default async function AdminHome() {
         <p className="mt-4">
           <Link href="/fwo" className="btn-secondary">
             FWO numbers
+          </Link>
+        </p>
+      )}
+      {superAdmin && (
+        <p className="mt-4">
+          <Link href="/audit" className="btn-secondary">
+            Audit log
           </Link>
         </p>
       )}

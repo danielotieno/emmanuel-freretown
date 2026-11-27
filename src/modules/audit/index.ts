@@ -16,4 +16,12 @@ export {
   type StaffActor,
 } from "./write";
 export { changes, type AuditValue, type AuditValues } from "./values";
+export {
+  AUDIT_PAGE,
+  readLog,
+  readTrail,
+  type AuditPage,
+  type AuditRecord,
+  type TrailEntityType,
+} from "./read";
 export { redactExpiredRegistrations, type RedactionResult } from "./retention";
