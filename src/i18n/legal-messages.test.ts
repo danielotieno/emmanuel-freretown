@@ -39,7 +39,7 @@ const APPROVED_NOTICES: Record<string, string> = {
   "2026-11-28": "c079b825086d64c22be1afaa3bde602d1d427be9c38c92b38b58824ae2ca2e90",
   // Nominations and results: what is kept and for how long (D52, #115). Approved by the Vicar,
   // via the technical lead, 27 Nov 2026 (D39).
-  "2026-11-29": "fdf51d361438895b1db99cc69cdb95125461f2cc7232c446b35bc3eadab2e476",
+  "2026-11-29": "0996d85e6d527a7682c2f777d3e4fb5476fcc868b16a94d91021b5b4b59a19f3",
 };
 
 describe("privacy notice version (BR-15, D35)", () => {
