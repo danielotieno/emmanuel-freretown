@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   check,
+  date,
   index,
   integer,
   pgTable,
@@ -12,6 +13,25 @@ import {
 import { createdAt, FWO_PATTERN, id, PHONE_E164_PATTERN, tz, updatedAt } from "./columns";
 import { department, hbc } from "./organisation";
 import { registration } from "./registration";
+
+/** One import of the parish list (D47, FR-13): who, how many, on whose consent. Never the file. */
+export const memberImport = pgTable(
+  "member_import",
+  {
+    id: id(),
+    importedByUserId: text("imported_by_user_id").notNull(),
+    /** The date of the Vicar's confirmation of the members' consent (BR-15). */
+    consentConfirmedOn: date("consent_confirmed_on", { mode: "string" }).notNull(),
+    privacyNoticeVersion: text("privacy_notice_version").notNull(),
+    rowsImported: integer("rows_imported").notNull(),
+    rowsSkipped: integer("rows_skipped").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check("member_import_rows_imported_check", sql`${t.rowsImported} > 0`),
+    check("member_import_rows_skipped_check", sql`${t.rowsSkipped} >= 0`),
+  ],
+);
 
 export const member = pgTable(
   "member",
@@ -31,6 +51,8 @@ export const member = pgTable(
     sourceRegistrationId: uuid("source_registration_id").references(
       (): AnyPgColumn => registration.id,
     ),
+    /** D47: imported from the parish list rather than approved from a registration. */
+    importId: uuid("import_id").references(() => memberImport.id),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     version: integer("version").notNull().default(0),
@@ -48,6 +70,8 @@ export const member = pgTable(
       "member_status_reason_check",
       sql`${t.status} = 'ACTIVE' OR ${t.statusReason} IS NOT NULL`,
     ),
+    // Approved from a registration or imported, never both.
+    check("member_source_check", sql`${t.sourceRegistrationId} IS NULL OR ${t.importId} IS NULL`),
     // D2: an FWO number belongs to one member, forever.
     uniqueIndex("member_fwo_uq").on(t.fwoNumber),
     // D20: one phone number per member. Deceased and transferred members release their

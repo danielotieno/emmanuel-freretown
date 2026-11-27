@@ -42,7 +42,8 @@ A module changes only its own tables. Cross-module work goes through the other m
 | RegistrationDecision | action (APPROVE/REJECT/REQUEST_CORRECTION/WITHDRAW), reason, actor, at | History of reviewer actions |
 | PhoneChallenge | phone, purpose, code_hash, expires_at, attempts, verified_at, token_hash, consumed_at | One OTP and its single-use verification token: `verified_at` and `token_hash` are set when the right code is entered, `consumed_at` when a submission redeems the token (#15). Short-lived; purged after 24 hours |
 | VerificationEvidence | registration, kind (PHONE_OTP/IN_PERSON/FWO_CONFIRMED_BY_SECRETARY), actor, event_label, at | Many per registration |
-| Member | fwo_number, full_name, phone, status, status_reason, language, source_registration | The official record |
+| Member | fwo_number, full_name, phone, status, status_reason, language, source_registration or import | The official record. Approved from a registration, or imported from the parish list (D47), never both |
+| MemberImport | imported_by, consent_confirmed_on, privacy_notice_version, rows_imported, rows_skipped | One import of the parish list (FR-13). Immutable; never holds the file or a row |
 | MemberHbcAssignment | member, hbc, valid_from, valid_to | Exactly one open period per member |
 | DepartmentMembership | member, department, state (DECLARED/CONFIRMED), valid_from, valid_to, confirmed_by/at | Zero or more open periods per member |
 
@@ -73,7 +74,7 @@ SUBMITTED | CORRECTION_REQUESTED ──withdraw──► WITHDRAWN
 
 Every state change calls `audit.write(tx, entry)` inside the transaction that makes the change (CLAUDE.md rule 4, BR-12). It takes a transaction, not a database, so the entry and the change commit or roll back together. The database sets the time; the application cannot change or delete an entry (FR-11).
 
-- **Entity type.** Everything that belongs to a registration (its revisions, verification evidence and decisions) uses `entity_type = 'registration'` and the registration's id (the uuid, never the reference), so retention redaction removes it (BR-14). Redaction matches the id's exact text, so `audit.write` accepts only a lowercase uuid for every entity type except `staff_user`, whose ids are Better Auth's text ids. Other types: `member`, `hbc`, `department`, `staff_user`; add one when a module first audits a new kind of record.
+- **Entity type.** Everything that belongs to a registration (its revisions, verification evidence and decisions) uses `entity_type = 'registration'` and the registration's id (the uuid, never the reference), so retention redaction removes it (BR-14). Redaction matches the id's exact text, so `audit.write` accepts only a lowercase uuid for every entity type except `staff_user`, whose ids are Better Auth's text ids. Other types: `member`, `member_import` (one import of the parish list, D47: counts only), `hbc`, `department`, `staff_user`; add one when a module first audits a new kind of record. Entries that record many records at once (the import) go in through `audit.writeMany`, one statement, checked entry by entry first.
 - **Action.** `<entity type>.<verb>` in lowercase snake_case (digits allowed), e.g. `registration.approve`, `member.transfer_hbc`.
 - **Actor.** `STAFF` with the staff user id, `PUBLIC` with no id (never a phone number, FWO number or name), or `SYSTEM` for scheduled jobs.
 - **Before and after.** Only the fields that changed (`audit.changes(old, new)`). Personal values are allowed where the change needs them; secrets never are. As a safety net, `audit.write` refuses keys that look like an OTP code, hash, PIN, salt, password, token, cookie, authorization or key, at any depth; it cannot recognise a secret under an unrelated name, so callers must never pass one.

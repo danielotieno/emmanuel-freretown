@@ -47,6 +47,18 @@ CREATE TABLE department (
 CREATE UNIQUE INDEX department_name_uq ON department (lower(name));
 
 -- ---------------------------------------------------------------- membership
+-- One import of the parish list (D47, FR-13). Immutable: a record of who imported how many
+-- rows, on whose consent confirmation. Never the file or any row's contents.
+CREATE TABLE member_import (
+  id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  imported_by_user_id     text NOT NULL,
+  consent_confirmed_on    date NOT NULL,        -- the date of the Vicar's confirmation (BR-15)
+  privacy_notice_version  text NOT NULL,
+  rows_imported           integer NOT NULL CHECK (rows_imported > 0),
+  rows_skipped            integer NOT NULL CHECK (rows_skipped >= 0),
+  created_at              timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE member (
   id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   fwo_number              text NOT NULL CHECK (fwo_number ~ '^[0-9]+$'),
@@ -57,10 +69,13 @@ CREATE TABLE member (
   status_reason           text,
   language                text NOT NULL DEFAULT 'sw' CHECK (language IN ('en','sw')),
   source_registration_id  uuid,            -- FK added below
+  import_id               uuid REFERENCES member_import(id),   -- D47: imported, not approved
   created_at              timestamptz NOT NULL DEFAULT now(),
   updated_at              timestamptz NOT NULL DEFAULT now(),
   version                 integer NOT NULL DEFAULT 0,
-  CHECK (status = 'ACTIVE' OR status_reason IS NOT NULL)
+  CHECK (status = 'ACTIVE' OR status_reason IS NOT NULL),
+  -- Approved from a registration or imported, never both.
+  CHECK (source_registration_id IS NULL OR import_id IS NULL)
 );
 CREATE UNIQUE INDEX member_fwo_uq ON member (fwo_number);       -- D2: unique forever
 -- D20: one phone number per member. Deceased and transferred members release their
@@ -307,6 +322,8 @@ OTP codes are never stored, only `code_hash` (HMAC-SHA256 with a server secret).
 
 **Review and approval (#19, FR-4).** The queue (`listReviewQueue`, registration module) lists SUBMITTED registrations oldest first with FR-4's filters (HBC, channel, the FWO-conflict, phone-conflict and new-member flags, event); viewing it is not recorded (D31). `openRegistrationForReview` records `registration.view` before returning anything. Each decision runs in one transaction that locks the registration row (`SELECT … FOR UPDATE`) and requires the status SUBMITTED and the version the reviewer saw, so a concurrent decision waits and then fails as stale with a plain message; the update itself is also `WHERE version = $seen`. Approval (`approveRegistration`) refuses the capturing officer (BR-10), a registration with no FWO number (BR-16), a deactivated HBC or department, an FWO held by a member or by another open registration (BR-03: the reviewer sees its reference and rejects the duplicate first), and a phone held by a member: all *now*, checked again, whatever the flags said at submission. It then creates the member through the membership module (`createMember`: the member, one open HBC period, DECLARED departments, a `member.create` audit entry), whose insert runs in a savepoint so `member_fwo_uq` or `member_phone_uq` (a race those checks can't see) come back as the same plain refusals. It sets the registration APPROVED with its member (the trigger sets `decided_at`), writes the decision and `registration.approve`, and queues the approval SMS. Reject and request-correction need a reason (3–500 characters, staff only), kept after retention redaction (BR-14), so the forms tell staff not to write names, phone or FWO numbers in it; a correction request queues the correction SMS, a rejection sends none (FR-8). A member with no personal phone gets no SMS. Decisions are inserted naming only the columns app_runtime may insert (`registration_id, action, reason, actor_user_id`), as `audit.write` does, because Drizzle's `insert()` would also name `id` and `at`.
 
+**Import of the parish list (#104, FR-13, D47).** A Membership Administrator uploads a CSV file at `/members/import` on the staff host. The file is read in memory and never stored: `parseMemberCsv` (membership module) reads RFC 4180 CSV in UTF-8, with commas or semicolons, and `checkImportRows` checks every row against the rules and the database: FWO number digits only (BR-01) and held by no member (BR-02); name 2–120 characters; phone blank (no personal phone) or a Kenyan mobile held by no active or inactive member (BR-06, D20); an active HBC (BR-04) and active departments (BR-05), matched by name ignoring case and spaces around it, never guessed; language `en` or `sw`, English when blank (D44). Rows sharing an FWO number or a phone within the file are all skipped: the file can't say which is right. The preview lists every skipped row's number and rule; nothing is stored. Confirming sends the same file again with the SHA-256 digest and the count the preview showed, the date of the Vicar's consent confirmation and the tick; `importMembers` checks every row again and refuses if the file or the count changed. It then writes, in one transaction: one `member_import` row; every valid row as an ACTIVE member with `import_id`, its open HBC period and DECLARED departments, in bulk statements; a `member.create` audit entry per member (`importId`, HBC, number of departments, no personal phone) and one `member_import.create` entry with the counts. A FWO number or phone taken between the checks and the insert fails the unique index, and the whole import rolls back with a plain message to preview again. No SMS is sent. Phones are not marked as checked: the member table records no phone verification. Nothing from the file reaches the logs or error reports; refusals name a row number and a rule only.
+
 **Status check (#20, FR-7, D24, D48).** The page at `/registration/status` asks for a phone and an FWO number or reference (`parseStatusKey`: digits kept exactly as typed, D29; a reference in any case), sends a STATUS_CHECK code through `requestPhoneChallenge` (Turnstile and the rate limits, rule 8), and only after the code is verified calls `checkRegistrationStatus` (registration module). It spends the token with `redeemStatusCheckVerification` and reads the record in the same transaction, so one code buys one answer and every guess at another number costs a new code. Matching, in order: an ACTIVE member with this phone and FWO number, approved or imported (`findActiveMemberForStatusCheck`, membership module): "Registered member"; otherwise the newest registration whose current revision has this phone and this FWO number or reference (given a reference, the member check runs first with that registration's FWO number, so a member always sees their member record whichever number they give): SUBMITTED is "Received", CORRECTION_REQUESTED, REJECTED and WITHDRAWN are "contact the church office", APPROVED is the member it created if still ACTIVE with this phone. Everything else, including inactive, deceased and transferred members and redacted registrations (no phone left), is the one same "not found" answer. A match shows the name and current HBC (D48), never the phone or departments. Nothing is audited (the reader is the member, not staff, and nothing changes but the token); logs carry the outcome only. The page is sent with `Cache-Control: no-store` (middleware) and keeps what was typed in the form posts, never the URL.
 
 **OTP codes never go through the outbox.** The outbox keeps its parameters in the database until purged, and codes are stored only as a hash (rule 8). An OTP is sent directly through the provider after `reserveSms`; if it fails, the member asks for a new code. Every other SMS (FR-8) goes through the outbox.
@@ -330,7 +347,7 @@ OTP codes are never stored, only `code_hash` (HMAC-SHA256 with a server secret).
 | `app_owner` | Migrations only (CI deploy step) | Owns all objects |
 | `ack_app` (login) | The application, through Hyperdrive, and local development | Member of `app_runtime` only; owns nothing; not superuser, no `CREATEROLE` or `CREATEDB`. Created or rotated with `pnpm db:app-login` (`docs/operations/environments.md`) |
 | `ack_backup` (login) | Nightly backup and weekly drift check (GitHub Actions) | Member of `pg_read_all_data` only: reads every table, including staff credentials so a restore is complete; writes nothing; owns nothing. Created or rotated with `pnpm db:backup-login` (`docs/operations/backups-and-rollback.md`) |
-| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only (including `sms_setting` and `sms_daily_usage`, migration 0005); no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `staff_rate_limit` (expired sessions, second-factor resets and expired rate-limit rows); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`) |
+| `app_runtime` | The application and background jobs | `SELECT, INSERT` on all tables; `UPDATE` on mutable tables only (including `sms_setting` and `sms_daily_usage`, migration 0005); no `UPDATE` or `DELETE` on `audit_entry`, `registration_revision`, `registration_decision`, `verification_evidence`, `member_import`; `DELETE` only on `phone_challenge`, `rate_limit_bucket`, `sms_outbox` and Better Auth's `session`, `verification`, `account`, `two_factor`, `staff_rate_limit` (expired sessions, second-factor resets and expired rate-limit rows); `INSERT` on `audit_entry` and `registration_decision` only for content columns, so the application cannot set `at` or `redacted_at`; `UPDATE` on `registration` only for review-workflow columns (not `reference`, `channel`, `captured_by_user_id`, `created_at`, `personal_data_redacted_at`) |
 | `readonly_ops` | Super Administrators for investigations | `SELECT` only, except staff credentials (`account`, `session`, `verification`, `two_factor`); every session is logged by the provider |
 
 ```sql
@@ -340,6 +357,9 @@ REVOKE INSERT ON audit_entry, registration_decision FROM app_runtime;
 GRANT INSERT (actor_type, actor_id, action, entity_type, entity_id, before, after, request_id)
   ON audit_entry TO app_runtime;
 GRANT INSERT (registration_id, action, reason, actor_user_id) ON registration_decision TO app_runtime;
+-- member_import (#104) is a record of what happened: inserted, never changed.
+GRANT SELECT, INSERT ON member_import TO app_runtime;
+GRANT SELECT ON member_import TO readonly_ops;
 REVOKE SELECT ON account, session, verification, two_factor FROM readonly_ops;
 ```
 

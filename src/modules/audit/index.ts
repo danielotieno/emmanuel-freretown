@@ -8,6 +8,7 @@
 export {
   recordAccess,
   write,
+  writeMany,
   type AccessEvent,
   type Actor,
   type AuditEntityType,

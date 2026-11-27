@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../../db";
 import { SafeError } from "../observability";
-import { recordAccess, write, type AuditEntry } from "./write";
+import { recordAccess, write, writeMany, type AuditEntry } from "./write";
 
 // Malformed entries are refused before any query. The database path is covered against real
 // Postgres in tests/integration/audit.test.ts.
@@ -91,6 +91,23 @@ describe("write", () => {
     expect(await codeOf(write(untouchable, { ...base, before: { codeHash: "x" } }))).toBe(
       "audit_secret_value",
     );
+  });
+});
+
+describe("writeMany", () => {
+  it("writes nothing for no entries", async () => {
+    expect(await codeOf(writeMany(untouchable, []))).toBeUndefined();
+  });
+
+  it("refuses every entry, before touching the database, if one is malformed", async () => {
+    const good = {
+      actor: staff,
+      action: "member.create",
+      entityType: "member",
+      entityId: ID,
+    } as const;
+    const bad = { ...good, entityId: "REG-AVD2T" };
+    expect(await codeOf(writeMany(untouchable, [good, bad]))).toBe("invalid_audit_entry");
   });
 });
 
