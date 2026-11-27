@@ -10,3 +10,18 @@ export {
   type Unit,
   type UnitCheck,
 } from "./units";
+export {
+  addUnit,
+  checkUnitName,
+  listUnits,
+  moveUnit,
+  renameUnit,
+  setUnitActive,
+  UNIT_KINDS,
+  unitKey,
+  type UnitChangeRefusal,
+  type UnitChangeResult,
+  type UnitKind,
+  type UnitNameError,
+  type UnitRow,
+} from "./admin";

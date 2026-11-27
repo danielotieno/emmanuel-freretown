@@ -67,6 +67,13 @@ export default async function AdminHome() {
           </Link>
         </p>
       )}
+      {reviewer && (
+        <p className="mt-4">
+          <Link href="/units" className="btn-secondary">
+            HBCs and departments
+          </Link>
+        </p>
+      )}
       {superAdmin && (
         <p className="mt-4">
           <Link href="/audit" className="btn-secondary">

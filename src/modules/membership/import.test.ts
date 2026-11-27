@@ -5,10 +5,10 @@ import {
   IMPORT_MAX_ROWS,
   importDigest,
   readImportFile,
-  unitKey,
   unitsByKey,
   type ImportLookups,
 } from "./import";
+import { unitKey } from "../organisation";
 
 // The import of the parish list (FR-13, D47, #104): reading the file and checking its rows.
 // All names and numbers are synthetic.
