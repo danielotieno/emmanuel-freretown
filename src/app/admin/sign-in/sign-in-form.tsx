@@ -41,7 +41,8 @@ export function SignInForm() {
       setStep("code");
       return;
     }
-    // Signed in with a password only: the authenticator app must be set up first.
+    // Signed in with a password only: the authenticator app must be set up first (and a
+    // temporary password replaced before that; the enrolment page sends them on).
     router.replace("/enrol");
   }
 

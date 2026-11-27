@@ -162,4 +162,6 @@ The email and name stay in your shell history; on a shared machine, close the te
 
 Then the Super Administrator opens the staff host (`admin.` or `admin-staging.`), passes Cloudflare Access (their email must be on the environment's allow-list, §5), signs in with the password and sets up an authenticator app. They can reach nothing else until they do. The 30-minute idle timeout applies to them (D32).
 
+Every other staff member is added by a Super Administrator at `/staff` (#91, D59), never with this script. Add their email to the environment's Cloudflare Access allow-list too; the portal shows a temporary password once, to hand over in person or by phone call. Ask the second Super Administrator (D40) to reset your own authenticator app or password.
+
 Locally, `pnpm dev` serves the staff portal on `http://admin.localhost:3000`; put a `BETTER_AUTH_SECRET` in `.dev.vars` first.

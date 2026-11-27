@@ -99,6 +99,13 @@
       "when": 1795805149578,
       "tag": "0013_member_removal_closed_check",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795809711437,
+      "tag": "0014_staff_must_change_password",
+      "breakpoints": true
     }
   ]
 }

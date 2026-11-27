@@ -8,6 +8,7 @@ import {
   handleAuthRequest as handleAuthRequestInModule,
   passesAccess,
   requireEnrollingStaff as enrollingStaffInModule,
+  requirePasswordChange as passwordChangeInModule,
   requireStaff as requireStaffInModule,
   StaffAccessError,
   type AccessJwtPolicy,
@@ -73,6 +74,7 @@ async function refuse(error: unknown): Promise<never> {
   (await getLogger()).info("staff.refused", { reason: error.reason });
   if (error.reason === "idle_timeout") redirect("/sign-in?timeout=1");
   if (error.reason === "signed_out") redirect("/sign-in");
+  if (error.reason === "password_change_required") redirect("/change-password");
   if (error.reason === "second_factor_required") redirect("/enrol");
   // Wrong host, no Access JWT, or no role for this: give nothing away.
   notFound();
@@ -90,21 +92,28 @@ async function refuse(error: unknown): Promise<never> {
  * The checks themselves are `requireStaff` in src/modules/access.
  */
 export async function requireStaff(role: RoleRequirement, scope?: Scope): Promise<Staff> {
-  const req = await staffRequest();
-  if (!req) notFound();
-  try {
-    return await requireStaffInModule(req, role, scope);
-  } catch (error) {
-    return refuse(error);
-  }
+  return check((req) => requireStaffInModule(req, role, scope));
 }
 
 /** For the enrolment page: the staff member who must set up an authenticator app, or null. */
 export async function requireEnrollingStaff(): Promise<EnrollingStaff | null> {
+  return check(enrollingStaffInModule);
+}
+
+/**
+ * For the change-password page and its action: the signed-in staff member, `forced` while they
+ * hold a temporary password from a Super Administrator.
+ */
+export async function requirePasswordChange(): Promise<Staff & { forced: boolean }> {
+  return check(passwordChangeInModule);
+}
+
+/** Runs one of the access module's checks on this request; a refusal redirects or answers 404. */
+async function check<T>(run: (req: StaffRequest) => Promise<T>): Promise<T> {
   const req = await staffRequest();
   if (!req) notFound();
   try {
-    return await enrollingStaffInModule(req);
+    return await run(req);
   } catch (error) {
     return refuse(error);
   }

@@ -22,6 +22,8 @@ import {
  * - `access_denied`: no valid Cloudflare Access JWT.
  * - `signed_out`: no session, or one that was revoked.
  * - `idle_timeout`: idle for longer than D32 allows; the session has been revoked.
+ * - `password_change_required`: signed in with a temporary password from a Super
+ *   Administrator, which they must replace first (#91).
  * - `second_factor_required`: signed in with a password but no authenticator app set up yet.
  * - `forbidden`: signed in properly, without a role that allows this.
  */
@@ -30,6 +32,7 @@ export type StaffRefusal =
   | "access_denied"
   | "signed_out"
   | "idle_timeout"
+  | "password_change_required"
   | "second_factor_required"
   | "forbidden";
 
@@ -101,8 +104,14 @@ async function revokeSession(db: Database, sessionId: string): Promise<void> {
   await safeQuery(() => db.delete(sessionTable).where(eq(sessionTable.id, sessionId)));
 }
 
-type SessionState =
-  { state: "ready"; staff: Staff } | { state: "enrolment_required"; staff: EnrollingStaff };
+/**
+ * Where a signed-in staff member stands: ready, or with a step to take first. A temporary
+ * password is replaced before anything else, then the authenticator app is set up.
+ */
+interface SessionState {
+  state: "ready" | "password_change_required" | "enrolment_required";
+  staff: Staff;
+}
 
 /**
  * Every check except the role: host, Cloudflare Access, a live session, the idle timeout and
@@ -140,12 +149,19 @@ async function checkSession(req: StaffRequest): Promise<SessionState> {
     );
   }
 
-  if (!enrolled)
-    return { state: "enrolment_required", staff: { userId: user.id, name: user.name } };
-  return {
-    state: "ready",
-    staff: { userId: user.id, name: user.name, sessionId: session.id, grants },
-  };
+  const staff = { userId: user.id, name: user.name, sessionId: session.id, grants };
+  if (user.mustChangePassword) return { state: "password_change_required", staff };
+  if (!enrolled) return { state: "enrolment_required", staff };
+  return { state: "ready", staff };
+}
+
+/** The refusal for a step the staff member has yet to take, if any. */
+function pendingStep(result: SessionState): StaffAccessError | null {
+  if (result.state === "password_change_required") {
+    return new StaffAccessError("password_change_required");
+  }
+  if (result.state === "enrolment_required") return new StaffAccessError("second_factor_required");
+  return null;
 }
 
 /**
@@ -153,7 +169,8 @@ async function checkSession(req: StaffRequest): Promise<SessionState> {
  * action and route handler calls it before doing anything else. It refuses, by throwing a
  * StaffAccessError, unless the request:
  * - came to an admin host, through Cloudflare Access (its JWT is checked);
- * - carries a live session that was created after a second factor (FR-10);
+ * - carries a live session that was created after a second factor (FR-10), of a staff member
+ *   who no longer holds a temporary password (#91);
  * - has not been idle for longer than D32 allows (the session is revoked if so); and
  * - belongs to a staff user with an active grant for `role` in `scope`: one role, any one of a
  *   list, or with `role` null any active grant. A Super Administrator also satisfies Membership
@@ -165,7 +182,8 @@ export async function requireStaff(
   scope: Scope = GLOBAL,
 ): Promise<Staff> {
   const result = await checkSession(req);
-  if (result.state === "enrolment_required") throw new StaffAccessError("second_factor_required");
+  const pending = pendingStep(result);
+  if (pending) throw pending;
   if (!isAllowed(result.staff.grants, role, scope)) throw new StaffAccessError("forbidden");
   return result.staff;
 }
@@ -173,11 +191,32 @@ export async function requireStaff(
 /**
  * For the enrolment page only: the staff member signed in with a password who still has to set
  * up an authenticator app. Returns null if they already have one (they belong on the staff home
- * page instead). Throws a StaffAccessError for every other refusal.
+ * page instead). Throws a StaffAccessError for every other refusal, including a temporary
+ * password still to replace.
  */
 export async function requireEnrollingStaff(req: StaffRequest): Promise<EnrollingStaff | null> {
   const result = await checkSession(req);
-  return result.state === "enrolment_required" ? result.staff : null;
+  if (result.state === "password_change_required") {
+    throw new StaffAccessError("password_change_required");
+  }
+  if (result.state !== "enrolment_required") return null;
+  return { userId: result.staff.userId, name: result.staff.name };
+}
+
+/**
+ * For changing one's own password (#91): the staff member who must replace a temporary password
+ * (`forced`), or any ready staff member with an active role. Refuses one who still has to set up
+ * an authenticator app, and every other refusal `requireStaff` makes.
+ */
+export async function requirePasswordChange(
+  req: StaffRequest,
+): Promise<Staff & { forced: boolean }> {
+  const result = await checkSession(req);
+  if (result.state === "enrolment_required") throw new StaffAccessError("second_factor_required");
+  if (result.state === "ready" && !isAllowed(result.staff.grants, null)) {
+    throw new StaffAccessError("forbidden");
+  }
+  return { ...result.staff, forced: result.state === "password_change_required" };
 }
 
 /**
