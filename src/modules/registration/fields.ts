@@ -236,6 +236,71 @@ export function checkAssistedRegistration(
 }
 
 /**
+ * The details a Registration Officer or administrator enters to correct a registration (FR-5,
+ * #21): FR-1's details, with "No personal phone" as at the desk (BR-06). Whether the member is
+ * new comes from the stored revision, never from the form: a new member's FWO number is the one
+ * the Church Secretary issues (BR-16), so the form's is ignored.
+ */
+export interface CorrectionFields {
+  fullName: string;
+  fwoNumber: string;
+  noPersonalPhone: boolean;
+  phone: string;
+  hbcId: string;
+  /** D49: a new member whose HBC is still not known. Ignored unless the member is new. */
+  hbcUnknown?: boolean;
+  departmentIds: string[];
+}
+
+export interface ValidCorrection {
+  fullName: string;
+  /** Null for a new member: their number (or none yet) carries over from the stored revision. */
+  fwoNumber: string | null;
+  /** Null when the member has no personal phone. */
+  phoneE164: string | null;
+  noPersonalPhone: boolean;
+  /** Null: a new member's HBC, still to be set by the Church Secretary (D49). */
+  hbcId: string | null;
+  departmentIds: string[];
+}
+
+export type CorrectionFieldName = keyof CorrectionFields;
+
+/** Checks every field of a correction; the errors are keyed by field. */
+export function checkCorrection(
+  fields: CorrectionFields,
+  isNewMember: boolean,
+):
+  | { ok: true; value: ValidCorrection }
+  | { ok: false; errors: Partial<Record<CorrectionFieldName, FieldError>> } {
+  const results = {
+    fullName: checkFullName(fields.fullName),
+    fwoNumber: checkFwoNumber(fields.fwoNumber, isNewMember),
+    phone: fields.noPersonalPhone
+      ? ({ ok: true, value: null } as FieldResult<string | null>)
+      : checkPhone(fields.phone),
+    hbcId: checkHbc(fields.hbcId, fields.hbcUnknown ?? false, isNewMember),
+  };
+  const errors: Partial<Record<CorrectionFieldName, FieldError>> = {};
+  for (const [name, result] of Object.entries(results)) {
+    if (!result.ok) errors[name as CorrectionFieldName] = result.error;
+  }
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  const ok = <T>(r: FieldResult<T>) => (r as { ok: true; value: T }).value;
+  return {
+    ok: true,
+    value: {
+      fullName: ok(results.fullName),
+      fwoNumber: ok(results.fwoNumber),
+      phoneE164: ok(results.phone),
+      noPersonalPhone: fields.noPersonalPhone,
+      hbcId: ok(results.hbcId),
+      departmentIds: [...new Set(fields.departmentIds.map((d) => d.trim()).filter(Boolean))],
+    },
+  };
+}
+
+/**
  * An administrator's reason for rejecting or asking for a correction (FR-4): required, trimmed,
  * at least 3 characters and at most 500. Staff see it; members never do.
  */

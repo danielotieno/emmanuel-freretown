@@ -13,7 +13,7 @@ const ROLE_NAMES: Record<StaffRole, string> = {
 export default async function AdminHome() {
   const staff = await requireStaff(null);
   const roles = [...new Set(staff.grants.map((g) => ROLE_NAMES[g.role]))];
-  // Only to show the link: the desk checks the role itself (CLAUDE.md rule 1).
+  // Only to show the links: each page checks the role itself (CLAUDE.md rule 1).
   const officer = staff.grants.some((g) => g.role === "REGISTRATION_OFFICER");
   const reviewer = staff.grants.some(
     (g) => g.role === "MEMBERSHIP_ADMIN" || g.role === "SUPER_ADMIN",
@@ -37,6 +37,13 @@ export default async function AdminHome() {
         <p className="mt-4">
           <Link href="/review" className="btn-secondary">
             Review queue
+          </Link>
+        </p>
+      )}
+      {(officer || reviewer) && (
+        <p className="mt-4">
+          <Link href="/corrections" className="btn-secondary">
+            Corrections
           </Link>
         </p>
       )}

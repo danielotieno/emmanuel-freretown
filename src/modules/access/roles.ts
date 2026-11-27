@@ -34,16 +34,23 @@ function covers(granted: Scope, required: Scope): boolean {
 }
 
 /**
- * Whether `grants` allow work that needs `role` in `scope`. With no role, any active grant is
- * enough (pages every staff member may see, such as the staff home page).
+ * What a page or action needs: one role, any one of several (work two roles share, such as
+ * corrections, FR-5: Registration Officer or Membership Administrator), or null for any active
+ * grant (pages every staff member may see, such as the staff home page).
  */
+export type RoleRequirement = StaffRole | readonly [StaffRole, ...StaffRole[]] | null;
+
+/** Whether `grants` allow work that needs `role` (see `RoleRequirement`) in `scope`. */
 export function isAllowed(
   grants: readonly RoleGrant[],
-  role: StaffRole | null,
+  role: RoleRequirement,
   scope: Scope = GLOBAL,
 ): boolean {
+  const any: readonly StaffRole[] | null =
+    role === null || typeof role !== "string" ? role : [role];
   return grants.some(
-    (g) => (role === null || SATISFIED_BY[role].includes(g.role)) && covers(g.scope, scope),
+    (g) =>
+      (any === null || any.some((r) => SATISFIED_BY[r].includes(g.role))) && covers(g.scope, scope),
   );
 }
 

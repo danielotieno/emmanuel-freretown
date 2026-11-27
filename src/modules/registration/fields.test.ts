@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   checkAssistedRegistration,
+  checkCorrection,
   checkEventLabel,
   checkFullName,
   checkFwoNumber,
@@ -8,6 +9,7 @@ import {
   checkReason,
   checkSelfRegistration,
   type AssistedRegistrationFields,
+  type CorrectionFields,
 } from "./fields";
 
 describe("checkFullName", () => {
@@ -264,5 +266,55 @@ describe("checkReason (FR-4)", () => {
     expect(checkReason("no")).toEqual({ ok: false, error: "too_short" });
     expect(checkReason("x".repeat(501))).toEqual({ ok: false, error: "too_long" });
     expect(checkReason("x".repeat(500)).ok).toBe(true);
+  });
+});
+
+describe("checkCorrection (FR-5)", () => {
+  const HBC = "11111111-1111-4111-8111-111111111111";
+  const fields: CorrectionFields = {
+    fullName: " Test  Person ",
+    fwoNumber: " 0042 ",
+    noPersonalPhone: false,
+    phone: "0712 345 678",
+    hbcId: HBC,
+    departmentIds: ["d1", "d1", " "],
+  };
+
+  it("cleans every detail as the desk does", () => {
+    expect(checkCorrection(fields, false)).toEqual({
+      ok: true,
+      value: {
+        fullName: "Test Person",
+        fwoNumber: "0042",
+        phoneE164: "+254712345678",
+        noPersonalPhone: false,
+        hbcId: HBC,
+        departmentIds: ["d1"],
+      },
+    });
+  });
+
+  it("drops the phone for a member with no personal phone (BR-06)", () => {
+    const result = checkCorrection({ ...fields, noPersonalPhone: true, phone: "12" }, false);
+    expect(result).toMatchObject({ ok: true, value: { phoneE164: null, noPersonalPhone: true } });
+  });
+
+  it("ignores a new member's FWO number, and lets only a new member leave the HBC unknown (BR-16, D49)", () => {
+    const unknown = { ...fields, fwoNumber: "abc", hbcId: "", hbcUnknown: true };
+    expect(checkCorrection(unknown, true)).toMatchObject({
+      ok: true,
+      value: { fwoNumber: null, hbcId: null },
+    });
+    expect(checkCorrection(unknown, false)).toEqual({
+      ok: false,
+      errors: { fwoNumber: "invalid", hbcId: "required" },
+    });
+  });
+
+  it("names each wrong field", () => {
+    expect(checkCorrection({ ...fields, fullName: "", fwoNumber: "", phone: "" }, false)).toEqual({
+      ok: false,
+      errors: { fullName: "required", fwoNumber: "required", phone: "required" },
+    });
   });
 });

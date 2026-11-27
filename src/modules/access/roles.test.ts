@@ -47,6 +47,16 @@ describe("isAllowed", () => {
     expect(isAllowed(both, "SUPER_ADMIN")).toBe(false);
   });
 
+  it("allows work any one of several roles may do: corrections (FR-5)", () => {
+    const corrections = ["REGISTRATION_OFFICER", "MEMBERSHIP_ADMIN"] as const;
+    expect(isAllowed([grant("REGISTRATION_OFFICER")], corrections)).toBe(true);
+    expect(isAllowed([grant("MEMBERSHIP_ADMIN")], corrections)).toBe(true);
+    // A Super Administrator satisfies Membership Administrator, so one of the list.
+    expect(isAllowed([grant("SUPER_ADMIN")], corrections)).toBe(true);
+    expect(isAllowed([], corrections)).toBe(false);
+    expect(isAllowed([grant("REGISTRATION_OFFICER")], ["SUPER_ADMIN"])).toBe(false);
+  });
+
   it("lets a GLOBAL grant cover any scope, and a scoped grant only its own", () => {
     const hbc = { type: "HBC", id: "11111111-1111-4111-8111-111111111111" } as const;
     const other = { type: "HBC", id: "22222222-2222-4222-8222-222222222222" } as const;

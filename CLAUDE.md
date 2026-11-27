@@ -52,6 +52,7 @@ Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui, Zod,
 | `/api/webhooks/sms-delivery` | Mobile Sasa delivery reports, signed with the webhook secret (#14) |
 | `admin.ackemmanuelfreretown.org` | Staff: review queue, officer desk, members, settings. Separate host, separate host-only cookie, behind Cloudflare Access |
 | `admin.ackemmanuelfreretown.org/desk` | Officer desk: assisted registration (FR-3, #18). Registration Officers only |
+| `admin.ackemmanuelfreretown.org/corrections` | Corrections by staff (FR-5, #21). Registration Officers and Membership Administrators |
 
 ## Code layout
 

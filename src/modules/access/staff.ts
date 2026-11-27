@@ -11,8 +11,8 @@ import {
   idleTimeoutMs,
   isAllowed,
   type RoleGrant,
+  type RoleRequirement,
   type Scope,
-  type StaffRole,
 } from "./roles";
 
 /**
@@ -155,12 +155,13 @@ async function checkSession(req: StaffRequest): Promise<SessionState> {
  * - came to an admin host, through Cloudflare Access (its JWT is checked);
  * - carries a live session that was created after a second factor (FR-10);
  * - has not been idle for longer than D32 allows (the session is revoked if so); and
- * - belongs to a staff user with an active grant for `role` in `scope`. With `role` null, any
- *   active grant will do. A Super Administrator also satisfies Membership Administrator.
+ * - belongs to a staff user with an active grant for `role` in `scope`: one role, any one of a
+ *   list, or with `role` null any active grant. A Super Administrator also satisfies Membership
+ *   Administrator.
  */
 export async function requireStaff(
   req: StaffRequest,
-  role: StaffRole | null,
+  role: RoleRequirement,
   scope: Scope = GLOBAL,
 ): Promise<Staff> {
   const result = await checkSession(req);

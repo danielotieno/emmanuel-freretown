@@ -5,7 +5,7 @@
 export { createAuth, type Auth, type AuthConfig } from "./auth";
 export { accessJwtPolicy, passesAccess, type AccessJwtPolicy } from "./cloudflare-access";
 export { handleAuthRequest } from "./handler";
-export { GLOBAL, type RoleGrant, type Scope, type StaffRole } from "./roles";
+export { GLOBAL, type RoleGrant, type RoleRequirement, type Scope, type StaffRole } from "./roles";
 export {
   requireEnrollingStaff,
   requireStaff,

@@ -6,6 +6,7 @@ export {
   checkAccepted,
   checkAssistedRegistration,
   checkChosen,
+  checkCorrection,
   checkFullName,
   checkFwoNumber,
   checkPhone,
@@ -13,13 +14,24 @@ export {
   checkSelfRegistration,
   type AssistedFieldName,
   type AssistedRegistrationFields,
+  type CorrectionFieldName,
+  type CorrectionFields,
   type FieldError,
   type FieldName,
   type FieldResult,
   type SelfRegistrationFields,
   type ValidAssistedRegistration,
+  type ValidCorrection,
   type ValidSelfRegistration,
 } from "./fields";
+export {
+  listCorrections,
+  openRegistrationForCorrection,
+  submitCorrection,
+  type CorrectionItem,
+  type CorrectionRefusal,
+  type CorrectionResult,
+} from "./correction";
 export {
   findAssistedSubmission,
   submitAssistedRegistration,
@@ -64,4 +76,5 @@ export {
   type QueueFlag,
   type QueueItem,
   type RegistrationForReview,
+  type RevisionDetails,
 } from "./review";
