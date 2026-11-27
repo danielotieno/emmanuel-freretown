@@ -150,7 +150,10 @@ export function CorrectionForm(props: {
 
         <Field id="hbcId" label="HBC" error={errors.hbcId}>
           <div className="relative max-w-[20rem]">
+            {/* Keyed: React doesn't apply a select's new defaultValue on re-render, so a
+                refusal would otherwise put the member's current HBC back (#126). */}
             <select
+              key={values.hbcId}
               id="hbcId"
               name="hbcId"
               defaultValue={values.hbcId}

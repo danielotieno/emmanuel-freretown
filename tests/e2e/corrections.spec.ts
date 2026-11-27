@@ -77,7 +77,15 @@ test("an officer corrects a registration and it returns to the review queue (FR-
   await expect(page.getByText("Choose the HBC.")).toBeVisible();
   await expect(page.getByLabel("Full name")).toHaveValue(corrected);
 
+  // A changed HBC stays changed after a refusal for another field, never reverting to the
+  // member's current HBC, Judea (#126).
   await page.getByLabel("HBC").selectOption({ label: "Samaria" });
+  await page.getByLabel("Full name").fill("");
+  await page.getByRole("button", { name: "Save the correction" }).click();
+  await expect(page.getByText("Enter the member's full name.")).toBeVisible();
+  await expect(page.getByLabel("HBC").locator("option:checked")).toHaveText("Samaria");
+
+  await page.getByLabel("Full name").fill(corrected);
   await page.getByRole("button", { name: "Save the correction" }).click();
   await expect(page).toHaveURL(`${ADMIN}/corrections?done=1`);
   await expect(page.getByRole("status")).toHaveText(
