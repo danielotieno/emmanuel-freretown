@@ -109,6 +109,7 @@ Every state change calls `audit.write(tx, entry)` inside the transaction that ma
 | PaperTally | election, position, candidate (or ABSTAIN), votes, entered_by, confirmed_by | Manual ballot totals; requires two different officers. Final results = online tally + paper tally. Per-candidate rows are removed one week after the final result, keeping the totals per position (D52) |
 | Ballot | random id, election, sealed payload | "What was voted" — no member reference, no timestamp |
 | PositionResult | election, position, candidate, votes; declared_by, declared_at | Written only after voting closes. Who was elected is kept permanently, also after the member leaves or dies (D52, an exception to D45): the kept record refers to the member, not the Candidate row, so it survives the nomination's removal (#32 settles the shape). Unsuccessful candidates and every per-candidate count, with the audit entries about results, are removed one week after the final result, leaving the totals per position. A pilot's online result is never a record of office-holders: it is compared with paper (Q27) and removed in full (D52) |
+| ElectionTurnout | election, eligible, voted_online, voted_in_person | Counted before D51's removal; names no one; kept permanently (D53). Removal under D51 and D52 waits while a complaint raised within 5 days of the result is open (D53) |
 
 ### Election lifecycle
 
