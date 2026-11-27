@@ -49,6 +49,13 @@ export default async function AdminHome() {
       )}
       {reviewer && (
         <p className="mt-4">
+          <Link href="/members" className="btn-secondary">
+            Members
+          </Link>
+        </p>
+      )}
+      {reviewer && (
+        <p className="mt-4">
           <Link href="/members/import" className="btn-secondary">
             Import the parish list
           </Link>

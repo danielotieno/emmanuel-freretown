@@ -5,6 +5,24 @@
 export { fwoBelongsToMember, phoneBelongsToMember } from "./conflicts";
 export { createMember, type CreateMemberResult, type NewMember } from "./members";
 export { findActiveMemberForStatusCheck, type MemberForStatusCheck } from "./status";
+export {
+  changeMemberStatus,
+  editMemberDetails,
+  isClosedStatus,
+  listMembers,
+  MEMBER_STATUSES,
+  nextStatuses,
+  openMember,
+  searchMembers,
+  transferMemberHbc,
+  type MemberChangeRefusal,
+  type MemberChangeResult,
+  type MemberDetailsFields,
+  type MemberFieldError,
+  type MemberListFilters,
+  type MemberListItem,
+  type MemberStatus,
+} from "./records";
 export { decodeCsvFile } from "./csv";
 export {
   DEPARTMENT_SEPARATOR,

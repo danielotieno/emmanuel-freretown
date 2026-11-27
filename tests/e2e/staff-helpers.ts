@@ -106,6 +106,28 @@ export async function createStaff(roles: string[], name = "E2E Staff"): Promise<
   return email;
 }
 
+/**
+ * A synthetic ACTIVE member in Judea with no personal phone, created as the owner, as if
+ * imported (D47). Returns their id. The FWO number is random, so reruns never collide.
+ */
+export async function createMember(fullName: string): Promise<{ id: string; fwoNumber: string }> {
+  const fwoNumber = `9${randomDigits(9)}`;
+  const client = ownerClient();
+  await client.connect();
+  try {
+    const { rows } = await client.query<{ id: string }>(
+      `WITH m AS (
+         INSERT INTO member (fwo_number, full_name, language) VALUES ($1, $2, 'en') RETURNING id)
+       INSERT INTO member_hbc_assignment (member_id, hbc_id)
+       SELECT m.id, (SELECT id FROM hbc WHERE name = 'Judea') FROM m RETURNING member_id AS id`,
+      [fwoNumber, fullName],
+    );
+    return { id: rows[0]!.id, fwoNumber };
+  } finally {
+    await client.end();
+  }
+}
+
 /** The current code an authenticator app would show for a base32 setup key (RFC 6238). */
 function totp(setupKey: string): string {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
