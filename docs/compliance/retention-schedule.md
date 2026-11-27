@@ -56,6 +56,6 @@ Staff are people too: their names, emails and IP addresses are personal data.
 ## Open items
 
 - Sentry, Cloudflare Access and Mobile Sasa retention: confirm each in the provider's settings or terms and record it above.
-- Removal on request (erasure, or withdrawing consent to storage outside Kenya): proposed as D54 in #74, not decided. Until then, see `data-subject-requests.md`.
+- Removal on request (erasure, or withdrawing consent to storage outside Kenya): proposed in #74, not decided. Until then, see `data-subject-requests.md`.
 - Election records: #121 (Release 2).
 - Registrations never decided (left submitted, or waiting for a correction) keep their details until a decision: #141.
