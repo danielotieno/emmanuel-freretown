@@ -33,7 +33,9 @@ export function parseStatusKey(input: string): StatusKey | null {
  * was not valid for this phone (expired, already used): nothing was looked up.
  */
 export type StatusCheckResult =
-  | { ok: true; status: "RECEIVED" | "REGISTERED_MEMBER"; fullName: string; hbcName: string }
+  | { ok: true; status: "REGISTERED_MEMBER"; fullName: string; hbcName: string }
+  /** `hbcName` null: a new member's HBC, to be set by the Church Secretary (D49). */
+  | { ok: true; status: "RECEIVED"; fullName: string; hbcName: string | null }
   | { ok: true; status: "CONTACT_OFFICE" | "NOT_FOUND" }
   | { ok: false; reason: "verification" };
 
@@ -96,8 +98,8 @@ export async function checkRegistrationStatus(
               eq(registrationRevision.revisionNo, registration.currentRevisionNo),
             ),
           )
-          // A revision that isn't redacted always has an HBC (registration_revision_complete_check).
-          .innerJoin(hbc, eq(hbc.id, registrationRevision.hbcId))
+          // A new member's HBC may not be set yet (D49).
+          .leftJoin(hbc, eq(hbc.id, registrationRevision.hbcId))
           .where(
             and(
               eq(registrationRevision.phoneE164, phoneE164),

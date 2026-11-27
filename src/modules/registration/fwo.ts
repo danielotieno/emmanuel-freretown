@@ -8,6 +8,7 @@ import {
 } from "../../db/schema";
 import * as audit from "../audit";
 import { fwoBelongsToMember } from "../membership";
+import { checkUnitsForRegistration } from "../organisation";
 import { checkFwoNumber } from "./fields";
 import { openRegistrationsWithFwo, PRIVACY_NOTICE_VERSION } from "./intake";
 
@@ -141,7 +142,11 @@ export type IssueFwoRefusal =
   | "fwo_held"
   | "fwo_in_open_registration"
   /** The platform issued this number before, to a registration since rejected or withdrawn (D2). */
-  | "fwo_issued_before";
+  | "fwo_issued_before"
+  /** The new member's HBC isn't known yet, and none was chosen (D49). */
+  | "hbc_required"
+  /** The HBC chosen isn't an active one (BR-04). */
+  | "hbc_unavailable";
 
 export type IssueFwoResult = { ok: true } | { ok: false; reason: IssueFwoRefusal };
 
@@ -153,7 +158,8 @@ class Refused extends Error {
 
 /**
  * Enters the FWO number the Church Secretary issued to a new member (BR-16), in one
- * transaction: revision n + 1 (every field of revision n with the number) and its departments;
+ * transaction: revision n + 1 (every field of revision n with the number, and the HBC the
+ * Secretary chose when the member didn't know theirs, D49) and its departments;
  * the registration moved to it, version bumped; `FWO_CONFIRMED_BY_SECRETARY` evidence; the
  * setting raised if the number is higher (D30, so it is never suggested again, D2); and a
  * `registration.issue_fwo` audit entry (rule 4) that records whether the suggestion was taken
@@ -174,6 +180,11 @@ export async function issueFwoNumber(
     registrationId: string;
     version: number;
     fwoNumber: string;
+    /**
+     * D49: the HBC the Secretary sets for a new member who didn't know theirs. Required when the
+     * registration has none; ignored when it has one.
+     */
+    hbcId?: string;
     consentToCurrentNotice?: boolean;
     actor: audit.StaffActor;
     requestId?: string;
@@ -214,6 +225,18 @@ export async function issueFwoNumber(
           .limit(1);
         if (issuedBefore) throw new Refused("fwo_issued_before");
 
+        // D49: a new member who didn't know their HBC gets it now, from the Secretary.
+        let hbcSet: string | null = null;
+        if (reg.hbcId === null) {
+          if (!issue.hbcId) throw new Refused("hbc_required");
+          const units = await checkUnitsForRegistration(tx, {
+            hbcId: issue.hbcId,
+            departmentIds: [],
+          });
+          if (!units.ok) throw new Refused("hbc_unavailable");
+          hbcSet = issue.hbcId;
+        }
+
         const next = reg.currentRevisionNo + 1;
         const notice = noticeChanged ? PRIVACY_NOTICE_VERSION : reg.privacyNoticeVersion;
         await tx.execute(sql`
@@ -221,7 +244,8 @@ export async function issueFwoNumber(
             (registration_id, revision_no, full_name, fwo_number, phone_e164, hbc_id,
              adult_declared, transfer_consent, is_new_member, no_personal_phone,
              privacy_notice_version, submitted_by_user_id)
-          SELECT registration_id, ${next}, full_name, ${fwoNumber}, phone_e164, hbc_id,
+          SELECT registration_id, ${next}, full_name, ${fwoNumber}, phone_e164,
+                 COALESCE(${hbcSet}::uuid, hbc_id),
                  adult_declared, transfer_consent, is_new_member, no_personal_phone,
                  ${notice}, ${actor.userId}
             FROM registration_revision
@@ -268,6 +292,7 @@ export async function issueFwoNumber(
             revisionNo: next,
             suggestionTaken: fwoNumber === suggested,
             settingRaised: raised.length === 1,
+            ...(hbcSet ? { hbcId: hbcSet } : {}),
             ...(noticeChanged ? { consentToNotice: PRIVACY_NOTICE_VERSION } : {}),
           },
           requestId,
@@ -302,6 +327,7 @@ async function lockNewMember(tx: Transaction, registrationId: string, version: n
       isNewMember: registrationRevision.isNewMember,
       fwoNumber: registrationRevision.fwoNumber,
       privacyNoticeVersion: registrationRevision.privacyNoticeVersion,
+      hbcId: registrationRevision.hbcId,
     })
     .from(registrationRevision)
     .where(
@@ -313,5 +339,5 @@ async function lockNewMember(tx: Transaction, registrationId: string, version: n
   if (row.status !== "SUBMITTED" || !revision?.isNewMember || revision.fwoNumber !== null) {
     throw new Refused("not_waiting_for_fwo");
   }
-  return { ...row, privacyNoticeVersion: revision.privacyNoticeVersion };
+  return { ...row, privacyNoticeVersion: revision.privacyNoticeVersion, hbcId: revision.hbcId };
 }

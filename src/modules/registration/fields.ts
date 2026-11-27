@@ -43,6 +43,20 @@ export function checkAccepted(input: boolean): FieldResult<true> {
   return input ? { ok: true, value: true } : { ok: false, error: "must_accept" };
 }
 
+/**
+ * The HBC (BR-04): chosen, or, for a new member only, not known yet (D49), when the Church
+ * Secretary sets it with the FWO number. Whether the HBC is active is checked against the
+ * database.
+ */
+export function checkHbc(
+  hbcId: string,
+  hbcUnknown: boolean,
+  isNewMember: boolean,
+): FieldResult<string | null> {
+  if (hbcUnknown && isNewMember) return { ok: true, value: null };
+  return checkChosen(hbcId);
+}
+
 /** Whether a value was chosen. Whether the HBC is active is checked against the database. */
 export function checkChosen(input: string): FieldResult<string> {
   return input.trim() ? { ok: true, value: input.trim() } : { ok: false, error: "required" };
@@ -54,6 +68,8 @@ export interface SelfRegistrationFields {
   fwoNumber: string;
   phone: string;
   hbcId: string;
+  /** D49: a new member who doesn't know their HBC yet. Ignored unless `isNewMember`. */
+  hbcUnknown?: boolean;
   departmentIds: string[];
   adultDeclared: boolean;
   privacyAcknowledged: boolean;
@@ -65,7 +81,8 @@ export interface ValidSelfRegistration {
   isNewMember: boolean;
   fwoNumber: string | null;
   phoneE164: string;
-  hbcId: string;
+  /** Null: a new member's HBC, to be set by the Church Secretary (D49). */
+  hbcId: string | null;
   departmentIds: string[];
 }
 
@@ -81,7 +98,7 @@ export function checkSelfRegistration(
     fullName: checkFullName(fields.fullName),
     fwoNumber: checkFwoNumber(fields.fwoNumber, fields.isNewMember),
     phone: checkPhone(fields.phone),
-    hbcId: checkChosen(fields.hbcId),
+    hbcId: checkHbc(fields.hbcId, fields.hbcUnknown ?? false, fields.isNewMember),
     adultDeclared: checkAccepted(fields.adultDeclared),
     privacyAcknowledged: checkAccepted(fields.privacyAcknowledged),
     transferConsent: checkAccepted(fields.transferConsent),
@@ -129,6 +146,8 @@ export interface AssistedRegistrationFields {
   noPersonalPhone: boolean;
   phone: string;
   hbcId: string;
+  /** D49: a new member who doesn't know their HBC yet. Ignored unless `isNewMember`. */
+  hbcUnknown?: boolean;
   departmentIds: string[];
   verification: string;
   eventLabel: string;
@@ -149,7 +168,8 @@ export interface ValidAssistedRegistration {
   /** Null when the member has no personal phone. */
   phoneE164: string | null;
   noPersonalPhone: boolean;
-  hbcId: string;
+  /** Null: a new member's HBC, to be set by the Church Secretary (D49). */
+  hbcId: string | null;
   departmentIds: string[];
   verification: AssistedVerification;
   eventLabel: string;
@@ -185,7 +205,7 @@ export function checkAssistedRegistration(
     phone: fields.noPersonalPhone
       ? ({ ok: true, value: null } as FieldResult<string | null>)
       : checkPhone(fields.phone),
-    hbcId: checkChosen(fields.hbcId),
+    hbcId: checkHbc(fields.hbcId, fields.hbcUnknown ?? false, fields.isNewMember),
     verification: checkVerification(fields.verification, fields.noPersonalPhone),
     eventLabel: checkEventLabel(fields.eventLabel),
     adultDeclared: checkAccepted(fields.adultDeclared),

@@ -26,6 +26,8 @@ export interface FormValues {
   fwoNumber: string;
   phone: string;
   hbcId: string;
+  /** D49: a new member who doesn't know their HBC yet. */
+  hbcUnknown: boolean;
   departmentIds: string[];
   adultDeclared: boolean;
   privacyAcknowledged: boolean;
@@ -38,7 +40,7 @@ export type ErrorField = keyof FormValues | "code";
 export const STEP_FIELDS: Partial<Record<Step, (keyof FormValues)[]>> = {
   name: ["fullName"],
   fwo: ["isNewMember", "fwoNumber"],
-  hbc: ["hbcId"],
+  hbc: ["hbcId", "hbcUnknown"],
   departments: ["departmentIds"],
   phone: ["phone"],
   declarations: ["adultDeclared", "privacyAcknowledged", "transferConsent"],
@@ -75,6 +77,7 @@ export const EMPTY_VALUES: FormValues = {
   fwoNumber: "",
   phone: "",
   hbcId: "",
+  hbcUnknown: false,
   departmentIds: [],
   adultDeclared: false,
   privacyAcknowledged: false,
@@ -98,6 +101,7 @@ export function readValues(form: FormData): FormValues {
     fwoNumber: text("fwoNumber"),
     phone: text("phone"),
     hbcId: text("hbcId"),
+    hbcUnknown: ticked("hbcUnknown"),
     departmentIds: form
       .getAll("departmentIds")
       .filter((v): v is string => typeof v === "string")

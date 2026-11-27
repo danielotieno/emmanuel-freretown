@@ -148,7 +148,12 @@ export async function next(page: Page) {
 /** The event and the member's details, up to the phone step. */
 export async function fillMember(
   page: Page,
-  member: { newMember?: boolean; fullName?: string; eventLabel?: string } = {},
+  member: {
+    newMember?: boolean;
+    hbcUnknown?: boolean;
+    fullName?: string;
+    eventLabel?: string;
+  } = {},
 ) {
   await page.getByLabel(en.desk_event_title).fill(member.eventLabel ?? EVENT);
   await next(page);
@@ -159,7 +164,13 @@ export async function fillMember(
   } else {
     await page.getByLabel(en.desk_fwo_label, { exact: true }).fill(`9${randomDigits(5)}`);
   }
-  await page.getByLabel(en.desk_hbc_label, { exact: true }).selectOption({ label: "Judea" });
+  if (member.hbcUnknown) {
+    // D49: only offered to a new member, so `newMember` must be set too.
+    if (!member.newMember) throw new Error("fillMember: hbcUnknown needs newMember");
+    await page.getByRole("checkbox", { name: en.desk_hbc_unknown_label }).check();
+  } else {
+    await page.getByLabel(en.desk_hbc_label, { exact: true }).selectOption({ label: "Judea" });
+  }
   await page.getByRole("checkbox", { name: "Mother's Union" }).check();
   await next(page);
   await expect(page.getByRole("heading", { name: en.desk_phone_title })).toBeVisible();

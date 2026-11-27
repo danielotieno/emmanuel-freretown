@@ -171,10 +171,14 @@ async function verifyAndCheck(
     return at("review", { notice: m.err_verification({}, o) });
   }
   log.info("status_check.answered", { outcome: result.status });
+  // Two branches with the same body on purpose: each narrows `result` to one outcome, whose
+  // HBC may be null (RECEIVED, D49) or not (REGISTERED_MEMBER).
   const outcome: StatusOutcome =
-    result.status === "RECEIVED" || result.status === "REGISTERED_MEMBER"
+    result.status === "RECEIVED"
       ? { status: result.status, fullName: result.fullName, hbcName: result.hbcName }
-      : { status: result.status };
+      : result.status === "REGISTERED_MEMBER"
+        ? { status: result.status, fullName: result.fullName, hbcName: result.hbcName }
+        : { status: result.status };
   // The answer replaces the form: what was typed is not sent back.
   return at("result", { outcome, values: EMPTY_STATUS_VALUES });
 }

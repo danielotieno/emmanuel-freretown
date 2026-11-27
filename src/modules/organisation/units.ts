@@ -53,7 +53,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
  */
 export async function checkUnitsForRegistration(
   db: DbOrTx,
-  choice: { hbcId: string; departmentIds: readonly string[] },
+  /** `hbcId` null: a new member's HBC isn't known yet (D49); only departments are checked. */
+  choice: { hbcId: string | null; departmentIds: readonly string[] },
 ): Promise<UnitCheck> {
   // Ids come from the lists above, which Postgres returns lowercase; anything else is
   // unavailable, the safe answer. Each unavailable id is reported once.
@@ -61,14 +62,15 @@ export async function checkUnitsForRegistration(
   const departmentIds = [...new Set(choice.departmentIds)];
   const wellFormed = departmentIds.filter((id) => UUID.test(id));
 
-  const activeHbc = UUID.test(hbcId)
-    ? await safeQuery(() =>
-        db
-          .select({ id: hbc.id })
-          .from(hbc)
-          .where(and(eq(hbc.id, hbcId), eq(hbc.isActive, true))),
-      )
-    : [];
+  const activeHbc =
+    hbcId !== null && UUID.test(hbcId)
+      ? await safeQuery(() =>
+          db
+            .select({ id: hbc.id })
+            .from(hbc)
+            .where(and(eq(hbc.id, hbcId), eq(hbc.isActive, true))),
+        )
+      : [];
   const activeDepartments = wellFormed.length
     ? await safeQuery(() =>
         db
@@ -79,7 +81,8 @@ export async function checkUnitsForRegistration(
     : [];
 
   const active = new Set(activeDepartments.map((d) => d.id));
-  const hbcUnavailable = activeHbc.length === 0;
+  // No HBC to check: a new member's, to be set by the Church Secretary (D49).
+  const hbcUnavailable = hbcId !== null && activeHbc.length === 0;
   const unavailableDepartmentIds = departmentIds.filter((id) => !active.has(id));
   if (!hbcUnavailable && unavailableDepartmentIds.length === 0) return { ok: true };
   return { ok: false, hbcUnavailable, unavailableDepartmentIds };

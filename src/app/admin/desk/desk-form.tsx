@@ -362,8 +362,9 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
                     id="hbcId"
                     value={values.hbcId}
                     onChange={(e) => set({ hbcId: e.target.value })}
+                    disabled={values.isNewMember && values.hbcUnknown}
                     {...invalid("hbcId", errors)}
-                    className="field cursor-pointer appearance-none pr-12"
+                    className="field cursor-pointer appearance-none pr-12 disabled:opacity-60"
                   >
                     <option value="">{text.hbcChoose}</option>
                     {hbcs.map((h) => (
@@ -374,6 +375,16 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
                   </select>
                   <ChevronIcon className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-ink-muted" />
                 </div>
+                {/* D49: only a new member may leave the HBC to the Church Secretary. */}
+                {values.isNewMember && (
+                  <Tick
+                    name="hbcUnknown"
+                    checked={values.hbcUnknown}
+                    onChange={(hbcUnknown) => set({ hbcUnknown })}
+                    label={text.hbcUnknownLabel}
+                    hint={text.hbcUnknownHint}
+                  />
+                )}
               </Field>
               <fieldset
                 aria-describedby="departmentIds-hint departmentIds-error"
@@ -499,7 +510,9 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
                     <span className="tabular-nums">{values.fwoNumber}</span>
                   )}
                 </Row>
-                <Row term={text.hbcLabel}>{hbcName}</Row>
+                <Row term={text.hbcLabel}>
+                  {values.isNewMember && values.hbcUnknown ? text.hbcUnknownValue : hbcName}
+                </Row>
                 <Row term={text.departmentsLabel}>
                   {departmentNames.length ? departmentNames.join(", ") : text.none}
                 </Row>

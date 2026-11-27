@@ -31,6 +31,8 @@ const REFUSALS: Record<IssueFwoRefusal, string> = {
     "Another registration waiting for review has this FWO number (BR-03). Issue another.",
   fwo_issued_before:
     "This FWO number was issued before, to a registration since rejected or withdrawn. FWO numbers are never reused (D2). Issue another.",
+  hbc_required: "Choose this member's HBC: they didn't know it when they registered (D49).",
+  hbc_unavailable: "That HBC is no longer available. Choose another (BR-04).",
   notice_changed:
     "The privacy notice has changed since this member registered. Confirm they agree to the current notice (D35).",
 };
@@ -44,11 +46,13 @@ export async function issueFwoAction(
   const version = Number(form.get("version"));
   const fwoNumber = form.get("fwoNumber");
   const consentToCurrentNotice = form.get("consentToCurrentNotice") === "on";
+  const hbcId = form.get("hbcId");
   const result = await issueFwoNumber(await getDb(), {
     registrationId: typeof id === "string" ? id : "",
     version: Number.isInteger(version) ? version : -1,
     fwoNumber: typeof fwoNumber === "string" ? fwoNumber : "",
     consentToCurrentNotice,
+    hbcId: typeof hbcId === "string" && hbcId ? hbcId : undefined,
     actor: { type: "STAFF", userId: staff.userId },
     requestId: (await headers()).get("x-request-id") ?? undefined,
   });

@@ -16,12 +16,17 @@ export function IssueFwoForm(props: {
   suggestion: string | null;
   /** The privacy notice changed since the member consented: they must agree again (D35). */
   noticeChanged: boolean;
+  /**
+   * The active HBCs to choose from when the member didn't know theirs (D49); null when the
+   * registration has one already.
+   */
+  hbcs: { id: string; name: string }[] | null;
 }) {
   const [state, action] = useActionState(issueFwoAction, {});
   return (
     <section aria-labelledby="fwo-heading" className="mt-10">
       <h2 id="fwo-heading" className="text-subtitle">
-        Issue an FWO number
+        {props.hbcs ? "Issue an FWO number and set the HBC" : "Issue an FWO number"}
       </h2>
       <div className="in-card mt-3 space-y-4 rounded-2xl border border-line bg-paper p-5 sm:p-6">
         {state.error && (
@@ -63,6 +68,31 @@ export function IssueFwoForm(props: {
                 className="field max-w-[14rem] tabular-nums"
               />
             </div>
+            {props.hbcs && (
+              <div className="space-y-2">
+                <label htmlFor="hbcId" className="block">
+                  HBC
+                </label>
+                <p id="hbcId-hint" className="text-small text-ink-muted">
+                  The member didn&apos;t know their HBC when they registered (D49). Agree it with
+                  them now.
+                </p>
+                <select
+                  id="hbcId"
+                  name="hbcId"
+                  defaultValue=""
+                  aria-describedby="hbcId-hint"
+                  className="field max-w-[20rem] cursor-pointer"
+                >
+                  <option value="">Choose an HBC</option>
+                  {props.hbcs.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {props.noticeChanged && (
               <label className="option">
                 <input

@@ -121,6 +121,43 @@ test("lets a new member register without an FWO number (BR-16)", async ({ page }
   await expect(page.getByLabel(en.reg_hbc_label)).toBeVisible();
 });
 
+test("a new member who doesn't know their HBC registers; an existing member can't skip it (D49)", async ({
+  page,
+}) => {
+  const phone = `07${randomDigits(8)}`;
+  await page.goto("/registration");
+  await page.getByLabel(en.reg_name_label).fill("Test Newcomer");
+  await next(page);
+  await page.getByLabel(en.reg_fwo_label).fill("0042");
+  await next(page);
+  // An existing member: the HBC must be chosen, with no way to skip it.
+  await expect(page.getByLabel(en.reg_hbc_unknown_label)).toHaveCount(0);
+  await page.getByRole("button", { name: en.reg_back }).click();
+  await page.getByLabel(en.reg_fwo_label).fill("");
+  await page.getByLabel(en.reg_new_member_label).check();
+  await next(page);
+  await page.getByLabel(en.reg_hbc_unknown_label).check();
+  await next(page);
+  await expect(page.getByText(en.reg_departments_hint)).toBeVisible();
+  await next(page); // no departments yet
+  await page.getByLabel(en.reg_phone_label).fill(phone);
+  await next(page);
+  await page.getByLabel(en.reg_adult_label).check();
+  await page.getByLabel(en.reg_privacy_label).check();
+  await page.getByLabel(en.reg_consent_label).check();
+  await next(page);
+  await expect(page.getByText(en.reg_hbc_unknown_value)).toBeVisible();
+  await expect(page.locator('input[name="cf-turnstile-response"]')).toHaveValue(/.+/, {
+    timeout: 15_000,
+  });
+  await page.getByRole("button", { name: en.reg_send_code }).click();
+  await page.getByLabel(en.reg_code_label).fill(TEST_CODE);
+  await page.getByRole("button", { name: en.reg_verify }).click();
+  await expect(page.getByRole("heading", { name: en.reg_done_title })).toBeVisible({
+    timeout: 30_000,
+  });
+});
+
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 

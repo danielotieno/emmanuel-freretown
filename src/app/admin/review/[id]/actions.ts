@@ -41,6 +41,8 @@ const REFUSALS: Record<DecisionRefusal, string> = {
     "You captured this registration, so you can't approve it. A Super Administrator must approve it (BR-10, D36).",
   no_fwo:
     "This new member has no FWO number yet. The Church Secretary must issue one and enter it before approval (BR-16).",
+  no_hbc:
+    "This new member's HBC isn't set yet: the Church Secretary sets it with the FWO number before approval (BR-04, D49).",
   fwo_held:
     "This FWO number already belongs to a member. Reject this registration with a reason; if the member's details have changed, edit the member record instead (D33).",
   fwo_in_open_registration:

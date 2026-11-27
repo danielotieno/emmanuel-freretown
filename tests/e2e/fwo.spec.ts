@@ -32,13 +32,18 @@ test.beforeEach(async ({ page, context, browserName }) => {
 
 test.afterAll(disableCreatedStaff);
 
-async function officerRegistersNewMember(browser: Browser, eventLabel: string, fullName: string) {
+async function officerRegistersNewMember(
+  browser: Browser,
+  eventLabel: string,
+  fullName: string,
+  hbcUnknown = false,
+) {
   const context = await browser.newContext();
   const page = await context.newPage();
   await preparePage(page, context);
   await signIn(page, ["REGISTRATION_OFFICER"], "Desk Officer");
   await page.goto(`${ADMIN}/desk`);
-  await fillMember(page, { newMember: true, fullName, eventLabel });
+  await fillMember(page, { newMember: true, hbcUnknown, fullName, eventLabel });
   await page.getByRole("radio", { name: en.desk_phone_none }).check();
   await next(page);
   await confirmAll(page);
@@ -87,6 +92,40 @@ test("the Secretary records D30's number, enters a new member's FWO number and a
   ).toBeVisible();
   await expect(page.getByText("FWO number confirmed by the Secretary")).toBeVisible();
   await expect(page.getByText(/No FWO number yet/)).toBeHidden();
+
+  await page.getByRole("button", { name: "Approve" }).click();
+  await expect(page).toHaveURL(`${ADMIN}/review?done=approved`);
+});
+
+test("the Secretary sets the HBC of a new member who didn't know it, with the FWO number (D49)", async ({
+  page,
+  browser,
+}) => {
+  const eventLabel = `E2E D49 ${randomDigits(6)}`;
+  const fullName = `Newcomer ${randomDigits(4)}`;
+  await officerRegistersNewMember(browser, eventLabel, fullName, true);
+
+  await signIn(page, ["MEMBERSHIP_ADMIN"], "Church Secretary");
+  await page.goto(`${ADMIN}/fwo`);
+  await page.getByLabel("Highest FWO number ever issued").fill(`9${randomDigits(13)}`);
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("status")).toHaveText("Saved.");
+
+  await openFromQueue(page, eventLabel, fullName);
+  await expect(page.getByText(/No HBC yet/)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Issue an FWO number and set the HBC" }),
+  ).toBeVisible();
+  await page.getByLabel("FWO number issued").fill(`9${randomDigits(9)}`);
+  // Without an HBC the number is refused: the member didn't know it.
+  await page.getByRole("button", { name: "Enter FWO number" }).click();
+  await expect(page.getByText(/Choose this member's HBC/)).toBeVisible();
+  await page.getByLabel("HBC", { exact: true }).selectOption({ label: "Samaria" });
+  await page.getByRole("button", { name: "Enter FWO number" }).click();
+  await expect(
+    page.getByText("FWO number entered. The registration can now be approved."),
+  ).toBeVisible();
+  await expect(page.getByText(/No HBC yet/)).toBeHidden();
 
   await page.getByRole("button", { name: "Approve" }).click();
   await expect(page).toHaveURL(`${ADMIN}/review?done=approved`);
