@@ -14,7 +14,7 @@ This system holds sensitive personal data: church membership reveals religious a
   - Compare the two reviews in the PR's Review section.
   - Fix every in-scope blocker and should-fix in the same PR, and re-run the checks. If a blocker fix changed more than a few lines, run the reviewer again.
   - Only findings outside the issue's scope become new issues.
-  - Nobody merges with an open blocker. Branch protection isn't available on our plan, so this is on us.
+  - Nobody merges with an open blocker. Branch protection on `main` requires the three CI jobs to pass (since the repository went public, 27 Nov 2026), but it can't see review findings: open blockers are still on us.
 - A decision that changes an ADR or a business rule is its own issue and PR, agreed before the code that depends on it.
 - Never put real members' details in issues, PRs, commits, test fixtures or screenshots. Use synthetic data.
 

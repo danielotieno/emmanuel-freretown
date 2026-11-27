@@ -4,7 +4,8 @@ name: Deploy
 # - Staging: deploys automatically after CI passes on a push to main.
 # - Production: deploys only when a maintainer runs this workflow by hand ("Run workflow",
 #   environment "production"), and only for a commit on main whose CI passed. Required reviewers
-#   are not available on this repository's plan, so the manual run is the approval.
+#   became available when the repository went public (27 Nov 2026) but aren't set up, so the
+#   manual run is the approval.
 # Both GitHub environments accept deployments from main only.
 
 on:
