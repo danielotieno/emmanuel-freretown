@@ -165,7 +165,8 @@ export async function fillMember(
     await page.getByLabel(en.desk_fwo_label, { exact: true }).fill(`9${randomDigits(5)}`);
   }
   if (member.hbcUnknown) {
-    // D49: only offered to a new member.
+    // D49: only offered to a new member, so `newMember` must be set too.
+    if (!member.newMember) throw new Error("fillMember: hbcUnknown needs newMember");
     await page.getByRole("checkbox", { name: en.desk_hbc_unknown_label }).check();
   } else {
     await page.getByLabel(en.desk_hbc_label, { exact: true }).selectOption({ label: "Judea" });

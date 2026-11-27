@@ -177,7 +177,9 @@ export default async function ReviewRegistrationPage({
             <Row term="HBC">
               {details.hbcId
                 ? units.hbcs.get(details.hbcId)
-                : "To be set: the member didn't know it (D49)"}
+                : details.isNewMember && reg.status === "SUBMITTED"
+                  ? "To be set: the member didn't know it (D49)"
+                  : ""}
             </Row>
             <Row term="Departments (declared)">
               {details.departmentIds.length

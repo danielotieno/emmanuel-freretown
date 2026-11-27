@@ -171,6 +171,8 @@ async function verifyAndCheck(
     return at("review", { notice: m.err_verification({}, o) });
   }
   log.info("status_check.answered", { outcome: result.status });
+  // Two branches with the same body on purpose: each narrows `result` to one outcome, whose
+  // HBC may be null (RECEIVED, D49) or not (REGISTERED_MEMBER).
   const outcome: StatusOutcome =
     result.status === "RECEIVED"
       ? { status: result.status, fullName: result.fullName, hbcName: result.hbcName }

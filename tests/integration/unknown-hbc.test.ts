@@ -151,6 +151,15 @@ describe("a new member without an HBC (D49)", () => {
         ok: false,
         reason: "hbc_unavailable",
       });
+      // A deactivated HBC can't be chosen (BR-04).
+      const bethlehemA = await hbcId(tx, "Bethlehem A");
+      await asOwner(tx, () =>
+        tx.execute(sql`UPDATE hbc SET is_active = false WHERE id = ${bethlehemA}`),
+      );
+      expect(await issue(tx, id, "105001", bethlehemA)).toEqual({
+        ok: false,
+        reason: "hbc_unavailable",
+      });
       const samaria = await hbcId(tx, "Samaria");
       expect(await issue(tx, id, "105001", samaria)).toEqual({ ok: true });
 

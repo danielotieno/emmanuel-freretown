@@ -65,7 +65,8 @@ const FIELD_OF: Record<AssistedFieldName, DeskField | null> = {
   noPersonalPhone: "phoneMode",
   phone: "phone",
   hbcId: "hbcId",
-  hbcUnknown: "hbcId",
+  // Never reported on its own: a missing HBC is reported on the HBC (D49).
+  hbcUnknown: null,
   departmentIds: "departmentIds",
   verification: "phoneMode",
   eventLabel: "eventLabel",
