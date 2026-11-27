@@ -7,12 +7,14 @@ import { getDb } from "@/app/_lib/db";
 import { requireStaff } from "@/app/_lib/staff";
 import { AlertIcon, ArrowIcon, CheckIcon } from "@/components/icons";
 import { staffNames } from "@/modules/access";
+import { readTrail } from "@/modules/audit";
 import { listActiveHbcs, unitNames } from "@/modules/organisation";
 import {
   openRegistrationForReview,
   PRIVACY_NOTICE_VERSION,
   suggestFwoNumber,
 } from "@/modules/registration";
+import { AuditTrail, staffIdsIn } from "../../_components/audit-entries";
 import { formatDateTime } from "../format";
 import { RevisionList } from "../revisions";
 import { DecisionForms } from "./decision-forms";
@@ -42,9 +44,10 @@ const DECISION_NAMES: Record<string, string> = {
 };
 
 /**
- * One registration, for a Membership Administrator to review (FR-4, #19). Opening it is
- * recorded as access to personal data (D31) by the registration module, before anything is
- * shown. The forms only offer what the rules allow; the server actions check everything again.
+ * One registration, for a Membership Administrator to review (FR-4, #19), with its audit trail
+ * (FR-11, #24). Opening it is recorded as access to personal data (D31) by the registration
+ * module, before anything is shown. The forms only offer what the rules allow; the server
+ * actions check everything again.
  */
 export default async function ReviewRegistrationPage({
   params,
@@ -64,6 +67,7 @@ export default async function ReviewRegistrationPage({
     requestId: (await headers()).get("x-request-id") ?? undefined,
   });
   if (!reg) notFound();
+  const trail = await readTrail(db, { entityType: "registration", entityId: reg.id });
 
   const staffIds = [
     reg.capturedByUserId,
@@ -71,6 +75,7 @@ export default async function ReviewRegistrationPage({
     ...reg.evidence.map((e) => e.actorUserId),
     ...reg.decisions.map((d) => d.actorUserId),
     ...reg.earlierRevisions.map((r) => r.submittedByUserId),
+    ...staffIdsIn(trail.entries),
   ].filter((x): x is string => !!x);
   // A new member waiting for the FWO number the Secretary issues (BR-16, #101).
   const waitingForFwo =
@@ -278,6 +283,8 @@ export default async function ReviewRegistrationPage({
           open={reg.status === "SUBMITTED"}
           statusName={STATUS_NAMES[reg.status]}
         />
+
+        <AuditTrail trail={trail} names={{ ...units, staff: names }} />
       </div>
     </main>
   );

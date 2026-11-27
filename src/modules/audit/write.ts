@@ -46,7 +46,7 @@ const ACTION = /^([a-z][a-z0-9_]*)\.[a-z][a-z0-9_]*$/;
  * (`entity_id = id::text`), so an entry filed under a reference or an uppercase uuid would keep
  * its personal values forever (BR-14). Staff user ids are Better Auth's text ids.
  */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /**
  * Appends an entry to the audit log inside the caller's transaction (CLAUDE.md rule 4, BR-12).
@@ -88,7 +88,7 @@ export async function writeMany(tx: Transaction, entries: AuditEntry[]): Promise
 const WRITE_MANY_CHUNK = 1000;
 
 /** Collections (a search, an export) are about no one record; their entity id is this. */
-const ALL = "*";
+export const ALL = "*";
 
 /**
  * Staff access to personal data (BR-12, D31): opening a registration or member record, running

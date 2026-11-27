@@ -286,3 +286,151 @@ describe("audit.recordAccess (BR-12, D31)", () => {
     });
   });
 });
+
+describe("audit.readTrail and audit.readLog (FR-11, #24)", () => {
+  const edit = {
+    actor: staff,
+    action: "member.edit",
+    entityType: "member",
+    entityId: MEMBER,
+    ...audit.changes({ fullName: "Test Person" }, { fullName: "Test M Person" }),
+    after: { fullName: "Test M Person", reason: "Misspelt" },
+  } as const;
+
+  it("reads one record's trail, newest first, with its values", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      await audit.write(tx, edit);
+      await audit.recordAccess(tx, {
+        actor: staff,
+        kind: "view",
+        entityType: "member",
+        entityId: MEMBER,
+      });
+      // The same id under another entity type is another record's trail.
+      await audit.write(tx, { ...edit, action: "registration.reject", entityType: "registration" });
+
+      const { entries, more } = await audit.readTrail(tx, {
+        entityType: "member",
+        entityId: MEMBER,
+      });
+      expect(more).toBe(false);
+      expect(entries).toMatchObject([
+        { action: "member.view", actor: staff, before: null, after: null, withheld: false },
+        {
+          action: "member.edit",
+          actor: staff,
+          entityType: "member",
+          entityId: MEMBER,
+          before: { fullName: "Test Person" },
+          after: { fullName: "Test M Person", reason: "Misspelt" },
+          redactedAt: null,
+          withheld: false,
+        },
+      ]);
+      expect(entries[0]!.at).toBeInstanceOf(Date);
+      expect(entries[0]!.id).toBeGreaterThan(entries[1]!.id);
+    });
+  });
+
+  it("shows the newest entries of a long trail and says there are more", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      await audit.writeMany(
+        tx,
+        Array.from({ length: audit.TRAIL_LIMIT + 1 }, (_, i) => ({ ...edit, after: { n: i } })),
+      );
+      const { entries, more } = await audit.readTrail(tx, {
+        entityType: "member",
+        entityId: MEMBER,
+      });
+      expect(more).toBe(true);
+      expect(entries).toHaveLength(audit.TRAIL_LIMIT);
+      expect(entries[0]!.after).toEqual({ n: audit.TRAIL_LIMIT });
+    });
+  });
+
+  it("reads nothing for an id that isn't a uuid", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      expect(await audit.readTrail(tx, { entityType: "member", entityId: "*" })).toEqual({
+        entries: [],
+        more: false,
+      });
+    });
+  });
+
+  it("withholds the values of registration and member entries from the full log (D31)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      await audit.write(tx, edit);
+      await audit.write(tx, {
+        actor: staff,
+        action: "registration.reject",
+        entityType: "registration",
+        entityId: REGISTRATION,
+        after: { status: "REJECTED", reason: "Duplicate" },
+      });
+      await audit.recordAccess(tx, {
+        actor: staff,
+        kind: "search",
+        entityType: "member",
+        results: 2,
+      });
+      await audit.write(tx, {
+        actor: staff,
+        action: "hbc.rename",
+        entityType: "hbc",
+        entityId: HBC_A,
+        ...audit.changes({ name: "Judea" }, { name: "Judaea" }),
+      });
+      // Opening a record holds no values: nothing to withhold.
+      await audit.recordAccess(tx, {
+        actor: staff,
+        kind: "view",
+        entityType: "member",
+        entityId: MEMBER,
+      });
+
+      const { entries } = await audit.readLog(tx);
+      expect(entries.slice(0, 5)).toMatchObject([
+        { action: "member.view", entityId: MEMBER, before: null, after: null, withheld: false },
+        {
+          action: "hbc.rename",
+          before: { name: "Judea" },
+          after: { name: "Judaea" },
+          withheld: false,
+        },
+        { action: "member.search", entityId: "*", after: { results: 2 }, withheld: false },
+        { action: "registration.reject", before: null, after: null, withheld: true },
+        { action: "member.edit", entityId: MEMBER, before: null, after: null, withheld: true },
+      ]);
+    });
+  });
+
+  it("pages through the full log, newest first", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      await audit.writeMany(
+        tx,
+        Array.from({ length: audit.LOG_PAGE + 1 }, (_, i) => ({
+          actor: staff,
+          action: "hbc.rename" as const,
+          entityType: "hbc" as const,
+          entityId: HBC_B,
+          after: { n: i },
+        })),
+      );
+
+      const first = await audit.readLog(tx);
+      expect(first.entries).toHaveLength(audit.LOG_PAGE);
+      expect(first.entries.map((e) => e.after)).toEqual(
+        Array.from({ length: audit.LOG_PAGE }, (_, i) => ({ n: audit.LOG_PAGE - i })),
+      );
+      expect(first.next).toBe(first.entries.at(-1)!.id);
+
+      const second = await audit.readLog(tx, { before: first.next! });
+      expect(second.entries[0]).toMatchObject({ entityId: HBC_B, after: { n: 0 } });
+    });
+  });
+});

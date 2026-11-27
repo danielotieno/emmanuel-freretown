@@ -60,8 +60,9 @@ test("an administrator approves a registration from the queue (FR-4)", async ({
   await expect(admin.getByRole("heading", { level: 1, name: "Review queue" })).toBeVisible();
   await expectNoAxeViolations(admin);
   await openFromQueue(admin, eventLabel, fullName);
-  await expect(admin.getByText("No personal phone")).toBeVisible();
-  await expect(admin.getByText("Met in person by an officer")).toBeVisible();
+  // First: the details. The audit trail at the foot of the page names it too.
+  await expect(admin.getByText("No personal phone").first()).toBeVisible();
+  await expect(admin.getByText("Met in person by an officer").first()).toBeVisible();
   await expect(admin.getByText("E2E Officer").first()).toBeVisible();
   await expectNoAxeViolations(admin);
 
@@ -105,7 +106,7 @@ test("the capturing officer can't approve (BR-10), and a stale decision says so 
   await correction.getByLabel("Reason").fill("Wrong HBC");
   await correction.getByRole("button", { name: "Ask for a correction" }).click();
   await expect(page.getByText(/Someone else acted on this registration first/)).toBeVisible();
-  await expect(page.getByText("Registered twice by mistake")).toBeVisible();
+  await expect(page.getByText("Registered twice by mistake").first()).toBeVisible();
 });
 
 test("a Registration Officer alone can't open the queue or a registration (NFR-8)", async ({
