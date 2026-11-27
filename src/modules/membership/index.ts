@@ -24,6 +24,7 @@ export {
   type MemberStatus,
 } from "./records";
 export { decodeCsvFile } from "./csv";
+export { exportActiveMembers } from "./export";
 export {
   DEPARTMENT_SEPARATOR,
   IMPORT_COLUMNS,

@@ -24,3 +24,12 @@ export function normalizeKenyanPhone(input: string): string | null {
   const e164 = `+254${national}`;
   return KENYAN_MOBILE_E164.test(e164) ? e164 : null;
 }
+
+/**
+ * A stored number (E.164) as people in Kenya write it, `0712 345 678`: for the export (FR-12),
+ * where the spaces also stop a spreadsheet reading it as a number and dropping the leading zero.
+ */
+export function formatKenyanPhone(e164: string): string {
+  const national = `0${e164.slice(4)}`;
+  return `${national.slice(0, 4)} ${national.slice(4, 7)} ${national.slice(7)}`;
+}

@@ -19,7 +19,7 @@ export {
   type PhoneVerificationActor,
 } from "./otp";
 export { purgeExpiredChallenges } from "./purge";
-export { KENYAN_MOBILE_E164, normalizeKenyanPhone } from "./phone";
+export { formatKenyanPhone, KENYAN_MOBILE_E164, normalizeKenyanPhone } from "./phone";
 export {
   checkDeskSmsLimits,
   checkOtpSendLimits,
