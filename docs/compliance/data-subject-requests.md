@@ -35,7 +35,7 @@ The platform keeps the FWO number of everyone who was ever a member, no longer l
 
 - **A member who has left the parish or died:** a Membership Administrator marks the record transferred out or deceased, with a reason (FR-6). Their name, phone number and departments are removed automatically one year later (D45). Tell the member, or the family, about that year.
 - **A registration not yet approved:** a Membership Administrator rejects it with the reason "Withdrawn at the member's request" until the withdraw action exists (#123). Its details are removed 12 months later (BR-14).
-- **A member who stays, but asks for deletion or withdraws consent to storage outside Kenya:** the platform can't yet remove their details at once. Removal on request is proposed as D54 in #74 and still needs the Vicar's decision. Until then:
+- **A member who stays, but asks for deletion or withdraws consent to storage outside Kenya:** the platform can't yet remove their details at once. Removal on request is proposed in #74 and still needs the Vicar's decision. Until then:
   - record the request and tell the member it is held, and when it will be acted on;
   - offer to keep their details on paper in the church office, as the notice says;
   - do not delete or blank fields by hand: an edit can't remove the audit trail's copy, and a blank record breaks the rules on FWO numbers (BR-01, BR-02).
