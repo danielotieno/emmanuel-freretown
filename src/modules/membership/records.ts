@@ -248,6 +248,7 @@ export async function searchMembers(
       db
         .select({ n: sql<number>`count(*)::int` })
         .from(member)
+        .innerJoin(memberHbcAssignment, openPeriod)
         .where(where),
     ),
   ]);
@@ -568,7 +569,8 @@ export async function editMemberDetails(
  * Changes a member's status along the lifecycle (FR-6, domain-model.md §3), with a reason kept
  * as the record's `status_reason` and in a `member.change_status` audit entry. Marking a member
  * deceased or transferred out closes the record and releases their phone number for another
- * member (D20): `member_phone_uq` no longer counts it.
+ * member (D20): `member_phone_uq` no longer counts it. That can't be undone here, so it needs
+ * `confirmFinal`, the administrator's tick that this is the right member and the change is final.
  */
 export async function changeMemberStatus(
   db: DbOrTx,
@@ -577,20 +579,25 @@ export async function changeMemberStatus(
     version: number;
     status: string;
     reason: string;
+    /** Required to mark a member deceased or transferred out. */
+    confirmFinal?: boolean;
     actor: audit.StaffActor;
     requestId?: string;
   },
-): Promise<MemberChangeResult<"status" | "reason">> {
+): Promise<MemberChangeResult<"status" | "reason" | "confirmFinal">> {
   const status = (MEMBER_STATUSES as readonly string[]).includes(change.status)
     ? (change.status as MemberStatus)
     : null;
-  return changeMember<"status" | "reason">(
+  const errors: Partial<Record<"status" | "confirmFinal", MemberFieldError>> = {};
+  if (!status) errors.status = "required";
+  else if (isClosedStatus(status) && !change.confirmFinal) errors.confirmFinal = "required";
+  return changeMember<"status" | "reason" | "confirmFinal">(
     db,
-    { ...change, errors: status ? undefined : { status: "required" } },
+    { ...change, errors },
     async (tx, locked, reason) => {
+      // From an open status every other status is allowed (a closed record was refused
+      // already), so the only move off the lifecycle is to the same status.
       if (status === locked.status) throw new Refused("unchanged");
-      // Only along the lifecycle; a closed record was refused already.
-      if (!nextStatuses(locked.status).includes(status!)) throw new Refused("unchanged");
       await tx
         .update(member)
         .set({ status: status!, statusReason: reason, ...bumped })

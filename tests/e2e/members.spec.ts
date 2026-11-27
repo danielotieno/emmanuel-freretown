@@ -77,11 +77,15 @@ test("an administrator finds a member and changes the record, with reasons (FR-6
   await expect(history.getByRole("listitem")).toHaveCount(2);
   await expect(history.getByRole("listitem").first()).toContainText("Samaria");
 
-  // Inactive, then deceased: the record closes.
+  // Deceased needs the tick that it is final; then the record closes.
   const status = page.locator('[data-change="status"]');
   await status.locator("summary").click();
   await status.getByLabel("New status").selectOption({ label: "Deceased" });
   await status.getByLabel("Reason").fill("Recorded by the Church Secretary");
+  await status.getByRole("button", { name: "Change the status" }).click();
+  await expect(status.getByText(/Tick to confirm this is the right member/)).toBeVisible();
+  await expect(status.getByLabel("New status")).toHaveValue("DECEASED");
+  await status.getByLabel(/I have checked this is the right member/).check();
   await status.getByRole("button", { name: "Change the status" }).click();
   await expect(page.getByText("Status changed.")).toBeVisible();
   await expect(page.getByText(/This record is closed/)).toBeVisible();

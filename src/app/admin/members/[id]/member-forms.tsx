@@ -52,7 +52,8 @@ export function MemberForms(props: {
     </>
   );
   // After a refusal React resets a form to its defaults: make those what was entered.
-  const details = edited.values ?? props.current;
+  // A stale refusal keeps only the reason, so the form shows the latest record (#128 review).
+  const details = edited.values?.fullName !== undefined ? edited.values : props.current;
   const text = (state: MemberFormState, name: string, fallback = "") => {
     const value = state.values?.[name];
     return typeof value === "string" ? value : fallback;
@@ -95,7 +96,7 @@ export function MemberForms(props: {
                 defaultValue={String(details.phone ?? "")}
                 inputMode="tel"
                 autoComplete="off"
-                {...described("phone", edited)}
+                {...described("phone", edited, true)}
                 className="field max-w-[16rem] tabular-nums"
               />
               <label className="option">
@@ -194,6 +195,30 @@ export function MemberForms(props: {
               </SelectBox>
             </Field>
             <Reason id="status" state={changed} />
+            <div className="space-y-2">
+              <p id="confirmFinal-error" className="flex gap-2 text-error empty:hidden">
+                {changed.errors?.confirmFinal && (
+                  <>
+                    <AlertIcon className="mt-1" />
+                    <span>{changed.errors.confirmFinal}</span>
+                  </>
+                )}
+              </p>
+              <label className="option">
+                <input
+                  type="checkbox"
+                  name="confirmFinal"
+                  defaultChecked={changed.values?.confirmFinal === true}
+                  aria-invalid={changed.errors?.confirmFinal ? true : undefined}
+                  aria-describedby="confirmFinal-error"
+                  className="mt-1 size-5 shrink-0 accent-brand"
+                />
+                <span>
+                  For deceased or transferred out: I have checked this is the right member, and I
+                  understand the change can&apos;t be undone.
+                </span>
+              </label>
+            </div>
             <Submit>Change the status</Submit>
           </form>
         </Change>
@@ -202,10 +227,11 @@ export function MemberForms(props: {
   );
 }
 
-function described(field: string, state: MemberFormState) {
+/** `hint`: the field has a hint paragraph to point at; only those that do name one. */
+function described(field: string, state: MemberFormState, hint = false) {
   return {
     "aria-invalid": state.errors?.[field] ? true : undefined,
-    "aria-describedby": `${field}-hint ${field}-error`,
+    "aria-describedby": hint ? `${field}-hint ${field}-error` : `${field}-error`,
   } as const;
 }
 

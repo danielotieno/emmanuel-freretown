@@ -7,8 +7,6 @@ export { createMember, type CreateMemberResult, type NewMember } from "./members
 export { findActiveMemberForStatusCheck, type MemberForStatusCheck } from "./status";
 export {
   changeMemberStatus,
-  checkMemberDetails,
-  checkMemberReason,
   editMemberDetails,
   isClosedStatus,
   listMembers,
@@ -16,18 +14,13 @@ export {
   nextStatuses,
   openMember,
   searchMembers,
-  SEARCH_LIMIT,
   transferMemberHbc,
   type MemberChangeRefusal,
   type MemberChangeResult,
-  type MemberDetails,
-  type MemberDetailsFieldName,
   type MemberDetailsFields,
   type MemberFieldError,
   type MemberListFilters,
   type MemberListItem,
-  type MemberRecord,
-  type MemberSearchResult,
   type MemberStatus,
 } from "./records";
 export { decodeCsvFile } from "./csv";

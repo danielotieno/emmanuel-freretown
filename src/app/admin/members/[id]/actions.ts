@@ -56,6 +56,9 @@ const FIELD_MESSAGES: Record<string, Partial<Record<MemberFieldError, string>>> 
   language: { required: "Choose the SMS language." },
   hbcId: { required: "Choose the new HBC." },
   status: { required: "Choose the new status." },
+  confirmFinal: {
+    required: "Tick to confirm this is the right member: deceased and transferred out are final.",
+  },
   reason: {
     required: "Give the reason for this change.",
     too_short: "The reason must be at least 3 characters.",
@@ -95,7 +98,13 @@ async function answer(
       }
       return { error: "Some details need attention.", errors, values };
     }
-    if (result.reason === "stale") refresh();
+    if (result.reason === "stale") {
+      // Show the latest record, not what was typed over the old one: the details form posts
+      // every field, so saving the old values again would undo the other change. Only the
+      // reason is kept.
+      refresh();
+      return { error: REFUSALS.stale, values: { reason: String(values?.reason ?? "") } };
+    }
     return { error: REFUSALS[result.reason], values };
   }
   log.info("member.changed", { change: done });
@@ -155,13 +164,15 @@ export async function changeStatusAction(
   const staff = await requireStaff("MEMBERSHIP_ADMIN");
   const { memberId, version, reason, requestId } = await common(form);
   const status = text(form, "status", 20);
+  const confirmFinal = form.get("confirmFinal") === "on";
   const result = await changeMemberStatus(await getDb(), {
     memberId,
     version,
     status,
     reason,
+    confirmFinal,
     actor: { type: "STAFF", userId: staff.userId },
     requestId,
   });
-  return answer(result, memberId, "status", { status, reason });
+  return answer(result, memberId, "status", { status, reason, confirmFinal });
 }

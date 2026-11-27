@@ -417,6 +417,16 @@ describe("changeMemberStatus (FR-6, domain-model.md §3)", () => {
             reason: "Recorded by the Church Secretary",
             actor: ADMIN,
           }),
+        ).toEqual({ ok: false, reason: "invalid", errors: { confirmFinal: "required" } });
+        expect(
+          await changeMemberStatus(tx, {
+            memberId: id,
+            version: 0,
+            status,
+            reason: "Recorded by the Church Secretary",
+            confirmFinal: true,
+            actor: ADMIN,
+          }),
         ).toEqual({ ok: true });
 
         // The number is free: no registration is flagged for it, and another member can take it.
