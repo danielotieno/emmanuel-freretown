@@ -20,7 +20,8 @@ const DONE_MESSAGES: Record<string, string> = {
   added: "Added. It can be chosen on registrations now.",
   renamed: "Renamed. Every registration and member in it shows the new name.",
   moved: "Moved. Forms list them in this order.",
-  deactivated: "Deactivated. It can't be chosen any more; members already in it keep it.",
+  deactivated:
+    "Deactivated. It can't be chosen any more; members already in it keep it. Registrations waiting for review that chose it can't be approved until they're corrected: reactivate it to undo.",
   activated: "Reactivated. It can be chosen on registrations again.",
 };
 
@@ -68,8 +69,9 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
         <p className="mt-2 text-ink-muted">
           The units members choose on registration forms, in the order shown here. A unit is never
           deleted: deactivate it, and it can no longer be chosen, while members and registrations
-          already in it keep it. Every change is recorded in the audit log. The homepage&rsquo;s
-          list of HBCs updates within six hours.
+          already in it keep it, but a registration waiting for review that chose it can&rsquo;t be
+          approved until it is corrected. Every change is recorded in the audit log. The
+          homepage&rsquo;s list of HBCs updates within six hours.
         </p>
 
         {done && (

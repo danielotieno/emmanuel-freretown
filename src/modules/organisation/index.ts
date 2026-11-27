@@ -12,7 +12,6 @@ export {
 } from "./units";
 export {
   addUnit,
-  checkUnitName,
   listUnits,
   moveUnit,
   renameUnit,

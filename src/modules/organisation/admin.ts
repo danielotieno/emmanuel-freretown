@@ -43,16 +43,20 @@ export type UnitChangeResult =
  * share one.
  */
 export function unitKey(name: string): string {
-  return name.trim().replace(/\s+/g, " ").replace(/[‘’]/g, "'").toLowerCase();
+  return name.normalize("NFC").trim().replace(/\s+/g, " ").replace(/[‘’]/g, "'").toLowerCase();
 }
 
-/** A unit's name: trimmed, single spaces, 2–80 characters (the tables' CHECK), no controls. */
+/**
+ * A unit's name: NFC, trimmed, single spaces, 2–80 characters (the tables' CHECK). No control
+ * or invisible format characters (zero-width spaces, bidi overrides): a name that looks like
+ * another must compare like it, and must show as typed on public pages.
+ */
 export function checkUnitName(
   input: string,
 ): { ok: true; value: string } | { ok: false; error: UnitNameError } {
-  const value = input.trim().replace(/\s+/g, " ");
+  const value = input.normalize("NFC").trim().replace(/\s+/g, " ");
   if (value === "") return { ok: false, error: "required" };
-  if (/\p{Cc}/u.test(value)) return { ok: false, error: "invalid" };
+  if (/[\p{Cc}\p{Cf}]/u.test(value)) return { ok: false, error: "invalid" };
   const length = [...value].length;
   if (length < 2) return { ok: false, error: "too_short" };
   if (length > 80) return { ok: false, error: "too_long" };
@@ -89,8 +93,11 @@ class Refused extends Error {
 
 /**
  * Runs a change with every unit of its kind locked, in sort order: changes to one kind queue,
- * and each sees the whole list (names to compare, neighbours to swap). A refusal or a name taken
- * at the last moment (`hbc_name_uq`) rolls everything back.
+ * and each sees the whole list (names to compare, neighbours to swap). The lock is FOR NO KEY
+ * UPDATE, not FOR UPDATE: these changes never touch a key, and FOR UPDATE would block (and could
+ * deadlock with) every registration, approval or import inserting a row that refers to a unit,
+ * whose foreign-key check takes FOR KEY SHARE. A refusal or a name taken at the last moment
+ * (`hbc_name_uq`) rolls everything back.
  */
 async function change(
   db: DbOrTx,
@@ -105,7 +112,7 @@ async function change(
           .select({ id: t.id, name: t.name, isActive: t.isActive, sortOrder: t.sortOrder })
           .from(t)
           .orderBy(asc(t.sortOrder), asc(t.name))
-          .for("update"),
+          .for("no key update"),
       );
       await run(tx, units);
     });
