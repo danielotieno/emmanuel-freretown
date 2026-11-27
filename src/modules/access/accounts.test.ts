@@ -54,4 +54,19 @@ describe("checkNewStaffUser", () => {
       checkNewStaffUser({ ...valid, name: "x".repeat(201), email: `${"x".repeat(250)}@a.org` }),
     ).toEqual({ ok: false, errors: { name: "too_long", email: "too_long" } });
   });
+
+  it("refuses any email Better Auth would refuse at sign-in", () => {
+    for (const email of [
+      "a..b@church.org",
+      "a!b@church.org",
+      "x@church.k",
+      "a@b_c.org",
+      "a@x.org.",
+    ]) {
+      expect(checkNewStaffUser({ ...valid, email }), email).toMatchObject({
+        ok: false,
+        errors: { email: "invalid" },
+      });
+    }
+  });
 });

@@ -296,6 +296,11 @@ describe("roles (GLOBAL in Release 1)", () => {
       expect(await revokeRole(tx, { userId: b.userId, actor: a, role: "SUPER_ADMIN" })).toEqual({
         ok: true,
       });
+      // Revoking a role someone doesn't hold is "unchanged", even with one Super Administrator.
+      expect(await revokeRole(tx, { userId: b.userId, actor: a, role: "SUPER_ADMIN" })).toEqual({
+        ok: false,
+        reason: "unchanged",
+      });
       // Only `a` is left. The actor's own role is checked by the caller; here anyone tries.
       expect(await revokeRole(tx, { userId: a.userId, actor: b, role: "SUPER_ADMIN" })).toEqual({
         ok: false,

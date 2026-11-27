@@ -1,5 +1,6 @@
 import { and, asc, count, eq, gt, isNull, ne } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
+import { z } from "zod";
 import { isUniqueViolation, safeQuery, type DbOrTx, type Transaction } from "../../db";
 import { roleAssignment } from "../../db/schema/access";
 import {
@@ -70,7 +71,8 @@ export type CreateStaffResult =
 
 const MAX_NAME_LENGTH = 200;
 const MAX_EMAIL_LENGTH = 254;
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Better Auth's own check at sign-in: an address it refuses there could never sign in. */
+const EMAIL = z.email();
 /** Letters and digits that can't be mistaken for one another when read aloud or copied. */
 const PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ID_ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -98,7 +100,7 @@ export function checkNewStaffUser(
   else if ([...name].length > MAX_NAME_LENGTH) errors.name = "too_long";
   if (!email) errors.email = "required";
   else if (email.length > MAX_EMAIL_LENGTH) errors.email = "too_long";
-  else if (!EMAIL.test(email)) errors.email = "invalid";
+  else if (!EMAIL.safeParse(email).success) errors.email = "invalid";
   if (roles.length === 0) errors.roles = "required";
   return Object.keys(errors).length
     ? { ok: false, errors }
@@ -313,11 +315,13 @@ export async function revokeRole(
     if (c.role === "SUPER_ADMIN") {
       const superAdmins = await safeQuery(() =>
         tx
-          .select({ id: roleAssignment.id })
+          .select({ userId: roleAssignment.userId })
           .from(roleAssignment)
           .where(and(eq(roleAssignment.role, "SUPER_ADMIN"), isNull(roleAssignment.revokedAt)))
           .for("update"),
       );
+      // Theirs must be among them: otherwise there is nothing to revoke, whatever the count.
+      if (!superAdmins.some((g) => g.userId === c.userId)) throw new Refused("unchanged");
       if (superAdmins.length <= 1) throw new Refused("last_super_admin");
     }
     const revoked = await safeQuery(() =>

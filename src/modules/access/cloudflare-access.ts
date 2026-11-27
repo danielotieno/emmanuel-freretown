@@ -150,15 +150,6 @@ async function verifiedClaims(
   }
 }
 
-/** Whether `token` is a valid Access JWT for this application (see `verifiedClaims`). */
-export async function verifyAccessJwt(
-  token: string | null | undefined,
-  policy: Extract<AccessJwtPolicy, { mode: "verify" }>,
-  now: Date = new Date(),
-): Promise<boolean> {
-  return (await verifiedClaims(token, policy, now)) !== null;
-}
-
 /**
  * What the Access check found for a request:
  * - `refused`: no valid JWT, or a policy that refuses everything.

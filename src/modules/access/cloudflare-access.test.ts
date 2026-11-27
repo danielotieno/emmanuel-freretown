@@ -4,7 +4,6 @@ import {
   clearAccessKeyCache,
   checkAccess,
   isAccessIdentity,
-  verifyAccessJwt,
   type AccessJwtPolicy,
 } from "./cloudflare-access";
 
@@ -68,6 +67,16 @@ async function rsaKeyPair() {
     true,
     ["sign", "verify"],
   );
+}
+
+/** Whether `token`, sent as Access sends it, verifies under `p`. */
+async function verifyAccessJwt(
+  token: string | null,
+  p: AccessJwtPolicy,
+  now: Date,
+): Promise<boolean> {
+  const headers = new Headers(token ? { "Cf-Access-Jwt-Assertion": token } : {});
+  return (await checkAccess(headers, p, now)).status === "verified";
 }
 
 beforeAll(async () => {

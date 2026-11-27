@@ -162,6 +162,10 @@ The email and name stay in your shell history; on a shared machine, close the te
 
 Then the Super Administrator opens the staff host (`admin.` or `admin-staging.`), passes Cloudflare Access (their email must be on the environment's allow-list, §5), signs in with the password and sets up an authenticator app. They can reach nothing else until they do. The 30-minute idle timeout applies to them (D32).
 
+Give `--email` exactly the address the person signs in to Cloudflare Access with (§5): from #91 a staff member can use only the staff account with the email Access checked (D59), so any other address, an alias included, is refused at sign-in as a wrong password.
+
+**Before deploying #91 to an environment**, compare its staff accounts with its Access allow-list: `SELECT name, email FROM "user"` as the owner, and every email must be on the list exactly (capitals don't matter). If one isn't, fix the account before the deploy. Afterwards, a Super Administrator locked out this way is recovered with the owner's connection string: `UPDATE "user" SET email = lower('<their Access email>') WHERE id = '<their staff user id>';`, then they sign in again. Note the change for the audit trail in the parish's records, as owner changes aren't in the audit log.
+
 Every other staff member is added by a Super Administrator at `/staff` (#91, D59), never with this script. Add their email to the environment's Cloudflare Access allow-list too; the portal shows a temporary password once, to hand over in person or by phone call. Ask the second Super Administrator (D40) to reset your own authenticator app or password.
 
 Locally, `pnpm dev` serves the staff portal on `http://admin.localhost:3000`; put a `BETTER_AUTH_SECRET` in `.dev.vars` first.
