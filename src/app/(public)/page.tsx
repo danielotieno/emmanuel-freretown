@@ -281,12 +281,23 @@ export default async function HomePage() {
               <h2 id="register-heading" className="max-w-[16ch] text-title text-paper">
                 {m.home_register_title({}, o)}
               </h2>
-              <p className="mt-5 max-w-[42ch] text-lead text-mist">{m.reg_intro({}, o)}</p>
+              <p className="mt-5 max-w-[42ch] text-lead text-mist">{m.home_register_body({}, o)}</p>
               {/* A plain link, not <Link>: Turnstile's CSP is set per page load (src/lib/csp.ts). */}
               <PendingLink href="/registration" className="btn-on-dark mt-9 w-full sm:w-auto">
                 {m.reg_title({}, o)}
                 <ArrowIcon />
               </PendingLink>
+              {/* Members already on the church's list check first instead of registering again
+                  (D47, D50). A plain link: Turnstile's CSP is set per page load. */}
+              <p className="mt-5 max-w-[42ch] text-mist">
+                {m.reg_check_first({}, o)}{" "}
+                <a
+                  href="/registration/status"
+                  className="text-paper underline decoration-sky underline-offset-4 hover:decoration-paper"
+                >
+                  {m.reg_check_first_link({}, o)}
+                </a>
+              </p>
             </div>
             <ol className="lg:col-span-6 lg:col-start-7">
               {steps.map(([title, body], i) => (

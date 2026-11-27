@@ -24,7 +24,11 @@ export default async function PrivacyPage() {
         {
           heading: m.privacy_collect_heading({}, en),
           list: m.privacy_collect_body({}, en),
-          after: [m.privacy_collect_not({}, en), m.privacy_collect_visits({}, en)],
+          after: [
+            m.privacy_collect_not({}, en),
+            m.privacy_collect_source({}, en),
+            m.privacy_collect_visits({}, en),
+          ],
         },
         {
           heading: m.privacy_why_heading({}, en),
