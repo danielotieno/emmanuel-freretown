@@ -29,7 +29,7 @@ Run `pnpm i18n:watch` in a second terminal while editing `messages/*.json`.
 | `pnpm deploy`                  | Build and deploy to Cloudflare Workers                                                     |
 | `pnpm check`                   | Types, lint, dependency rules, formatting and unit tests                                   |
 | `pnpm test`                    | Unit tests (Vitest)                                                                        |
-| `pnpm test:integration`        | Integration tests at `TEST_DATABASE_URL`, wiped and migrated each run (local Postgres 18)  |
+| `pnpm test:integration`        | Integration tests at `TEST_DATABASE_URL`, wiped and migrated each run (see below)          |
 | `pnpm e2e`                     | Playwright on the four DESIGN.md viewports, with axe and the 200 KB budget (port 3100)     |
 | `pnpm db:generate`             | Generate a migration from `src/db/schema`                                                  |
 | `pnpm db:custom --name=<name>` | Create an empty SQL migration for what Drizzle cannot express                              |
@@ -44,7 +44,7 @@ Run `pnpm i18n:watch` in a second terminal while editing `messages/*.json`.
 
 Point `TEST_DATABASE_URL` at a local Postgres 18, for example Homebrew's. Docker is still not
 needed. Against a remote Neon branch the full suite took about 29 minutes from Kenya, with
-timeouts in `assisted-registration.test.ts`; locally all 245 tests run in about 22 seconds.
+timeouts in `assisted-registration.test.ts`; locally the full suite runs in about 22 seconds.
 
 ```bash
 brew install postgresql@18
@@ -63,7 +63,8 @@ createdb -h localhost --template=template0 --locale-provider=builtin --locale=C.
 Create the database with Neon's locale (builtin `C.UTF-8`), as above, or order-sensitive tests
 fail. macOS's default `en_US.UTF-8` sorts `_` before `.`, so
 `tests/integration/member-import.test.ts` ("audits every member and the batch") finds
-`member_import.create` before `member.create`. Then, in `.env`:
+`member_import.create` before `member.create`. Create a local database for `DATABASE_URL` the
+same way, so text sorts as it does on Neon. Then, in `.env`:
 
 ```dotenv
 TEST_DATABASE_URL=postgres://<your macOS user>@localhost:5432/ack_test
