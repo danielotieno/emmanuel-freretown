@@ -16,7 +16,8 @@ export type StaffActor = { type: "STAFF"; userId: string };
  * retention redaction finds and redacts it (BR-14, `redact_expired_registration`). Add a type
  * here when a module first audits a new kind of record.
  */
-export type AuditEntityType = "registration" | "member" | "hbc" | "department" | "staff_user";
+export type AuditEntityType =
+  "registration" | "member" | "member_import" | "hbc" | "department" | "staff_user";
 
 /**
  * One audit entry. The action is `<entity type>.<verb>` in snake_case, e.g.
@@ -64,6 +65,28 @@ export async function write(tx: Transaction, entry: AuditEntry): Promise<void> {
   await insert(tx, entry);
 }
 
+/**
+ * Appends several entries in one statement, for a change that touches many records at once
+ * (the import of the parish list, #104). Every entry is checked as `write` checks it, all before
+ * the database is touched, so one malformed entry writes none.
+ */
+export async function writeMany(tx: Transaction, entries: AuditEntry[]): Promise<void> {
+  if (entries.length === 0) return;
+  for (const entry of entries) validate(entry);
+  for (let start = 0; start < entries.length; start += WRITE_MANY_CHUNK) {
+    const rows = entries.slice(start, start + WRITE_MANY_CHUNK).map(valuesOf);
+    await safeQuery(() =>
+      tx.execute(sql`
+        INSERT INTO audit_entry
+          (actor_type, actor_id, action, entity_type, entity_id, before, after, request_id)
+        VALUES ${sql.join(rows, sql`, `)}`),
+    );
+  }
+}
+
+/** Eight parameters an entry: well under Postgres's 65,535 parameters a statement. */
+const WRITE_MANY_CHUNK = 1000;
+
 /** Collections (a search, an export) are about no one record; their entity id is this. */
 const ALL = "*";
 
@@ -104,6 +127,28 @@ function count(n: number): number {
 }
 
 async function insert(db: DbOrTx, entry: AuditEntry, { collection = false } = {}): Promise<void> {
+  validate(entry, { collection });
+  // Only the columns app_runtime may insert. Drizzle's insert() would list every column,
+  // sending DEFAULT for the others, such as `at`, and the database refuses that (FR-11:
+  // the application cannot choose an entry's time or mark it redacted).
+  await safeQuery(() =>
+    db.execute(sql`
+      INSERT INTO audit_entry
+        (actor_type, actor_id, action, entity_type, entity_id, before, after, request_id)
+      VALUES ${valuesOf(entry)}`),
+  );
+}
+
+/** One entry's values, in the column order of the inserts above. */
+function valuesOf(entry: AuditEntry) {
+  const { actor } = entry;
+  const actorId = actor.type === "STAFF" ? actor.userId : null;
+  const json = (values?: AuditValues) => (values ? JSON.stringify(values) : null);
+  return sql`(${actor.type}, ${actorId}, ${entry.action}, ${entry.entityType}, ${entry.entityId},
+              ${json(entry.before)}::jsonb, ${json(entry.after)}::jsonb, ${entry.requestId ?? null})`;
+}
+
+function validate(entry: AuditEntry, { collection = false } = {}): void {
   // The types already require all of this; these checks catch casts and untyped callers.
   const prefix = ACTION.exec(entry.action)?.[1];
   if (prefix !== entry.entityType) {
@@ -125,18 +170,4 @@ async function insert(db: DbOrTx, entry: AuditEntry, { collection = false } = {}
   }
   assertNoSecrets(entry.before);
   assertNoSecrets(entry.after);
-
-  // Only the columns app_runtime may insert. Drizzle's insert() would list every column,
-  // sending DEFAULT for the others, such as `at`, and the database refuses that (FR-11:
-  // the application cannot choose an entry's time or mark it redacted).
-  const { actor } = entry;
-  const actorId = actor.type === "STAFF" ? actor.userId : null;
-  const json = (values?: AuditValues) => (values ? JSON.stringify(values) : null);
-  await safeQuery(() =>
-    db.execute(sql`
-      INSERT INTO audit_entry
-        (actor_type, actor_id, action, entity_type, entity_id, before, after, request_id)
-      VALUES (${actor.type}, ${actorId}, ${entry.action}, ${entry.entityType}, ${entry.entityId},
-              ${json(entry.before)}::jsonb, ${json(entry.after)}::jsonb, ${entry.requestId ?? null})`),
-  );
 }

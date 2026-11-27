@@ -57,6 +57,13 @@
       "when": 1795667732239,
       "tag": "0007_staff_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795754977507,
+      "tag": "0008_member_import",
+      "breakpoints": true
     }
   ]
 }

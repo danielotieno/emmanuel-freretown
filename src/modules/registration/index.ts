@@ -27,6 +27,7 @@ export {
   type AssistedRegistrationSubmission,
 } from "./assisted-registration";
 export { PRIVACY_NOTICE_VERSION } from "./intake";
+export { importParishList } from "./parish-import";
 export { REFERENCE_PATTERN } from "./reference";
 export {
   checkRegistrationStatus,
