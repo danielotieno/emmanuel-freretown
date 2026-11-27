@@ -24,7 +24,12 @@ export {
   type Auth,
   type AuthConfig,
 } from "./auth";
-export { accessJwtPolicy, passesAccess, type AccessJwtPolicy } from "./cloudflare-access";
+export {
+  accessJwtPolicy,
+  checkAccess,
+  type AccessJwtPolicy,
+  type AccessResult,
+} from "./cloudflare-access";
 export { handleAuthRequest } from "./handler";
 export { purgeExpiredStaffRows } from "./purge";
 export {

@@ -2,7 +2,8 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   accessJwtPolicy,
   clearAccessKeyCache,
-  passesAccess,
+  checkAccess,
+  isAccessIdentity,
   verifyAccessJwt,
   type AccessJwtPolicy,
 } from "./cloudflare-access";
@@ -171,16 +172,46 @@ describe("accessJwtPolicy", () => {
   });
 });
 
-describe("passesAccess", () => {
-  it("reads the Cf-Access-Jwt-Assertion header", async () => {
-    const headers = new Headers({ "Cf-Access-Jwt-Assertion": await sign(valid()) });
-    expect(await passesAccess(headers, policy, NOW)).toBe(true);
-    expect(await passesAccess(new Headers(), policy, NOW)).toBe(false);
+describe("checkAccess", () => {
+  it("reads the Cf-Access-Jwt-Assertion header, with the email Access checked", async () => {
+    const headers = new Headers({
+      "Cf-Access-Jwt-Assertion": await sign({ ...valid(), email: " Jane@Example.ORG " }),
+    });
+    expect(await checkAccess(headers, policy, NOW)).toEqual({
+      status: "verified",
+      email: "jane@example.org",
+    });
+    expect(await checkAccess(new Headers(), policy, NOW)).toEqual({ status: "refused" });
   });
 
-  it("always refuses under the refuse policy and always passes when skipped", async () => {
+  it("verifies a token without an email (a service token), with no email", async () => {
     const headers = new Headers({ "Cf-Access-Jwt-Assertion": await sign(valid()) });
-    expect(await passesAccess(headers, { mode: "refuse" }, NOW)).toBe(false);
-    expect(await passesAccess(new Headers(), { mode: "skip" }, NOW)).toBe(true);
+    expect(await checkAccess(headers, policy, NOW)).toEqual({ status: "verified", email: null });
+  });
+
+  it("always refuses under the refuse policy and always skips when skipped", async () => {
+    const headers = new Headers({ "Cf-Access-Jwt-Assertion": await sign(valid()) });
+    expect(await checkAccess(headers, { mode: "refuse" }, NOW)).toEqual({ status: "refused" });
+    expect(await checkAccess(new Headers(), { mode: "skip" }, NOW)).toEqual({
+      status: "skipped",
+    });
+  });
+});
+
+describe("isAccessIdentity (#91)", () => {
+  const verified = (email: string | null) => ({ status: "verified" as const, email });
+
+  it("matches the staff account's email, ignoring capitals and spaces around it", () => {
+    expect(isAccessIdentity(verified("jane@example.org"), " Jane@Example.org")).toBe(true);
+  });
+
+  it("refuses another person, a token without an email, and a refused request", () => {
+    expect(isAccessIdentity(verified("jane@example.org"), "john@example.org")).toBe(false);
+    expect(isAccessIdentity(verified(null), "jane@example.org")).toBe(false);
+    expect(isAccessIdentity({ status: "refused" }, "jane@example.org")).toBe(false);
+  });
+
+  it("is skipped only where Access is (local development and tests)", () => {
+    expect(isAccessIdentity({ status: "skipped" }, "anyone@example.org")).toBe(true);
   });
 });

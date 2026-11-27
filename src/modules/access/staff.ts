@@ -5,7 +5,7 @@ import { session as sessionTable, twoFactor, user as userTable } from "../../db/
 import { isAdminHost } from "../../lib/hosts";
 import { SafeError } from "../observability";
 import type { Auth } from "./auth";
-import { passesAccess, type AccessJwtPolicy } from "./cloudflare-access";
+import { checkAccess, isAccessIdentity, type AccessJwtPolicy } from "./cloudflare-access";
 import {
   GLOBAL,
   idleTimeoutMs,
@@ -21,6 +21,8 @@ import {
  * - `wrong_host`: not an admin host (for example a server action posted to the public site).
  * - `access_denied`: no valid Cloudflare Access JWT.
  * - `signed_out`: no session, or one that was revoked.
+ * - `identity_mismatch`: the session's staff account isn't the person Cloudflare Access let
+ *   through (#91); the session has been revoked.
  * - `idle_timeout`: idle for longer than D32 allows; the session has been revoked.
  * - `password_change_required`: signed in with a temporary password from a Super
  *   Administrator, which they must replace first (#91).
@@ -31,6 +33,7 @@ export type StaffRefusal =
   | "wrong_host"
   | "access_denied"
   | "signed_out"
+  | "identity_mismatch"
   | "idle_timeout"
   | "password_change_required"
   | "second_factor_required"
@@ -122,11 +125,16 @@ async function checkSession(req: StaffRequest): Promise<SessionState> {
   const now = req.now ?? new Date();
 
   if (!isAdminHost(headers.get("host"))) throw new StaffAccessError("wrong_host");
-  if (!(await passesAccess(headers, req.access, now))) throw new StaffAccessError("access_denied");
+  const access = await checkAccess(headers, req.access, now);
+  if (access.status === "refused") throw new StaffAccessError("access_denied");
 
   const found = await auth.api.getSession({ headers });
   if (!found) throw new StaffAccessError("signed_out");
   const { session, user } = found;
+  if (!isAccessIdentity(access, user.email)) {
+    await revokeSession(db, session.id);
+    throw new StaffAccessError("identity_mismatch");
+  }
 
   const grants = await activeGrants(db, user.id);
   const lastActive = new Date(session.updatedAt).getTime();
@@ -168,7 +176,8 @@ function pendingStep(result: SessionState): StaffAccessError | null {
  * The authorisation boundary for the staff portal (CLAUDE.md rule 1). Every admin page, server
  * action and route handler calls it before doing anything else. It refuses, by throwing a
  * StaffAccessError, unless the request:
- * - came to an admin host, through Cloudflare Access (its JWT is checked);
+ * - came to an admin host, through Cloudflare Access (its JWT is checked), signed in as the
+ *   staff account whose email Access checked;
  * - carries a live session that was created after a second factor (FR-10), of a staff member
  *   who no longer holds a temporary password (#91);
  * - has not been idle for longer than D32 allows (the session is revoked if so); and

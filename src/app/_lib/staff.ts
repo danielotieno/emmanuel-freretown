@@ -6,7 +6,7 @@ import {
   accessJwtPolicy,
   createAuth,
   handleAuthRequest as handleAuthRequestInModule,
-  passesAccess,
+  checkAccess,
   requireEnrollingStaff as enrollingStaffInModule,
   requirePasswordChange as passwordChangeInModule,
   requireStaff as requireStaffInModule,
@@ -76,7 +76,7 @@ async function refuse(error: unknown): Promise<never> {
   if (error.reason === "signed_out") redirect("/sign-in");
   if (error.reason === "password_change_required") redirect("/change-password");
   if (error.reason === "second_factor_required") redirect("/enrol");
-  // Wrong host, no Access JWT, or no role for this: give nothing away.
+  // Wrong host, no Access JWT, someone else's Access login, or no role: give nothing away.
   notFound();
 }
 
@@ -125,10 +125,9 @@ async function check<T>(run: (req: StaffRequest) => Promise<T>): Promise<T> {
  */
 export async function handleAuthRequest(request: Request): Promise<Response> {
   const config = await getAuthConfig();
-  const env = await getEnv();
-  if (!config || !(await passesAccess(request.headers, accessPolicy(env, config.baseURL)))) {
-    return new Response("Not found", { status: 404 });
-  }
+  if (!config) return new Response("Not found", { status: 404 });
+  const access = await checkAccess(request.headers, accessPolicy(await getEnv(), config.baseURL));
+  if (access.status === "refused") return new Response("Not found", { status: 404 });
   // Better Auth routes by path under /api/auth. The middleware rewrites admin requests into
   // the /admin tree; give Better Auth the path the browser used.
   const url = new URL(request.url);
@@ -139,5 +138,5 @@ export async function handleAuthRequest(request: Request): Promise<Response> {
     headers: request.headers,
     body: hasBody ? await request.arrayBuffer() : undefined,
   });
-  return handleAuthRequestInModule(await getDb(), config, forwarded);
+  return handleAuthRequestInModule(await getDb(), config, forwarded, access);
 }

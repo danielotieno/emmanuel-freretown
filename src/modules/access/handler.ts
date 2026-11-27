@@ -3,8 +3,10 @@ import { safeQuery, type Database, type Transaction } from "../../db";
 import { user as userTable } from "../../db/schema/auth";
 import * as audit from "../audit";
 import { createAuth, type AuthConfig } from "./auth";
+import { isAccessIdentity, type AccessResult } from "./cloudflare-access";
 
 const BASE_PATH = "/api/auth";
+const SIGN_IN = `${BASE_PATH}/sign-in/email`;
 const VERIFY_TOTP = `${BASE_PATH}/two-factor/verify-totp`;
 const VERIFY_BACKUP_CODE = `${BASE_PATH}/two-factor/verify-backup-code`;
 
@@ -16,6 +18,15 @@ async function twoFactorEnabled(db: Transaction, userId: string): Promise<boolea
       .where(eq(userTable.id, userId)),
   );
   return rows[0]?.enabled === true;
+}
+
+/** The email a sign-in request names, or "" if it names none. */
+async function signInEmail(request: Request): Promise<string> {
+  const body = (await request
+    .clone()
+    .json()
+    .catch(() => null)) as { email?: unknown } | null;
+  return typeof body?.email === "string" ? body.email : "";
 }
 
 /** The staff user id in a successful verify response (`{ token, user: { id } }`). */
@@ -40,13 +51,24 @@ async function verifiedUserId(response: Response): Promise<string | null> {
  *   so Super Administrators need to see it.
  * Sessions (sign-in, sign-out, timeouts) are not audited: like OTP challenges they are
  * short-lived and change no record (domain-model.md §3, audit).
+ *
+ * Signing in is refused, with Better Auth's own answer to a wrong password, for any email but
+ * the one Cloudflare Access checked (`access`, #91): nobody signs in as someone else from
+ * behind their own Access login, even knowing that person's password.
  */
 export async function handleAuthRequest(
   db: Database,
   config: Omit<AuthConfig, "db">,
   request: Request,
+  access: AccessResult,
 ): Promise<Response> {
   const path = new URL(request.url).pathname;
+  if (path === SIGN_IN && !isAccessIdentity(access, await signInEmail(request))) {
+    return Response.json(
+      { code: "INVALID_EMAIL_OR_PASSWORD", message: "Invalid email or password" },
+      { status: 401 },
+    );
+  }
   if (path !== VERIFY_TOTP && path !== VERIFY_BACKUP_CODE) {
     return createAuth({ db, ...config }).handler(request);
   }

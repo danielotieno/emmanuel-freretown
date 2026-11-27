@@ -8,6 +8,7 @@ import {
   handleAuthRequest,
   StaffAccessError,
   type AccessJwtPolicy,
+  type AccessResult,
   type StaffRefusal,
   type StaffRole,
 } from "../../src/modules/access";
@@ -41,6 +42,8 @@ export async function asOwner<T>(tx: Transaction, fn: () => Promise<T>): Promise
 export class Browser {
   readonly cookies = new Map<string, string>();
   readonly setCookies: string[] = [];
+  /** What Cloudflare Access found for this browser's requests to Better Auth. */
+  access: AccessResult = { status: "skipped" };
   constructor(
     private readonly tx: Transaction,
     private readonly ip = "198.51.100.17",
@@ -67,6 +70,7 @@ export class Browser {
         headers,
         body: JSON.stringify(body),
       }),
+      this.access,
     );
     for (const line of response.headers.getSetCookie()) {
       this.setCookies.push(line);
@@ -90,6 +94,59 @@ export class Browser {
       now: opts.now,
     };
   }
+
+  /** A request through Cloudflare Access, which checked `email` (null: a service token). */
+  async requestThroughAccess(email: string | null) {
+    const { token, policy } = await accessJwt(email);
+    const headers = this.headers();
+    headers.set("cf-access-jwt-assertion", token);
+    return { ...this.request({ access: policy }), headers };
+  }
+}
+
+const TEAM = "ack-emmanuel.cloudflareaccess.com";
+const AUD = "integration-test-aud";
+let accessKeys: Promise<CryptoKeyPair> | undefined;
+
+/** A stand-in for Cloudflare Access: a JWT for `email`, and a policy that verifies it. */
+async function accessJwt(
+  email: string | null,
+): Promise<{ token: string; policy: AccessJwtPolicy }> {
+  accessKeys ??= crypto.subtle.generateKey(
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: "SHA-256",
+    },
+    true,
+    ["sign", "verify"],
+  );
+  const { privateKey, publicKey } = await accessKeys;
+  const jwk = { ...(await crypto.subtle.exportKey("jwk", publicKey)), kid: "test-key" };
+  const part = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const now = Math.floor(Date.now() / 1000);
+  const unsigned = `${part({ alg: "RS256", kid: "test-key" })}.${part({
+    aud: [AUD],
+    iss: `https://${TEAM}`,
+    exp: now + 600,
+    iat: now,
+    ...(email === null ? {} : { email }),
+  })}`;
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    privateKey,
+    new TextEncoder().encode(unsigned),
+  );
+  return {
+    token: `${unsigned}.${Buffer.from(signature).toString("base64url")}`,
+    policy: {
+      mode: "verify",
+      teamDomain: TEAM,
+      audience: AUD,
+      fetch: (async () => new Response(JSON.stringify({ keys: [jwk] }))) as never,
+    },
+  };
 }
 
 function base32Decode(text: string): Buffer {

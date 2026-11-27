@@ -91,7 +91,7 @@ In Cloudflare Zero Trust → Access → Applications, add a **self-hosted** appl
 - Keep the allow-lists as reusable policies (Access controls → Policies), one per environment, so a staff change is one edit. When someone leaves, also revoke their session under Team & Resources → Users.
 - Session duration: 24 hours.
 
-Access is a gate in front of the staff portal, not its security boundary. Staff still sign in to the app with a password and a second factor, and authorisation stays in the modules and server actions (CLAUDE.md rule 1).
+Access is a gate in front of the staff portal, not its security boundary. It also names the person: a staff member can sign in only to the staff account with the email address Access checked by one-time PIN (D59), so each staff account's email must be the one on the allow-list. Staff still sign in to the app with a password and a second factor, and authorisation stays in the modules and server actions (CLAUDE.md rule 1).
 
 **The app checks Access's JWT too (#17).** Every staff page, action and auth endpoint verifies the `Cf-Access-Jwt-Assertion` header Access adds: signed by the team's current key, issued by `https://ack-emmanuel.cloudflareaccess.com`, for this environment's application, not expired. So a request that reaches the Worker without passing Access is still refused. It needs two settings per environment:
 

@@ -412,3 +412,57 @@ describe("safeguards on every change (D59)", () => {
     });
   });
 });
+
+describe("the Cloudflare Access identity (#91 review)", () => {
+  it("refuses signing in as anyone but the person Access checked, as a wrong password", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const mine = await staffUser(tx, ["SUPER_ADMIN"]);
+      const theirs = await staffUser(tx, ["MEMBERSHIP_ADMIN"]);
+      const browser = new Browser(tx);
+      browser.access = { status: "verified", email: mine.email };
+      const other = await browser.post("/sign-in/email", {
+        email: theirs.email,
+        password: PASSWORD,
+      });
+      expect(other).toEqual({
+        status: 401,
+        data: { code: "INVALID_EMAIL_OR_PASSWORD", message: "Invalid email or password" },
+      });
+      expect(await sessionCount(tx, theirs.id)).toBe(0);
+      const own = await browser.post("/sign-in/email", {
+        email: mine.email.toUpperCase(),
+        password: PASSWORD,
+      });
+      expect(own.status).toBe(200);
+    });
+  });
+
+  it("ends a session used from behind someone else's Access login", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      // A Super Administrator who reset another account and read its temporary password, then
+      // signed in as them where Access isn't checked: their own Access login doesn't match.
+      const { browser, user } = await enrolled(tx, ["MEMBERSHIP_ADMIN"]);
+      expect(
+        await refusal(
+          requireStaff(await browser.requestThroughAccess(user.email.toUpperCase()), null),
+        ),
+      ).toBe("allowed");
+      expect(
+        await refusal(requireStaff(await browser.requestThroughAccess("other@example.org"), null)),
+      ).toBe("identity_mismatch");
+      expect(await sessionCount(tx, user.id)).toBe(0);
+    });
+  });
+
+  it("refuses a token without an email, such as a service token", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const { browser } = await enrolled(tx, ["SUPER_ADMIN"]);
+      expect(await refusal(requireStaff(await browser.requestThroughAccess(null), null))).toBe(
+        "identity_mismatch",
+      );
+    });
+  });
+});
