@@ -23,7 +23,7 @@ A module changes only its own tables. Cross-module work goes through the other m
 
 ## 2. Core concepts
 
-**Person vs member vs staff user.** A *Member* is an approved person in the official registry. A *Registration* is an application to become (or update) a member. A *Staff user* is a login account for an officer or administrator; it may link to a Member record but is a separate thing. Members do not have login accounts in Release 1.
+**Person vs member vs staff user.** A *Member* is a person in the official registry, created by approving a registration or by importing the parish list (D47); an imported member counts as approved on the day of the import. A *Registration* is an application to become (or update) a member. A *Staff user* is a login account for an officer or administrator; it may link to a Member record but is a separate thing. Members do not have login accounts in Release 1.
 
 **Status vs evidence.** Statuses describe where something is in its lifecycle. Verification is recorded as *evidence* (who verified what, how, when), never as a status.
 
@@ -87,7 +87,7 @@ Every state change calls `audit.write(tx, entry)` inside the transaction that ma
 - An HBC election fills five positions (Chairperson, Vice Chairperson, Secretary, Assistant Secretary, Treasurer), one seat each (D16).
 - Each eligible voter casts at most one vote per position (D16).
 - Candidates are nominated beforehand or from the floor (D17).
-- Every approved, active member of the HBC is eligible, whether or not they attend (D18).
+- Every approved, active member of the HBC is eligible, whether or not they attend (D18). Imported members count as approved on the day of the import (D47).
 - 13 December 2026 is a non-binding pilot; paper results are official (D19). It runs online voting alongside paper if the 4 December go/no-go passes, and otherwise electronic check-in only (D37).
 - At a pilot, an online vote never stops a member voting on paper: the check-in shows and records the online vote but always allows a paper ballot (D38).
 - A person may stand for only one position per election (E3).
@@ -153,7 +153,7 @@ The design above does not yet give secret ballots. These must be resolved in an 
 | E3 | Candidacy rules | Resolved: one position per person; unopposed candidates elected without a vote; voters may abstain on any position; a tie for first place triggers a re-run between only the tied candidates (see below). |
 | E4 | Department electorates | Resolved: department leaders confirm rosters before nominations close. Requires a roster confirmation screen before the 24 January department elections. |
 | E5 | Parish (PCC) elections | Some PCC seats are elected (People's Warden, possibly executive office bearers), others are appointed (Vicar's Warden) or held by right of office (clergy). The system runs only elected seats; positions carry `filled_by` = `ELECTION` or `APPOINTMENT`. The exact list must come from the ACK Constitution and Diocese of Mombasa rules as applied in this parish, confirmed by the Vicar, not from a generic summary. |
-| E6 | Electorate cut-off | Resolved: a member is eligible only if approved before nominations open. |
+| E6 | Electorate cut-off | Resolved: a member is eligible only if approved before nominations open; an imported member, if imported before then (D47). |
 
 ### Re-runs
 

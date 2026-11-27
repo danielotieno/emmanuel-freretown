@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | Draft v0.6 — go-live owners decided (D39–D42); DPIA timing open (Q28) |
-| Date | 24 November 2026 |
+| Status | Draft v0.7 — member import, name on the status check, unknown HBC, registering to vote (D47–D50); DPIA timing open (Q28) |
+| Date | 26 November 2026 |
 | Mandate | Approved by the Vicar and PCC (record minute/resolution reference here) |
 | Target | Build complete Thursday 26 November 2026; announced at services Sunday 29 November; registration open about 30 November – 1 December |
 | Go/no-go review | Before registration opens to the public (criteria in §10) |
@@ -21,7 +21,7 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Freret
 | D2 | FWO numbers are purely numeric and never reused | Discovery, 24 Nov 2026 |
 | D3 | FWO numbers are visible in church (printed envelopes), so they identify a record but never authenticate a person | Discovery, 24 Nov 2026 |
 | D4 | Registry covers adults (18+) only | Discovery, 24 Nov 2026 |
-| D5 | The existing secretary's list is unreliable; it is not imported as official data in Release 1 | Discovery, 24 Nov 2026 |
+| D5 | ~~The existing secretary's list is unreliable; it is not imported as official data in Release 1~~ **Superseded by D47:** the cleaned list is imported (FR-13) | Discovery, 24 Nov 2026 |
 | D6 | "Children Ministry" is the department name (replaces "Sunday School") | Discovery, 24 Nov 2026 |
 | D7 | A member belongs to one HBC, zero or more departments, and the parish; future elections occur at all three levels | Discovery, 24 Nov 2026 |
 | D8 | Members do not have online accounts in Release 1; only staff sign in | Architecture discussion |
@@ -63,6 +63,10 @@ Establish an accurate, verified register of adult members of ACK Emmanuel Freret
 | D44 | Kiswahili is optional in Release 1; English is required for all member-facing text (public pages, SMS, the privacy notice, the officer desk). Existing Kiswahili text stays as an unreviewed draft, new text may ship in English only, and a missing Kiswahili message falls back to English. The language switch and each member's SMS language stay. Supersedes D11 and the reviewer in D39; the fluent review (#29) no longer blocks go-live (#61) | The Vicar, via the technical lead, 25 Nov 2026 |
 | D45 | One year after a member is marked deceased or transferred out, their personal details are removed: name, phone number and department memberships, from the member record and from every revision and audit entry about them, as BR-14 does for registrations. The FWO number is kept, no longer linked to a name, so it is never issued again (D2, BR-02); status, dates and the reasons for status changes are kept. The removal runs automatically with the retention jobs (#26) and is audited (Q13, #71) | Technical lead, with the Vicar's go-ahead, 25 Nov 2026 |
 | D46 | The homepage (`/`) may carry one responsive hero photograph of the church building (no people) on top of the 200 KB first-load budget, within a cap set by the screen's CSS width, whatever its pixel density: at most 35 KB on phones (up to 600 px), 60 KB on tablets (up to 1100 px) and 110 KB on laptops and larger. It is served with `<picture>` `media` sources, one file each, so a high-density phone still gets the phone file (`srcset` width descriptors would choose by width × density). Everything else on the homepage stays under 200 KB. Registration and the status check (NFR-2) and voting (CLAUDE.md rule 10) keep the strict 200 KB with no photograph. Playwright checks both limits on all four viewports | Danny (technical lead), 25 Nov 2026 |
+| D47 | The Church Secretary's member list, now cleaned, is imported so that members already on it need not register again (FR-13). Supersedes D5. A Membership Administrator uploads it as a CSV file (Excel saved as CSV); each valid row becomes an `ACTIVE` member with one HBC and declared departments, with no registration, in one audited batch. The members gave the parish permission, and the Vicar confirms their consent to storage outside Kenya (BR-15) for the batch; every imported member records that confirmation, the privacy-notice version in force and the administrator who uploaded it. A row that breaks a rule is reported and skipped, never guessed. Imported phone numbers are unverified until the member uses a code. A member on the list who registers anyway is flagged as an FWO conflict (BR-03) and handled as D33. An imported member counts as approved on the day of the import wherever a rule says "approved": voting (D18, D22) and the export (FR-12). Before the import runs, the parish records how the members' consent was given (its form, its date, that it covered storage outside Kenya, and where the evidence is kept) and tells the members, at services and in the privacy notice, that the list is now held in the registry | The Vicar, via the technical lead, 26 Nov 2026 (#102) |
+| D48 | After the code and a match on both the verified phone and the FWO number or reference, the status check also shows the full name on record, so the member can confirm the record is theirs and spot a misspelt name (amends FR-7, D14). Departments are still not shown. Every non-match still gets one and the same message, which now links to registration. A lookup by FWO number without a code is ruled out: FWO numbers are printed on envelopes (D3), so it would reveal the congregation's names, HBCs and phones to anyone | Danny (technical lead), 26 Nov 2026 (#102) |
+| D49 | A new member (BR-16) who does not know their HBC may register with "I don't know my HBC yet". The Church Secretary sets the HBC when issuing the FWO number. Approval is impossible until both are set, so every member still has exactly one HBC (BR-04). Only new members have this choice, on the public form and at the officer desk alike; others choose their HBC, with the desk's help if needed. Departments stay optional (BR-05) | Danny (technical lead), 26 Nov 2026 (#102) |
+| D50 | The homepage and the registration page say plainly that registering is how a member becomes able to vote: approved members vote in their HBC's elections (D18), if approved before nominations open (D22), online with a personal phone or in person without one (D21). Members already on the parish list (D47) are told first to check their status rather than register again. Because the privacy notice lists elections only as a future purpose, a new version listing them, approved by the Vicar (D39), ships with this wording | Danny (technical lead), 26 Nov 2026 (#102) |
 
 ## 3. Roles in Release 1
 
@@ -92,19 +96,19 @@ HBCs and departments can be added, renamed and deactivated by administrators. Th
 | BR-01 | FWO number is required for existing members, digits only, stored as text exactly as entered. Leading zeros are significant: "0042" and "42" are different numbers (D29). No length rule until real numbers are reviewed. New members without one follow BR-16. |
 | BR-02 | An FWO number can belong to at most one member record, ever, including deceased and transferred members. Enforced by a database constraint. |
 | BR-03 | A submitted registration whose FWO matches an existing member or another open registration is accepted and flagged for the administrator. The public user is never told the FWO is already in use. |
-| BR-04 | Every member has exactly one current HBC, which must be active. HBC history is effective-dated. |
+| BR-04 | Every member has exactly one current HBC, which must be active. HBC history is effective-dated. A new member's registration may leave the HBC unknown (D49); it cannot be approved until the HBC is set. |
 | BR-05 | Department membership is optional and multiple. In Release 1, departments chosen by the registrant are recorded as *declared*, not *confirmed*. |
 | BR-06 | A phone number must be the member's own: a valid Kenyan mobile number, stored in E.164 format (+254…), belonging to no other active or inactive member. Self-registration requires one. A member without a phone of their own is registered by an officer with "No personal phone"; they receive no SMS and vote in person (D21). A registration whose phone already belongs to another member is accepted, flagged PHONE_CONFLICT for the administrator, and never revealed on the public form. |
 | BR-07 | Registrants must declare they are 18 or older and acknowledge the privacy notice. No date of birth is collected. |
-| BR-08 | No registration becomes a member record without approval by a Membership Administrator. |
+| BR-08 | No registration becomes a member record without approval by a Membership Administrator. The only other way a member record is created is the import of the parish list (D47, FR-13). |
 | BR-09 | A registration is never edited in place; each submission or correction creates a new immutable revision. |
 | BR-10 | The officer who captured an assisted registration cannot approve that registration. A Super Administrator approves it instead (D36). |
 | BR-11 | Phone verification proves control of a phone at a point in time. It is not proof of identity or membership. Verification evidence is recorded separately from status. |
 | BR-12 | Every state change and every access to personal data by staff is written to the audit log with actor, timestamp, action and before/after values. Access means opening a registration or member record, running a search (number of results only, never the terms) and exporting; queue and list pages are not logged (D31). |
 | BR-13 | The status check reveals information only after OTP verification, and only for a record matching both the verified phone and the given FWO number or registration reference (D24). All non-matches return the same response. |
 | BR-14 | 12 months after a registration is rejected or withdrawn, its personal details (name, FWO, phone, HBC, departments) are redacted (removed) from every revision. The reference, channel, dates, status and reasons are kept. Audit entries for that registration are redacted of personal values at the same time, so the audit log cannot become a back door around retention. Redaction runs automatically and is itself audited. |
-| BR-15 | Every registration requires the member's explicit consent to their details being stored on servers outside Kenya (EU). The consent is a separate checkbox, not ticked by default, recorded with the privacy-notice version. For assisted registrations the officer confirms the member gave this consent verbally. Without it, the registration cannot be submitted online. A staff correction carries the consent over from the previous revision unless the privacy-notice version has changed, in which case the member consents again (D35). |
-| BR-16 | A person without an FWO number registers as a new member by choosing "I am new / I don't have an FWO number yet". The registration is submitted without an FWO and flagged NEW_MEMBER. The member is told by SMS to see the Church Secretary, who meets them, issues an FWO number as today, and enters it in the system. The system suggests the next number above the highest ever issued (D30). Approval is impossible until an FWO number is entered. From then on, the platform is where newly issued FWO numbers are recorded. |
+| BR-15 | Every registration requires the member's explicit consent to their details being stored on servers outside Kenya (EU). The consent is a separate checkbox, not ticked by default, recorded with the privacy-notice version. For assisted registrations the officer confirms the member gave this consent verbally. For imported members the Vicar's confirmation for the batch is recorded with each member (D47). Without it, the registration cannot be submitted online. A staff correction carries the consent over from the previous revision unless the privacy-notice version has changed, in which case the member consents again (D35). |
+| BR-16 | A person without an FWO number registers as a new member by choosing "I am new / I don't have an FWO number yet". The registration is submitted without an FWO and flagged NEW_MEMBER. The member is told by SMS to see the Church Secretary, who meets them, issues an FWO number as today, and enters it in the system. The system suggests the next number above the highest ever issued (D30). A new member who does not know their HBC may leave it unknown; the Secretary sets it at the same meeting (D49). Approval is impossible until an FWO number and an HBC are entered. From then on, the platform is where newly issued FWO numbers are recorded. |
 | BR-17 | A staff member must not approve their own registration or a close relative's (spouse, parent, child or sibling); a Super Administrator approves it instead (D36). Release 1 relies on policy and the audit trail, not a system check (D34). |
 
 ## 6. Status model
@@ -182,10 +186,11 @@ The Membership Administrator sees submitted registrations, oldest first, filtera
 
 A public page where a person enters a phone number and their FWO number or registration reference (D24) and verifies an OTP.
 
-- Given a match on both, the page shows one of: "Received — waiting for approval", "Please contact the church office about your registration" (correction requested or rejected), "Registered member" (approved and active).
-- For "Received" and "Registered member", the page also shows the HBC on record, with the message: "If this HBC is wrong, please tell the church office or the desk at your AGM."
-- Given any non-match, or a member record that is inactive, deceased or transferred, the page shows the same response: "We couldn't find a record matching these details. Please contact the church office."
-- No name or department is shown in Release 1.
+- Given a match on both, the page shows one of: "Received — waiting for approval", "Please contact the church office about your registration" (correction requested or rejected), "Registered member" (approved, or imported (D47), and active).
+- For "Received" and "Registered member", the page also shows the full name and the HBC on record (D48), with the message: "If your name or HBC is wrong, please tell the church office or the desk at your AGM." A new member whose HBC is not set yet (D49) sees that the Church Secretary will set it.
+- Given any non-match, or a member record that is inactive, deceased or transferred, the page shows the same response: "We couldn't find a record matching these details. If you have not registered yet, please register. Otherwise, please contact the church office." with a link to `/registration`.
+- When both a member and a registration match, the member record is shown (for example, an imported member whose duplicate registration was rejected).
+- No department and no phone number is shown in Release 1.
 - Same rate limits and Turnstile protection as FR-1.
 
 ### FR-8 SMS notifications
@@ -215,11 +220,22 @@ A public page where a person enters a phone number and their FWO number or regis
 - One CSV export of approved active members (name, FWO, phone, HBC, departments), available to Membership Administrators.
 - Every export is logged with who, when and how many records.
 
+### FR-13 Import of the parish list (D47)
+
+A Membership Administrator uploads the cleaned parish list as a CSV file on the staff host.
+
+- The file has one row per adult with the FWO number, full name, phone number (or none), HBC and departments. The page says how to save it from Excel so that leading zeros in FWO numbers are kept (D29).
+- Uploading shows a preview first: how many rows will be imported and, for every row that cannot be, its row number and the rule it breaks (BR-01, BR-02, BR-04, BR-05, BR-06, name length, a duplicate within the file). Nothing is stored until the administrator confirms, records the date of the Vicar's consent confirmation and ticks that it was given.
+- Confirming creates every valid row as an `ACTIVE` member, with its HBC period and declared departments, in one transaction with one audit entry per member and one for the batch (rows imported and skipped, never their contents). Rows that fail are skipped and can be fixed and uploaded again; a row whose FWO number is already a member's is always skipped.
+- Imported members receive no SMS on import, and their SMS language is English (D44) unless the file gives another. Their phone numbers were not checked by a code.
+- The confirm step receives the file again, checks every row again and shows the counts it will import, so the confirmation applies to the file actually imported.
+- The file is read in memory and never stored; personal details from it never appear in logs or error reports.
+
 ## 8. Non-functional requirements
 
 | ID | Requirement |
 |---|---|
-| NFR-1 Data location | Database in Neon's EU (Frankfurt) region; application on Cloudflare Workers (ADR 0002). Every registration records the member's explicit consent to storage outside Kenya (BR-15). Data processing agreements with Neon, Cloudflare, Mobile Sasa (D43), Sentry and GitHub are on file. |
+| NFR-1 Data location | Database in Neon's EU (Frankfurt) region; application on Cloudflare Workers (ADR 0002). Every registration records the member's explicit consent to storage outside Kenya (BR-15); every imported member records the Vicar's confirmation of it (D47). Data processing agreements with Neon, Cloudflare, Mobile Sasa (D43), Sentry and GitHub are on file. |
 | NFR-2 Low bandwidth | The public registration and status-check pages load under 200 KB on first visit and are usable on a throttled 3G connection. |
 | NFR-3 Devices | Works on current Chrome for Android and Safari for iOS on low-end phones; no app install required. |
 | NFR-4 Accessibility | WCAG 2.2 AA; minimum 16px body text; large tap targets; errors described in words, not colour alone. |
@@ -232,7 +248,7 @@ A public page where a person enters a phone number and their FWO number or regis
 
 ## 9. Out of scope for Release 1
 
-Member login and portal; HBC and Department Coordinator roles and views; coordinator confirmation of departments; self-service corrections; HBC transfers requested by members; import of the legacy secretary's list; SMS/USSD versions of registration or status check; contributions; communications. Elections are Release 2, specified separately.
+Member login and portal; HBC and Department Coordinator roles and views; coordinator confirmation of departments; self-service corrections; HBC transfers requested by members; SMS/USSD versions of registration or status check; contributions; communications. Elections are Release 2, specified separately.
 
 ## 10. Go/no-go criteria (before registration opens)
 
