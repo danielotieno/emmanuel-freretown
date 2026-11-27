@@ -9,13 +9,20 @@ import {
 import * as audit from "../audit";
 import { fwoBelongsToMember } from "../membership";
 import { checkFwoNumber } from "./fields";
-import { openRegistrationsWithFwo } from "./intake";
+import { openRegistrationsWithFwo, PRIVACY_NOTICE_VERSION } from "./intake";
 
 /**
  * New members' FWO numbers (#101, BR-16, D30). The Church Secretary records once the highest
  * FWO number ever issued; the system suggests the next one; the Secretary enters the number they
  * issued on a new member's registration, as a new revision (BR-09). Callers check the
  * Membership Administrator role first (CLAUDE.md rule 1).
+ *
+ * "Issued by the platform" means a revision of a new member's registration that carries an FWO
+ * number: only `issueFwoNumber` writes those. They hold D2 ("never reused") for numbers issued
+ * to registrations later rejected or withdrawn, until retention removes them (BR-14).
+ *
+ * FWO numbers are stored and compared exactly as written (D29); only "the next number above"
+ * orders them as numbers, so "0042" sorts as 42 and the suggestion carries no leading zeros.
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -40,69 +47,81 @@ export async function getHighestFwoIssued(db: DbOrTx): Promise<HighestFwoIssued 
   return row ?? null;
 }
 
+/** The largest FWO number the platform has issued (see above), as a number, or null. */
+function highestIssuedHere(db: DbOrTx) {
+  return safeQuery(() =>
+    db.execute<{ highest: string | null }>(sql`
+      SELECT max(fwo_number::numeric)::text AS highest
+        FROM registration_revision
+       WHERE is_new_member AND fwo_number IS NOT NULL`),
+  ).then((r) => r.rows[0]?.highest ?? null);
+}
+
+export type SetHighestResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid" }
+  /** Lower than a number the platform has already issued: D2 would no longer hold. */
+  | { ok: false; reason: "below_issued"; highestIssued: string };
+
 /**
- * Records or changes D30's setting: digits only (BR-01), kept exactly as typed. Audited as
- * `fwo_setting.update` with the old and new values (a counter, not anyone's details).
+ * Records or changes D30's setting: digits only (BR-01), kept exactly as typed, and never below
+ * a number the platform has issued. Audited as `fwo_setting.update` with the old and new values:
+ * a counter, filed under the setting, written by this action alone and never alongside a
+ * registration's entries, so it can't be tied to one person.
  */
 export async function setHighestFwoIssued(
   db: DbOrTx,
   change: { value: string; actor: audit.StaffActor; requestId?: string },
-): Promise<{ ok: true } | { ok: false; reason: "invalid" }> {
+): Promise<SetHighestResult> {
   const checked = checkFwoNumber(change.value, false);
   if (!checked.ok || checked.value === null) return { ok: false, reason: "invalid" };
   const value = checked.value;
   return safeQuery(() =>
-    db.transaction(async (tx) => {
-      const [before] = await tx
-        .select({ id: fwoSetting.id, value: fwoSetting.highestIssued })
+    db.transaction(async (tx): Promise<SetHighestResult> => {
+      const issued = await highestIssuedHere(tx);
+      if (issued !== null && BigInt(value) < BigInt(issued)) {
+        return { ok: false, reason: "below_issued", highestIssued: issued };
+      }
+      // The old value, locked, for the audit entry; then insert or update in one statement,
+      // so two first saves at once can't both insert (the second updates instead).
+      const [old] = await tx
+        .select({ value: fwoSetting.highestIssued })
         .from(fwoSetting)
         .for("update");
-      const [row] = before
-        ? await tx
-            .update(fwoSetting)
-            .set({
-              highestIssued: value,
-              updatedAt: sql`now()`,
-              updatedByUserId: change.actor.userId,
-            })
-            .where(eq(fwoSetting.id, before.id))
-            .returning({ id: fwoSetting.id })
-        : await tx
-            .insert(fwoSetting)
-            .values({ highestIssued: value, updatedByUserId: change.actor.userId })
-            .returning({ id: fwoSetting.id });
+      const { rows } = await tx.execute<{ id: string }>(sql`
+        INSERT INTO fwo_setting (highest_issued, updated_by_user_id)
+        VALUES (${value}, ${change.actor.userId})
+        ON CONFLICT (singleton) DO UPDATE
+           SET highest_issued = EXCLUDED.highest_issued,
+               updated_by_user_id = EXCLUDED.updated_by_user_id,
+               updated_at = now()
+        RETURNING id`);
+      const row = rows[0]!;
       await audit.write(tx, {
         actor: change.actor,
         action: "fwo_setting.update",
         entityType: "fwo_setting",
-        entityId: row!.id,
-        before: before ? { highestIssued: before.value } : undefined,
+        entityId: row.id,
+        before: old ? { highestIssued: old.value } : undefined,
         after: { highestIssued: value },
         requestId: change.requestId,
       });
-      return { ok: true } as const;
+      return { ok: true };
     }),
   );
 }
 
 /**
- * D30's suggestion: one more than the largest of the setting, every member's FWO number and
- * every open registration's current FWO number, compared as numbers, so "0042" counts as 42
- * (D29). Null until the setting is recorded: without it the suggestion could reuse an old
- * number (D2).
+ * D30's suggestion: one more than the largest of the setting and every member's FWO number,
+ * ordered as numbers. Numbers on open registrations are left out: anyone can type one on the
+ * public form, and BR-03 already refuses a number another open registration holds. Null until
+ * the setting is recorded: without it the suggestion could reuse an old number (D2).
  */
 export async function suggestFwoNumber(db: DbOrTx): Promise<string | null> {
   const result = await safeQuery(() =>
     db.execute<{ next: string | null }>(sql`
-      SELECT (GREATEST(
-                s.highest_issued::numeric,
-                (SELECT max(fwo_number::numeric) FROM member),
-                (SELECT max(rev.fwo_number::numeric)
-                   FROM registration r
-                   JOIN registration_revision rev
-                     ON rev.registration_id = r.id AND rev.revision_no = r.current_revision_no
-                  WHERE r.status IN ('SUBMITTED','CORRECTION_REQUESTED'))
-              ) + 1)::text AS next
+      SELECT (GREATEST(s.highest_issued::numeric, (SELECT max(fwo_number::numeric) FROM member))
+              + 1)::text AS next
         FROM fwo_setting s`),
   );
   return result.rows[0]?.next ?? null;
@@ -116,9 +135,13 @@ export type IssueFwoRefusal =
   | "not_waiting_for_fwo"
   /** D30's setting isn't recorded yet. */
   | "no_setting"
+  /** The privacy notice changed since the member consented: the Secretary must confirm (D35). */
+  | "notice_changed"
   | "fwo_invalid"
   | "fwo_held"
-  | "fwo_in_open_registration";
+  | "fwo_in_open_registration"
+  /** The platform issued this number before, to a registration since rejected or withdrawn (D2). */
+  | "fwo_issued_before";
 
 export type IssueFwoResult = { ok: true } | { ok: false; reason: IssueFwoRefusal };
 
@@ -130,11 +153,17 @@ class Refused extends Error {
 
 /**
  * Enters the FWO number the Church Secretary issued to a new member (BR-16), in one
- * transaction: revision n + 1 (every field of revision n with the number, the declarations,
- * consent and notice version carried over unchanged, D35) and its departments; the registration
- * moved to it, version bumped; `FWO_CONFIRMED_BY_SECRETARY` evidence; the setting raised if the
- * number is higher (D30, so a number issued is never suggested again, D2); a
- * `registration.issue_fwo` audit entry, and `fwo_setting.update` when raised (rule 4).
+ * transaction: revision n + 1 (every field of revision n with the number) and its departments;
+ * the registration moved to it, version bumped; `FWO_CONFIRMED_BY_SECRETARY` evidence; the
+ * setting raised if the number is higher (D30, so it is never suggested again, D2); and a
+ * `registration.issue_fwo` audit entry (rule 4) that records whether the suggestion was taken
+ * and whether the setting was raised, never the number, so retention can remove every trace of
+ * it with the registration (BR-14).
+ *
+ * Consent (D35, BR-15): the declarations and consent carry over while the privacy notice is the
+ * one the member consented to. If it has changed since, the Secretary, who is with the member,
+ * confirms the member consents to the current notice (`consentToCurrentNotice`), and the new
+ * revision records the current version; without that the number is refused.
  *
  * The setting's row is locked first, so two numbers are never issued at once: without that, two
  * Secretaries taking the same suggestion would both pass the "not in use" checks.
@@ -145,6 +174,7 @@ export async function issueFwoNumber(
     registrationId: string;
     version: number;
     fwoNumber: string;
+    consentToCurrentNotice?: boolean;
     actor: audit.StaffActor;
     requestId?: string;
   },
@@ -166,12 +196,26 @@ export async function issueFwoNumber(
         const suggested = await suggestFwoNumber(tx);
 
         const reg = await lockNewMember(tx, registrationId, issue.version);
+        const noticeChanged = reg.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION;
+        if (noticeChanged && !issue.consentToCurrentNotice) throw new Refused("notice_changed");
         if (await fwoBelongsToMember(tx, fwoNumber)) throw new Refused("fwo_held");
         if ((await openRegistrationsWithFwo(tx, fwoNumber, registrationId)).length > 0) {
           throw new Refused("fwo_in_open_registration");
         }
+        const [issuedBefore] = await tx
+          .select({ id: registrationRevision.registrationId })
+          .from(registrationRevision)
+          .where(
+            and(
+              eq(registrationRevision.isNewMember, true),
+              eq(registrationRevision.fwoNumber, fwoNumber),
+            ),
+          )
+          .limit(1);
+        if (issuedBefore) throw new Refused("fwo_issued_before");
 
         const next = reg.currentRevisionNo + 1;
+        const notice = noticeChanged ? PRIVACY_NOTICE_VERSION : reg.privacyNoticeVersion;
         await tx.execute(sql`
           INSERT INTO registration_revision
             (registration_id, revision_no, full_name, fwo_number, phone_e164, hbc_id,
@@ -179,7 +223,7 @@ export async function issueFwoNumber(
              privacy_notice_version, submitted_by_user_id)
           SELECT registration_id, ${next}, full_name, ${fwoNumber}, phone_e164, hbc_id,
                  adult_declared, transfer_consent, is_new_member, no_personal_phone,
-                 privacy_notice_version, ${actor.userId}
+                 ${notice}, ${actor.userId}
             FROM registration_revision
            WHERE registration_id = ${registrationId} AND revision_no = ${reg.currentRevisionNo}`);
         await tx.execute(sql`
@@ -203,14 +247,6 @@ export async function issueFwoNumber(
           kind: "FWO_CONFIRMED_BY_SECRETARY",
           actorUserId: actor.userId,
         });
-        await audit.write(tx, {
-          actor,
-          action: "registration.issue_fwo",
-          entityType: "registration",
-          entityId: registrationId,
-          after: { revisionNo: next, suggestionTaken: fwoNumber === suggested },
-          requestId,
-        });
 
         const raised = await tx
           .update(fwoSetting)
@@ -222,17 +258,20 @@ export async function issueFwoNumber(
             ),
           )
           .returning({ id: fwoSetting.id });
-        if (raised.length === 1) {
-          await audit.write(tx, {
-            actor,
-            action: "fwo_setting.update",
-            entityType: "fwo_setting",
-            entityId: setting.id,
-            before: { highestIssued: setting.value },
-            after: { highestIssued: fwoNumber },
-            requestId,
-          });
-        }
+
+        await audit.write(tx, {
+          actor,
+          action: "registration.issue_fwo",
+          entityType: "registration",
+          entityId: registrationId,
+          after: {
+            revisionNo: next,
+            suggestionTaken: fwoNumber === suggested,
+            settingRaised: raised.length === 1,
+            ...(noticeChanged ? { consentToNotice: PRIVACY_NOTICE_VERSION } : {}),
+          },
+          requestId,
+        });
         return { ok: true };
       }),
     );
@@ -262,6 +301,7 @@ async function lockNewMember(tx: Transaction, registrationId: string, version: n
     .select({
       isNewMember: registrationRevision.isNewMember,
       fwoNumber: registrationRevision.fwoNumber,
+      privacyNoticeVersion: registrationRevision.privacyNoticeVersion,
     })
     .from(registrationRevision)
     .where(
@@ -273,5 +313,5 @@ async function lockNewMember(tx: Transaction, registrationId: string, version: n
   if (row.status !== "SUBMITTED" || !revision?.isNewMember || revision.fwoNumber !== null) {
     throw new Refused("not_waiting_for_fwo");
   }
-  return row;
+  return { ...row, privacyNoticeVersion: revision.privacyNoticeVersion };
 }

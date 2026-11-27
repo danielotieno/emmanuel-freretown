@@ -34,6 +34,7 @@ export {
   type HighestFwoIssued,
   type IssueFwoRefusal,
   type IssueFwoResult,
+  type SetHighestResult,
 } from "./fwo";
 export { PRIVACY_NOTICE_VERSION } from "./intake";
 export { importParishList } from "./parish-import";

@@ -29,6 +29,10 @@ const REFUSALS: Record<IssueFwoRefusal, string> = {
   fwo_held: "This FWO number already belongs to a member (BR-02). Issue another.",
   fwo_in_open_registration:
     "Another registration waiting for review has this FWO number (BR-03). Issue another.",
+  fwo_issued_before:
+    "This FWO number was issued before, to a registration since rejected or withdrawn. FWO numbers are never reused (D2). Issue another.",
+  notice_changed:
+    "The privacy notice has changed since this member registered. Confirm they agree to the current notice (D35).",
 };
 
 export async function issueFwoAction(
@@ -39,10 +43,12 @@ export async function issueFwoAction(
   const id = form.get("registrationId");
   const version = Number(form.get("version"));
   const fwoNumber = form.get("fwoNumber");
+  const consentToCurrentNotice = form.get("consentToCurrentNotice") === "on";
   const result = await issueFwoNumber(await getDb(), {
     registrationId: typeof id === "string" ? id : "",
     version: Number.isInteger(version) ? version : -1,
     fwoNumber: typeof fwoNumber === "string" ? fwoNumber : "",
+    consentToCurrentNotice,
     actor: { type: "STAFF", userId: staff.userId },
     requestId: (await headers()).get("x-request-id") ?? undefined,
   });

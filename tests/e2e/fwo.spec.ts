@@ -18,7 +18,8 @@ import {
 // they issued on the registration, and approves it. Synthetic staff and members only.
 //
 // The D30 setting is one row shared by every test running at once, so this test enters a random
-// number of its own rather than relying on the exact suggestion.
+// number of its own rather than relying on the exact suggestion. The setting can't go below a
+// number already issued (D2): it is set to 14 digits, above every 10-digit number tests issue.
 //
 // Chromium only, like the other staff journeys: admin.localhost resolves in Chromium alone.
 
@@ -68,7 +69,7 @@ test("the Secretary records D30's number, enters a new member's FWO number and a
   await page.getByLabel("Highest FWO number ever issued").fill("12a");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Use digits only, as on the envelopes (BR-01).")).toBeVisible();
-  await page.getByLabel("Highest FWO number ever issued").fill(`7${randomDigits(6)}`);
+  await page.getByLabel("Highest FWO number ever issued").fill(`9${randomDigits(13)}`);
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("status")).toHaveText("Saved.");
   await expectNoAxeViolations(page);

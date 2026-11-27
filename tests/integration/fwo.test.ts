@@ -1,17 +1,20 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import type { Transaction } from "../../src/db";
+import { createDb, type Transaction } from "../../src/db";
 import {
   approveRegistration,
   checkAssistedRegistration,
   issueFwoNumber,
+  PRIVACY_NOTICE_VERSION,
+  rejectRegistration,
   setHighestFwoIssued,
   submitAssistedRegistration,
   suggestFwoNumber,
   type AssistedRegistrationFields,
 } from "../../src/modules/registration";
 import { connectTestDrizzle, PG, rolledBack } from "./db";
+import { testDatabaseUrl } from "./env";
 
 // New members' FWO numbers (issue #101, BR-16, D30) against real Postgres, as app_runtime.
 // Registrations are made at the desk with IN_PERSON evidence. All data is synthetic.
@@ -66,7 +69,7 @@ async function registered(tx: Transaction, over: Partial<AssistedRegistrationFie
   return result.registrationId;
 }
 
-async function versionOf(tx: Transaction, id: string) {
+async function versionOf(tx: Pick<Transaction, "execute">, id: string) {
   const { rows } = await tx.execute<{ version: number }>(
     sql`SELECT version FROM registration WHERE id = ${id}`,
   );
@@ -112,9 +115,10 @@ describe("the D30 setting and its suggestion", () => {
         tx.execute(sql`INSERT INTO member (fwo_number, full_name) VALUES ('0900', 'Test Member')`),
       );
       expect(await suggestFwoNumber(tx)).toBe("901");
-      // An open registration's number counts too.
-      await registered(tx, { isNewMember: false, fwoNumber: "1000" });
-      expect(await suggestFwoNumber(tx)).toBe("1001");
+      // A number typed on an open registration doesn't count: anyone can type one (BR-03 still
+      // refuses issuing it).
+      await registered(tx, { isNewMember: false, fwoNumber: "99999999" });
+      expect(await suggestFwoNumber(tx)).toBe("901");
     });
   });
 
@@ -178,9 +182,17 @@ describe("issueFwoNumber (BR-16, D30)", () => {
       const audit = await tx.execute<{ action: string; after: unknown }>(sql`
         SELECT action, after FROM audit_entry WHERE request_id = 'req-101' ORDER BY id`);
       expect(audit.rows).toEqual([
-        { action: "registration.issue_fwo", after: { revisionNo: 2, suggestionTaken: true } },
-        { action: "fwo_setting.update", after: { highestIssued: "501" } },
+        {
+          action: "registration.issue_fwo",
+          after: { revisionNo: 2, suggestionTaken: true, settingRaised: true },
+        },
       ]);
+      // The number is in the revision only, which retention redacts (BR-14): no audit entry
+      // anywhere holds it.
+      const mentions = await tx.execute<{ n: number }>(sql`
+        SELECT count(*)::int AS n FROM audit_entry
+         WHERE before::text LIKE '%501%' OR after::text LIKE '%501%'`);
+      expect(mentions.rows[0]!.n).toBe(0);
     });
   });
 
@@ -194,7 +206,10 @@ describe("issueFwoNumber (BR-16, D30)", () => {
       const audit = await tx.execute<{ action: string; after: unknown }>(sql`
         SELECT action, after FROM audit_entry WHERE request_id = 'req-101' ORDER BY id`);
       expect(audit.rows).toEqual([
-        { action: "registration.issue_fwo", after: { revisionNo: 2, suggestionTaken: false } },
+        {
+          action: "registration.issue_fwo",
+          after: { revisionNo: 2, suggestionTaken: false, settingRaised: false },
+        },
       ]);
     });
   });
@@ -240,6 +255,60 @@ describe("issueFwoNumber (BR-16, D30)", () => {
     });
   });
 
+  it("never issues a number twice, even after the registration it went to is rejected (D2)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      await setHighestFwoIssued(tx, { value: "500", actor: SECRETARY });
+      const first = await registered(tx);
+      await issue(tx, first, "450");
+      await rejectRegistration(tx, {
+        registrationId: first,
+        version: await versionOf(tx, first),
+        reason: "Moved away",
+        actor: SECRETARY,
+      });
+      const second = await registered(tx);
+      expect(await issue(tx, second, "450")).toEqual({ ok: false, reason: "fwo_issued_before" });
+      // Nor can the setting go below a number already issued.
+      await issue(tx, second, "600");
+      expect(await setHighestFwoIssued(tx, { value: "599", actor: SECRETARY })).toEqual({
+        ok: false,
+        reason: "below_issued",
+        highestIssued: "600",
+      });
+    });
+  });
+
+  it("asks for consent to the current notice when it changed since the member registered (D35)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      await setHighestFwoIssued(tx, { value: "500", actor: SECRETARY });
+      const id = await registered(tx);
+      await asOwner(tx, () =>
+        tx.execute(sql`
+          UPDATE registration_revision SET privacy_notice_version = '2026-01-01'
+           WHERE registration_id = ${id}`),
+      );
+      expect(await issue(tx, id, "501")).toEqual({ ok: false, reason: "notice_changed" });
+      const result = await issueFwoNumber(tx, {
+        registrationId: id,
+        version: await versionOf(tx, id),
+        fwoNumber: "501",
+        consentToCurrentNotice: true,
+        actor: SECRETARY,
+        requestId: "req-101",
+      });
+      expect(result).toEqual({ ok: true });
+      const revision = await tx.execute<{ privacy_notice_version: string }>(sql`
+        SELECT privacy_notice_version FROM registration_revision
+         WHERE registration_id = ${id} AND revision_no = 2`);
+      expect(revision.rows[0]!.privacy_notice_version).toBe(PRIVACY_NOTICE_VERSION);
+      const audit = await tx.execute<{ after: Record<string, unknown> }>(sql`
+        SELECT after FROM audit_entry WHERE action = 'registration.issue_fwo' AND request_id = 'req-101'`);
+      expect(audit.rows[0]!.after).toMatchObject({ consentToNotice: PRIVACY_NOTICE_VERSION });
+    });
+  });
+
   it("lets the registration be approved once the number is entered (#19)", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
@@ -281,5 +350,50 @@ describe("fwo_setting privileges and constraints", () => {
         ),
       ).toBe(PG.uniqueViolation);
     });
+  });
+});
+
+describe("under concurrency (separate connections)", () => {
+  it("issues a number once when two Secretaries take it at the same moment", async () => {
+    const pool = createDb(testDatabaseUrl());
+    const ids: string[] = [];
+    try {
+      await pool.db.transaction(async (tx) => {
+        await setHighestFwoIssued(tx, { value: "500", actor: SECRETARY });
+        ids.push(await registered(tx), await registered(tx));
+      });
+      const results = await Promise.all(
+        ids.map(async (id) =>
+          issueFwoNumber(pool.db, {
+            registrationId: id,
+            version: await versionOf(pool.db, id),
+            fwoNumber: "501",
+            actor: SECRETARY,
+          }),
+        ),
+      );
+      expect(results.filter((r) => r.ok)).toHaveLength(1);
+      expect(results.filter((r) => !r.ok)).toEqual([
+        { ok: false, reason: "fwo_in_open_registration" },
+      ]);
+    } finally {
+      // Committed rows: removed as the owner, so the next tests start clean.
+      const idList = sql.join(
+        ids.map((id) => sql`${id}`),
+        sql`, `,
+      );
+      for (const statement of [
+        sql`DELETE FROM verification_evidence WHERE registration_id::text IN (${idList})`,
+        sql`DELETE FROM registration_revision_department WHERE registration_id::text IN (${idList})`,
+        sql`DELETE FROM registration_revision WHERE registration_id::text IN (${idList})`,
+        sql`DELETE FROM sms_outbox WHERE phone_e164 LIKE '+254700101%'`,
+        sql`DELETE FROM audit_entry WHERE entity_id IN (${idList}) OR entity_type = 'fwo_setting'`,
+        sql`DELETE FROM registration WHERE id::text IN (${idList})`,
+        sql`DELETE FROM fwo_setting`,
+      ]) {
+        await pool.db.execute(statement);
+      }
+      await pool.close();
+    }
   });
 });

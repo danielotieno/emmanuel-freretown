@@ -14,6 +14,8 @@ export function IssueFwoForm(props: {
   version: number;
   /** Null until the highest FWO number ever issued is recorded (D30). */
   suggestion: string | null;
+  /** The privacy notice changed since the member consented: they must agree again (D35). */
+  noticeChanged: boolean;
 }) {
   const [state, action] = useActionState(issueFwoAction, {});
   return (
@@ -67,6 +69,20 @@ export function IssueFwoForm(props: {
                 className="field max-w-[14rem] tabular-nums"
               />
             </div>
+            {props.noticeChanged && (
+              <label className="option">
+                <input
+                  type="checkbox"
+                  name="consentToCurrentNotice"
+                  className="mt-1 size-5 shrink-0 accent-brand"
+                />
+                <span>
+                  The privacy notice has changed since this member registered. I have shown them the
+                  current notice, and they agree to it and to their details being stored outside
+                  Kenya (BR-15, D35).
+                </span>
+              </label>
+            )}
             <Submit />
           </form>
         )}

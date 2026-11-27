@@ -8,7 +8,11 @@ import { requireStaff } from "@/app/_lib/staff";
 import { AlertIcon, ArrowIcon } from "@/components/icons";
 import { staffNames } from "@/modules/access";
 import { unitNames } from "@/modules/organisation";
-import { openRegistrationForReview, suggestFwoNumber } from "@/modules/registration";
+import {
+  openRegistrationForReview,
+  PRIVACY_NOTICE_VERSION,
+  suggestFwoNumber,
+} from "@/modules/registration";
 import { formatDateTime } from "../format";
 import { DecisionForms } from "./decision-forms";
 import { IssueFwoForm } from "./issue-fwo-form";
@@ -210,7 +214,12 @@ export default async function ReviewRegistrationPage({
         )}
 
         {waitingForFwo && (
-          <IssueFwoForm registrationId={reg.id} version={reg.version} suggestion={suggestion} />
+          <IssueFwoForm
+            registrationId={reg.id}
+            version={reg.version}
+            suggestion={suggestion}
+            noticeChanged={details.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION}
+          />
         )}
 
         <DecisionForms

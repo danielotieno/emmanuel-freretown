@@ -29,7 +29,14 @@ export async function setHighestAction(
     requestId: (await headers()).get("x-request-id") ?? undefined,
   });
   (await getLogger()).info("fwo_setting.saved", { outcome: result.ok ? "saved" : result.reason });
-  if (!result.ok) return { error: "Use digits only, as on the envelopes (BR-01)." };
+  if (!result.ok) {
+    return {
+      error:
+        result.reason === "invalid"
+          ? "Use digits only, as on the envelopes (BR-01)."
+          : `The platform has already issued ${result.highestIssued}. The highest ever issued can't be lower, or an old number could be suggested again (D2).`,
+    };
+  }
   refresh();
   return { done: true };
 }
