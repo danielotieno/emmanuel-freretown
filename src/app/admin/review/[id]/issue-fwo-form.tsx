@@ -84,7 +84,10 @@ export function IssueFwoForm(props: {
                   The member didn&apos;t know their HBC when they registered (D49). Agree it with
                   them now.
                 </p>
+                {/* Keyed: React doesn't apply a select's new defaultValue on re-render, so a
+                    refusal would otherwise lose the HBC chosen. */}
                 <select
+                  key={values.hbcId}
                   id="hbcId"
                   name="hbcId"
                   defaultValue={values.hbcId}

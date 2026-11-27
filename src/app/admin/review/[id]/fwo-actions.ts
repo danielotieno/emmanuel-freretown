@@ -69,8 +69,8 @@ export async function issueFwoAction(
     return {
       error: REFUSALS[result.reason],
       values: {
-        fwoNumber: typeof fwoNumber === "string" ? fwoNumber.slice(0, 50) : "",
-        hbcId: typeof hbcId === "string" ? hbcId.slice(0, 50) : "",
+        fwoNumber: typeof fwoNumber === "string" ? fwoNumber : "",
+        hbcId: typeof hbcId === "string" ? hbcId : "",
         consentToCurrentNotice,
       },
     };
