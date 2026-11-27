@@ -16,6 +16,12 @@ import { issueFwoNumber, type IssueFwoRefusal } from "@/modules/registration";
 
 export interface IssueFwoState {
   error?: string;
+  /**
+   * What was entered, shown again after a refusal. Without it React resets the form to its
+   * defaults, putting D30's suggestion back in place of the number the Secretary typed, and a
+   * second click would issue a number they never wrote down (#124).
+   */
+  values?: { fwoNumber: string; hbcId: string; consentToCurrentNotice: boolean };
 }
 
 const REFUSALS: Record<IssueFwoRefusal, string> = {
@@ -60,7 +66,14 @@ export async function issueFwoAction(
   if (!result.ok) {
     log.info("review.fwo_refused", { reason: result.reason });
     if (result.reason === "stale") refresh();
-    return { error: REFUSALS[result.reason] };
+    return {
+      error: REFUSALS[result.reason],
+      values: {
+        fwoNumber: typeof fwoNumber === "string" ? fwoNumber.slice(0, 50) : "",
+        hbcId: typeof hbcId === "string" ? hbcId.slice(0, 50) : "",
+        consentToCurrentNotice,
+      },
+    };
   }
   log.info("review.fwo_issued");
   // Back to the registration with its new revision, saying so: the issue form is gone now

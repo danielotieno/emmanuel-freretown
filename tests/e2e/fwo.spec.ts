@@ -116,10 +116,13 @@ test("the Secretary sets the HBC of a new member who didn't know it, with the FW
   await expect(
     page.getByRole("heading", { name: "Issue an FWO number and set the HBC" }),
   ).toBeVisible();
-  await page.getByLabel("FWO number issued").fill(`9${randomDigits(9)}`);
+  const issued = `9${randomDigits(9)}`;
+  await page.getByLabel("FWO number issued").fill(issued);
   // Without an HBC the number is refused: the member didn't know it.
   await page.getByRole("button", { name: "Enter FWO number" }).click();
   await expect(page.getByText(/Choose this member's HBC/)).toBeVisible();
+  // The number typed stays, never replaced by the suggestion (#124).
+  await expect(page.getByLabel("FWO number issued")).toHaveValue(issued);
   await page.getByLabel("HBC", { exact: true }).selectOption({ label: "Samaria" });
   await page.getByRole("button", { name: "Enter FWO number" }).click();
   await expect(

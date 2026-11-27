@@ -23,6 +23,13 @@ export function IssueFwoForm(props: {
   hbcs: { id: string; name: string }[] | null;
 }) {
   const [state, action] = useActionState(issueFwoAction, {});
+  // After a refusal React resets the form to its defaults: make those what was entered, never
+  // the suggestion again (#124).
+  const values = state.values ?? {
+    fwoNumber: props.suggestion ?? "",
+    hbcId: "",
+    consentToCurrentNotice: false,
+  };
   return (
     <section aria-labelledby="fwo-heading" className="mt-10">
       <h2 id="fwo-heading" className="text-subtitle">
@@ -64,7 +71,7 @@ export function IssueFwoForm(props: {
                 name="fwoNumber"
                 inputMode="numeric"
                 autoComplete="off"
-                defaultValue={props.suggestion}
+                defaultValue={values.fwoNumber}
                 className="field max-w-[14rem] tabular-nums"
               />
             </div>
@@ -80,7 +87,7 @@ export function IssueFwoForm(props: {
                 <select
                   id="hbcId"
                   name="hbcId"
-                  defaultValue=""
+                  defaultValue={values.hbcId}
                   aria-describedby="hbcId-hint"
                   className="field max-w-[20rem] cursor-pointer"
                 >
@@ -98,6 +105,7 @@ export function IssueFwoForm(props: {
                 <input
                   type="checkbox"
                   name="consentToCurrentNotice"
+                  defaultChecked={values.consentToCurrentNotice}
                   className="mt-1 size-5 shrink-0 accent-brand"
                 />
                 <span>
