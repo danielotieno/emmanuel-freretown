@@ -10,6 +10,7 @@ import {
   type AccessJwtPolicy,
   type StaffRole,
 } from "../../src/modules/access";
+import { m } from "../../src/paraglide/messages";
 import { rolledBack } from "./db";
 import { testDatabaseUrl } from "./env";
 import {
@@ -125,6 +126,18 @@ describe("sign-in and the second factor", () => {
       const staff = await requireStaff(browser.request(), "MEMBERSHIP_ADMIN");
       expect(staff.userId).toBe(user.id);
       expect(await requireEnrollingStaff(browser.request())).toBeNull();
+    });
+  });
+
+  it("names the parish in the authenticator app, from the website's site_name (#68)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const { totpURI } = await enrolled(tx, ["MEMBERSHIP_ADMIN"]);
+      const uri = new URL(totpURI);
+      const name = m.site_name({}, { locale: "en" });
+      expect(uri.searchParams.get("issuer")).toBe(name);
+      // otpauth://totp/<issuer>:<account>, the label most apps show.
+      expect(decodeURIComponent(uri.pathname).split(":")[0]).toBe(`/${name}`);
     });
   });
 

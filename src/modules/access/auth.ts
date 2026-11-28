@@ -5,6 +5,7 @@ import { twoFactor } from "better-auth/plugins/two-factor";
 import type { Database } from "../../db";
 import * as authSchema from "../../db/schema/auth";
 import { isSecureCookieHost } from "../../lib/hosts";
+import { m } from "../../paraglide/messages";
 
 export interface AuthConfig {
   db: Database;
@@ -13,7 +14,12 @@ export interface AuthConfig {
   baseURL: string;
 }
 
-const APP_NAME = "ACK Emmanuel Freretown - Kengeleni";
+/**
+ * The parish's name, as on the website (the staff area is English). It is also the issuer staff
+ * authenticator apps show beside the code: an entry keeps the name it was set up with, so after
+ * a rename only new or reset entries show the new one.
+ */
+const APP_NAME = m.site_name({}, { locale: "en" });
 
 /** Staff passwords: at least 12 characters (FR-10); 128 at most, as Better Auth's default. */
 export const MIN_PASSWORD_LENGTH = 12;

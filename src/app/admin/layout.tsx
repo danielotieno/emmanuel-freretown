@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { m } from "@/paraglide/messages";
 import "../globals.css";
 
 // Staff pages always depend on the session, and the CSP nonce needs per-request rendering.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Staff · ACK Emmanuel Freretown - Kengeleni",
+  // The staff area is English.
+  title: `Staff · ${m.site_name({}, { locale: "en" })}`,
   robots: { index: false, follow: false },
 };
 
