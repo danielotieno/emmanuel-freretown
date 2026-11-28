@@ -53,7 +53,7 @@ pnpm db:migrate
 APP_URL=$(pnpm -s db:app-login)   # creates ack_app, or rotates its password; prints the string once
 ```
 
-`db:app-login` refuses to finish if the login would be a superuser, could create roles or databases, owns anything, or doesn't inherit `app_runtime`. Neon roles belong to a branch, and a new branch copies its parent's roles and passwords. So run it on every branch, including right after creating a developer branch, so each branch has its own `ack_app` password.
+`db:app-login` refuses to finish if the login would be a superuser, could create roles or databases, could replicate, bypasses row-level security, owns anything, belongs to any role other than `app_runtime`, or doesn't inherit `app_runtime`. When rotating, the message names what to fix, and no new password is saved. Neon roles belong to a branch, and a new branch copies its parent's roles and passwords. So run it on every branch, including right after creating a developer branch, so each branch has its own `ack_app` password.
 
 For a developer branch or a local Postgres, paste `$APP_URL` into `.env` as `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE`.
 
@@ -66,7 +66,7 @@ pnpm exec wrangler hyperdrive create ack-staging --connection-string="$APP_URL" 
 pnpm exec wrangler hyperdrive create ack-production --connection-string="$APP_URL" --caching-disabled
 ```
 
-Copy each returned id into `wrangler.jsonc`, replacing `REPLACE_WITH_STAGING_HYPERDRIVE_ID` and `REPLACE_WITH_PRODUCTION_HYPERDRIVE_ID`, in a pull request. The ids are not secrets. Confirm caching is off with `pnpm exec wrangler hyperdrive get <id>`.
+Each returned id goes in `wrangler.jsonc`, under that environment's `hyperdrive` binding, in a pull request (both are there now). The ids are not secrets. Confirm caching is off with `pnpm exec wrangler hyperdrive get <id>`.
 
 **Rotating the app password:** run step 2's `db:app-login` again, then `pnpm exec wrangler hyperdrive update <id> --connection-string="$APP_URL"`. The old password stops working immediately, so do it outside registration hours.
 

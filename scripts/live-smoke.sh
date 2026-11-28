@@ -20,9 +20,11 @@ for attempt in $(seq 1 30); do
 done
 
 fail=0
+# check <name> <expected> <actual>: passes when <actual> matches <expected>, an extended regular
+# expression (unanchored, so plain text matches anywhere in it).
 check() {
   local name="$1" expected="$2" actual="$3"
-  if [[ "$actual" == *"$expected"* ]]; then
+  if [[ "$actual" =~ $expected ]]; then
     echo "ok   $name"
   else
     echo "FAIL $name: expected '$expected', got '${actual:0:200}'"
@@ -30,13 +32,13 @@ check() {
   fi
 }
 
-check "public page renders" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$PUBLIC/")"
+check "public page renders" '^200$' "$(curl -s -o /dev/null -w '%{http_code}' "$PUBLIC/")"
 check "English by default (#80)" '<html lang="en"' "$(curl -s "$PUBLIC/")"
 check "CSP header" "script-src 'self' 'nonce-" "$(curl -s -D - -o /dev/null "$PUBLIC/")"
 # Plain http must redirect to https (zone setting "Always Use HTTPS"): 301 or 308.
-check "http redirects to https" "30" "$(curl -s -o /dev/null -w '%{http_code}' "${PUBLIC/https:/http:}/")"
-check "no /admin on the public host" "404" "$(curl -s -o /dev/null -w '%{http_code}' "$PUBLIC/admin")"
-check "staff host is behind Cloudflare Access" "cloudflareaccess.com" \
+check "http redirects to https" '^30[18]$' "$(curl -s -o /dev/null -w '%{http_code}' "${PUBLIC/https:/http:}/")"
+check "no /admin on the public host" '^404$' "$(curl -s -o /dev/null -w '%{http_code}' "$PUBLIC/admin")"
+check "staff host is behind Cloudflare Access" 'cloudflareaccess\.com' \
   "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$ADMIN/")"
 
 exit "$fail"

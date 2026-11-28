@@ -94,6 +94,7 @@ Or use the dashboard: Workers → `ack-emmanuel-freretown-production` → Deploy
   - The bucket is in Cloudflare's **EU jurisdiction**, so the data stays in the EU (NFR-1).
   - Objects are deleted after **35 days**, so data redacted under BR-14 doesn't live on in old backups.
   - Nothing unencrypted is written to disk (DPIA R8).
+  - Each dump is uploaded as `<name>.dump.age.partial` and renamed to `<name>.dump.age` only when the whole run succeeded. A `.partial` object left behind is a failed run: the dump failed or was too small, so it isn't a backup. The one exception is a run whose log says only the rename failed: that `.partial` is a whole backup; rename it by removing `.partial` (#51).
 
 ### One-time setup
 

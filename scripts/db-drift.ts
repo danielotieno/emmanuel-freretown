@@ -19,6 +19,10 @@ import { Client, type ClientBase } from "pg";
 
 const SCHEMA = "public";
 
+/** Leaves out functions an extension installed (btree_gist adds about 200); `extension` covers them. */
+const NOT_FROM_EXTENSION = `NOT EXISTS (SELECT 1 FROM pg_depend d
+  WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')`;
+
 /** One sorted line per schema object; equal arrays mean equal schemas. */
 export async function schemaSnapshot(client: ClientBase): Promise<string[]> {
   const queries: [string, string][] = [
@@ -44,7 +48,8 @@ export async function schemaSnapshot(client: ClientBase): Promise<string[]> {
       "function",
       `SELECT p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ') definer='
               || p.prosecdef || ' md5=' || md5(pg_get_functiondef(p.oid))
-         FROM pg_proc p WHERE p.pronamespace = $1::regnamespace AND p.prokind IN ('f','p')`,
+         FROM pg_proc p WHERE p.pronamespace = $1::regnamespace AND p.prokind IN ('f','p')
+          AND ${NOT_FROM_EXTENSION}`,
     ],
     [
       "trigger",
@@ -72,7 +77,8 @@ export async function schemaSnapshot(client: ClientBase): Promise<string[]> {
       `SELECT p.proname || ' ' || CASE WHEN a.grantee = 0 THEN 'PUBLIC' ELSE a.grantee::regrole::text END
               || ' ' || a.privilege_type
          FROM pg_proc p, aclexplode(p.proacl) a
-        WHERE p.pronamespace = $1::regnamespace AND a.grantee <> p.proowner`,
+        WHERE p.pronamespace = $1::regnamespace AND a.grantee <> p.proowner
+          AND ${NOT_FROM_EXTENSION}`,
     ],
     [
       "policy",

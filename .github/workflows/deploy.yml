@@ -45,17 +45,19 @@ jobs:
     env:
       TARGET: ${{ inputs.environment || 'staging' }}
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    # Each secret is given only to the step that needs it, so install scripts, the build and
+    # the migrations never see the Cloudflare token (#51).
     steps:
       - name: Check the environment is configured
         env:
+          HAS_CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
           HAS_DATABASE_URL: ${{ secrets.DATABASE_URL != '' }}
           HAS_NEON_API_KEY: ${{ secrets.NEON_API_KEY != '' }}
           NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
         run: |
           missing=()
-          [[ -n "$CLOUDFLARE_API_TOKEN" ]] || missing+=("secret CLOUDFLARE_API_TOKEN")
+          [[ "$HAS_CLOUDFLARE_API_TOKEN" == "true" ]] || missing+=("secret CLOUDFLARE_API_TOKEN")
           [[ -n "$CLOUDFLARE_ACCOUNT_ID" ]] || missing+=("variable CLOUDFLARE_ACCOUNT_ID")
           [[ "$HAS_DATABASE_URL" == "true" ]] || missing+=("secret DATABASE_URL")
           if [[ "$TARGET" == "production" ]]; then
@@ -124,6 +126,8 @@ jobs:
         run: pnpm db:migrate
 
       - name: Deploy the Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm exec opennextjs-cloudflare deploy --env "$TARGET"
 
       - name: Smoke-test the live site

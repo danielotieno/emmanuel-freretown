@@ -25,7 +25,9 @@ const EXCLUDED_INTEGRATIONS = new Set(["RequestData", "Console"]);
  * No `tracesSampleRate`, not even 0, and never the SENTRY_TRACES_SAMPLE_RATE variable: Sentry
  * counts 0 as "tracing on", and then a request carrying a sampled `sentry-trace` header sends
  * spans that bypass beforeSend (beforeSendTransaction is ignored in Sentry 11's default
- * streaming mode, so it can't be a fallback).
+ * streaming mode, so it can't be a fallback). The SDK would still read that variable if someone
+ * set it, so wrangler.jsonc also defines `__SENTRY_TRACING__` as false in every environment,
+ * which compiles tracing out of the bundle (#51).
  */
 export function sentryOptions(env: SentryEnv): CloudflareOptions | undefined {
   if (!env.SENTRY_DSN) return undefined;
