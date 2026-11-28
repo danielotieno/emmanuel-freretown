@@ -117,7 +117,8 @@ async function openRegistrationsWith(
  * and bumps its version so a reviewer with it open sees the change. Each one gets a
  * `registration.flag_conflict` audit entry (rule 4) naming the flags set and why. Used when the
  * parish import makes them members' (D47) and when another registration arrives with the same
- * phone (#158), so the review queue's conflict filters find both of a pair.
+ * FWO number or phone (`flagOthersSharing`), so the review queue's conflict filters find both of
+ * a pair.
  *
  * Each UPDATE runs whether or not anything matches, so a public submission takes the same
  * statements either way (rule 3); only the audit entries of a match are extra.
@@ -128,7 +129,7 @@ export async function flagOpenRegistrations(
     fwoNumbers: string[];
     phones: string[];
     exceptRegistrationId?: string;
-    cause: "member_import" | "shared_phone";
+    cause: "member_import" | "another_registration";
     actor: audit.Actor;
     requestId?: string;
   },
@@ -188,6 +189,33 @@ export async function flagOpenRegistrations(
       requestId: held.requestId,
     })),
   );
+}
+
+/**
+ * BR-03 and BR-06 for the other side of a pair (#158, #163): after a registration is stored or
+ * corrected, every other open registration with its FWO number or phone is flagged too, so the
+ * review queue's conflict filters find both and the administrator compares them (D33) or calls
+ * both people (D28). A new member with no FWO number yet, or no personal phone, flags nothing
+ * for it.
+ */
+export function flagOthersSharing(
+  tx: Transaction,
+  stored: {
+    registrationId: string;
+    fwoNumber: string | null;
+    phoneE164: string | null;
+    actor: audit.Actor;
+    requestId?: string;
+  },
+): Promise<void> {
+  return flagOpenRegistrations(tx, {
+    fwoNumbers: stored.fwoNumber === null ? [] : [stored.fwoNumber],
+    phones: stored.phoneE164 === null ? [] : [stored.phoneE164],
+    exceptRegistrationId: stored.registrationId,
+    cause: "another_registration",
+    actor: stored.actor,
+    requestId: stored.requestId,
+  });
 }
 
 export type NewRegistration =

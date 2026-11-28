@@ -415,17 +415,26 @@ describe("submitCorrection (FR-5, BR-09)", () => {
     });
   });
 
-  it("flags both when the corrected phone is another open registration's (#158, D28)", async () => {
+  it("flags both when the corrected FWO number or phone is another open registration's (#158, #163)", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
-      const other = await registered(tx, { phone: "0711 021 555" });
-      expect(await registrationRow(tx, other)).toMatchObject({ phone_conflict: false });
+      const other = await registered(tx, { fwoNumber: "219555", phone: "0711 021 555" });
+      expect(await registrationRow(tx, other)).toMatchObject({
+        fwo_conflict: false,
+        phone_conflict: false,
+      });
       const id = await waitingForCorrection(tx);
-      expect(await correct(tx, id, await fieldsOf(tx, { phone: "0711 021 555" }))).toEqual({
+      expect(
+        await correct(tx, id, await fieldsOf(tx, { fwoNumber: "219555", phone: "0711 021 555" })),
+      ).toEqual({
         ok: true,
       });
-      expect(await registrationRow(tx, id)).toMatchObject({ phone_conflict: true });
-      expect(await registrationRow(tx, other)).toMatchObject({ phone_conflict: true });
+      for (const row of [id, other]) {
+        expect(await registrationRow(tx, row)).toMatchObject({
+          fwo_conflict: true,
+          phone_conflict: true,
+        });
+      }
       const { rows } = await tx.execute(sql`
         SELECT actor_type, actor_id, after FROM audit_entry
          WHERE entity_id = ${other} AND action = 'registration.flag_conflict'`);
@@ -433,7 +442,7 @@ describe("submitCorrection (FR-5, BR-09)", () => {
         {
           actor_type: "STAFF",
           actor_id: OFFICER.userId,
-          after: { phoneConflict: true, cause: "shared_phone" },
+          after: { fwoConflict: true, phoneConflict: true, cause: "another_registration" },
         },
       ]);
     });

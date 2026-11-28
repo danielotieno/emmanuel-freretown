@@ -9,7 +9,7 @@ import { recordInPersonVerification, redeemRegistrationVerification } from "../v
 import type { ValidAssistedRegistration } from "./fields";
 import {
   conflictFlags,
-  flagOpenRegistrations,
+  flagOthersSharing,
   insertFirstRevision,
   insertRegistration,
 } from "./intake";
@@ -114,17 +114,13 @@ export async function submitAssistedRegistration(
           ...details,
           submittedByUserId: officer.userId,
         });
-        // Another open registration with this phone is flagged too, so both show (#158, D28).
-        if (details.phoneE164 !== null) {
-          await flagOpenRegistrations(tx, {
-            fwoNumbers: [],
-            phones: [details.phoneE164],
-            exceptRegistrationId: registrationId,
-            cause: "shared_phone",
-            actor: officer,
-            requestId,
-          });
-        }
+        await flagOthersSharing(tx, {
+          registrationId,
+          fwoNumber: details.fwoNumber,
+          phoneE164: details.phoneE164,
+          actor: officer,
+          requestId,
+        });
 
         if (details.verification === "PHONE_OTP") {
           const verified =

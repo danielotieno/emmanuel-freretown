@@ -252,16 +252,26 @@ describe("conflicts are accepted and flagged silently (BR-03, BR-06, rule 3)", (
     });
   });
 
-  it("flags an FWO on another open registration, but not on a rejected one", async () => {
+  it("flags an FWO on another open registration, and that one too, but not a rejected one (#163)", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
-      await submit(tx, { fwoNumber: "7002", phone: "0700000063" });
+      const first = await submit(tx, { fwoNumber: "7002", phone: "0700000063" });
+      expect(await flags(tx, first)).toEqual({ fwo: false, phone: false });
       expect(await flags(tx, await submit(tx, { fwoNumber: "7002", phone: "0700000064" }))).toEqual(
         {
           fwo: true,
           phone: false,
         },
       );
+      // The earlier one is flagged too, audited as the public's submission (BR-03).
+      expect(await flags(tx, first)).toEqual({ fwo: true, phone: false });
+      const firstId = (first as { registrationId: string }).registrationId;
+      const { rows: entries } = await tx.execute(sql`
+        SELECT actor_type, after FROM audit_entry
+         WHERE entity_id = ${firstId} AND action = 'registration.flag_conflict'`);
+      expect(entries).toEqual([
+        { actor_type: "PUBLIC", after: { fwoConflict: true, cause: "another_registration" } },
+      ]);
 
       await asOwner(tx, () =>
         tx.execute(sql`
@@ -310,7 +320,7 @@ describe("conflicts are accepted and flagged silently (BR-03, BR-06, rule 3)", (
         {
           actor_type: "PUBLIC",
           actor_id: null,
-          after: { phoneConflict: true, cause: "shared_phone" },
+          after: { phoneConflict: true, cause: "another_registration" },
           request_id: "req-reg",
         },
       ]);
