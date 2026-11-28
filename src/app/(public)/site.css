@@ -1,0 +1,10 @@
+/*
+ * The public site's stylesheet: Tailwind, then the shared tokens and controls. The staff portal's
+ * pages and its component kit are left out of the scan, so none of their classes reach members:
+ * public pages must stay under 200 KB on first load (NFR-2, CLAUDE.md rule 10).
+ */
+@import "tailwindcss";
+@import "../globals.css";
+
+@source not "../admin";
+@source not "../../components/ui";

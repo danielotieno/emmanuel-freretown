@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { getLocale } from "@/app/_lib/i18n";
 import { SiteFooter } from "@/components/site-footer";
 import { m } from "@/paraglide/messages";
-import "../globals.css";
+import "./site.css";
 import { instrumentSans, instrumentSerif } from "./fonts";
 
 export async function generateMetadata(): Promise<Metadata> {

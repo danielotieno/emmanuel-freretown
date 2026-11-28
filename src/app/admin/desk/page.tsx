@@ -10,6 +10,7 @@ import { publicOrigin } from "@/lib/hosts";
 import { listActiveDepartments, listActiveHbcs } from "@/modules/organisation";
 import { DeskForm } from "./desk-form";
 import { deskText } from "./text";
+import { StaffShell } from "../_components/staff-shell";
 
 export const metadata: Metadata = { title: "Registration desk · Staff" };
 
@@ -31,30 +32,28 @@ export default async function DeskPage() {
   const text = deskText(locale);
   const privacyUrl = `${publicOrigin(requestHeaders.get("host")) ?? ""}/privacy`;
   return (
-    <main id="main" lang={locale} className="min-h-dvh bg-cloud pb-16">
-      <div className="mx-auto max-w-form px-4 pt-4 sm:px-6 sm:pt-8">
-        <div className="flex items-center justify-between gap-4">
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center text-small text-ink-muted hover:text-ink"
-          >
-            {text.home}
-          </Link>
-          <LanguageSwitch locale={locale} />
-        </div>
-        <h1 className="mt-6 text-title">{text.title}</h1>
-        <p className="mt-3 text-ink-muted">{text.intro}</p>
-        <div className="mt-6">
-          <DeskForm
-            text={text}
-            officerId={staff.userId}
-            hbcs={hbcs}
-            departments={departments}
-            turnstileSiteKey={turnstileSiteKey(env)}
-            privacyUrl={privacyUrl}
-          />
-        </div>
+    <StaffShell staff={staff} current="desk" width="form" lang={locale}>
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center text-small text-ink-muted hover:text-ink"
+        >
+          {text.home}
+        </Link>
+        <LanguageSwitch locale={locale} />
       </div>
-    </main>
+      <h1 className="mt-6 text-title">{text.title}</h1>
+      <p className="mt-3 text-ink-muted">{text.intro}</p>
+      <div className="mt-6">
+        <DeskForm
+          text={text}
+          officerId={staff.userId}
+          hbcs={hbcs}
+          departments={departments}
+          turnstileSiteKey={turnstileSiteKey(env)}
+          privacyUrl={privacyUrl}
+        />
+      </div>
+    </StaffShell>
   );
 }

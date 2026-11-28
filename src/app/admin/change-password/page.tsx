@@ -4,6 +4,7 @@ import { requirePasswordChange } from "@/app/_lib/staff";
 import { CheckIcon } from "@/components/icons";
 import { MIN_PASSWORD_LENGTH } from "@/modules/access";
 import { ChangePasswordForm } from "./change-password-form";
+import { AuthFrame } from "../_components/auth-frame";
 
 export const metadata: Metadata = { title: "Change your password · Staff" };
 
@@ -19,8 +20,7 @@ export default async function ChangePasswordPage({
   const staff = await requirePasswordChange();
   const { done } = await searchParams;
   return (
-    <main className="mx-auto max-w-form px-4 py-10">
-      <h1 className="text-4xl">{staff.forced ? "Choose your password" : "Change your password"}</h1>
+    <AuthFrame title={staff.forced ? "Choose your password" : "Change your password"}>
       {done && !staff.forced ? (
         <>
           <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
@@ -46,6 +46,6 @@ export default async function ChangePasswordPage({
           </div>
         </>
       )}
-    </main>
+    </AuthFrame>
   );
 }

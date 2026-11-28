@@ -39,7 +39,7 @@ If a requirement is ambiguous, ask. Don't invent rules (for example, there is no
 
 ## Stack
 
-Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui, Zod, Drizzle ORM 0.45.x (ADR 0003), PostgreSQL on Neon (EU/Frankfurt), Cloudflare Workers via `@opennextjs/cloudflare` with Hyperdrive (query caching disabled), Better Auth (staff only), Paraglide JS (English + Kiswahili), Mobile Sasa (SMS, D43), Cloudflare Cron Triggers (jobs), Cloudflare Turnstile, Sentry, Vitest, Playwright, pnpm.
+Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui (staff portal only, themed with DESIGN.md's tokens in `src/components/ui`), Zod, Drizzle ORM 0.45.x (ADR 0003), PostgreSQL on Neon (EU/Frankfurt), Cloudflare Workers via `@opennextjs/cloudflare` with Hyperdrive (query caching disabled), Better Auth (staff only), Paraglide JS (English + Kiswahili), Mobile Sasa (SMS, D43), Cloudflare Cron Triggers (jobs), Cloudflare Turnstile, Sentry, Vitest, Playwright, pnpm.
 
 ## Routes
 
@@ -51,7 +51,7 @@ Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui, Zod,
 | `/registration/status` | Check my status (OTP first) |
 | `/vote` | Elections: schedule when closed, ballot when open |
 | `/api/webhooks/sms-delivery` | Mobile Sasa delivery reports, signed with the webhook secret (#14) |
-| `admin.ackemmanuelfreretown.org` | Staff: review queue, officer desk, members, settings. Separate host, separate host-only cookie, behind Cloudflare Access |
+| `admin.ackemmanuelfreretown.org` | Staff: the overview (what waits for review, registrations received, members by HBC; an officer sees their own desk), then review queue, officer desk, members, settings. Separate host, separate host-only cookie, behind Cloudflare Access |
 | `admin.ackemmanuelfreretown.org/desk` | Officer desk: assisted registration (FR-3, #18). Registration Officers only |
 | `admin.ackemmanuelfreretown.org/members` | Member records (FR-6, #22): list, search, view, edit, HBC transfer and status, and the CSV export (FR-12, #25, a POST to `/members/export`). Membership Administrators |
 | `admin.ackemmanuelfreretown.org/units` | HBCs and departments (FR-9, #23): add, rename, reorder, deactivate. Membership Administrators |
@@ -131,4 +131,5 @@ Conventions set up with the scaffold:
 - Routes get the request's database handle from `getDb()` in `src/app/_lib/db.ts` and pass it to module functions.
 - Log only through `createLogger` (`src/modules/observability`); routes get the request's logger from `getLogger()` in `src/app/_lib/log.ts`. Log ids, counts and outcomes, never personal data. Module functions wrap queries in `safeQuery` (`src/db`) so a raw Drizzle or Postgres error never leaves a module. See `docs/operations/observability.md`.
 - The Worker entry is `src/jobs/worker.ts`: OpenNext's `fetch`, the daily Cron Trigger and the job queue consumer, wrapped with Sentry. Only it imports `@sentry/cloudflare` at runtime: the SDK needs `cloudflare:workers`, which Node doesn't have. Daily jobs live in `src/jobs/daily.ts` and call module functions; queue messages carry `{ type, id }` only, never personal data.
+- Every signed-in staff page renders inside `StaffShell` (`src/app/admin/_components/staff-shell.tsx`) after its own `requireStaff`, naming its section. The shell only shows links; it is never the security boundary (rule 1). A new staff page needs a navigation entry there.
 - New tables need `app_runtime` (and, unless they hold credentials, `readonly_ops`) grants in the same migration (see `0002_privileges_and_redaction.sql`).

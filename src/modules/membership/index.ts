@@ -4,6 +4,7 @@
  */
 export { fwoBelongsToMember, phoneBelongsToMember } from "./conflicts";
 export { readFwoNumber } from "./fwo-number";
+export { membershipOverview, type MembershipOverview } from "./overview";
 export { createMember, type CreateMemberResult, type NewMember } from "./members";
 export { findActiveMemberForStatusCheck, type MemberForStatusCheck } from "./status";
 export {

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getDb } from "@/app/_lib/db";
 import { requireStaff } from "@/app/_lib/staff";
-import { AlertIcon, ArrowIcon, CheckIcon } from "@/components/icons";
+import { AlertIcon, CheckIcon } from "@/components/icons";
 import {
   listUnits,
   UNIT_KINDS,
@@ -13,6 +12,7 @@ import {
 import { moveUnitAction, setUnitActiveAction } from "./actions";
 import { KIND_NAMES, refusalMessage } from "./messages";
 import { NameForm } from "./name-form";
+import { StaffShell } from "../_components/staff-shell";
 
 export const metadata: Metadata = { title: "HBCs and departments · Staff" };
 
@@ -40,7 +40,7 @@ type Search = Record<string, string | string[] | undefined>;
  * not recorded (D31); every change is audited by the organisation module.
  */
 export default async function UnitsPage({ searchParams }: { searchParams: Promise<Search> }) {
-  await requireStaff("MEMBERSHIP_ADMIN");
+  const staff = await requireStaff("MEMBERSHIP_ADMIN");
   const search = await searchParams;
   const db = await getDb();
   const [hbcs, departments] = await Promise.all([
@@ -56,44 +56,35 @@ export default async function UnitsPage({ searchParams }: { searchParams: Promis
     : undefined;
 
   return (
-    <main className="min-h-dvh bg-cloud pb-16">
-      <div className="mx-auto max-w-prose px-4 pt-4 sm:px-6 sm:pt-8">
-        <Link
-          href="/"
-          className="inline-flex min-h-11 items-center gap-2 text-small text-ink-muted hover:text-ink"
-        >
-          <ArrowIcon className="rotate-180" />
-          Staff home
-        </Link>
-        <h1 className="mt-4 text-title">HBCs and departments</h1>
-        <p className="mt-2 text-ink-muted">
-          The units members choose on registration forms, in the order shown here. A unit is never
-          deleted: deactivate it, and it can no longer be chosen, while members and registrations
-          already in it keep it, but a registration waiting for review that chose it can&rsquo;t be
-          approved until it is corrected. Every change is recorded in the audit log. The
-          homepage&rsquo;s list of HBCs updates within six hours.
+    <StaffShell staff={staff} current="units" width="prose">
+      <h1 className="text-title">HBCs and departments</h1>
+      <p className="mt-2 text-ink-muted">
+        The units members choose on registration forms, in the order shown here. A unit is never
+        deleted: deactivate it, and it can no longer be chosen, while members and registrations
+        already in it keep it, but a registration waiting for review that chose it can&rsquo;t be
+        approved until it is corrected. Every change is recorded in the audit log. The
+        homepage&rsquo;s list of HBCs updates within six hours.
+      </p>
+
+      {done && (
+        <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
+          <CheckIcon size="size-5" />
+          <span>{done}</span>
         </p>
+      )}
+      {refused && (
+        <p
+          role="alert"
+          className="mt-6 flex gap-3 rounded-xl border border-error/40 bg-error/5 p-4 text-error"
+        >
+          <AlertIcon className="mt-1" />
+          <span>{refused}</span>
+        </p>
+      )}
 
-        {done && (
-          <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
-            <CheckIcon size="size-5" />
-            <span>{done}</span>
-          </p>
-        )}
-        {refused && (
-          <p
-            role="alert"
-            className="mt-6 flex gap-3 rounded-xl border border-error/40 bg-error/5 p-4 text-error"
-          >
-            <AlertIcon className="mt-1" />
-            <span>{refused}</span>
-          </p>
-        )}
-
-        <UnitSection kind="hbc" units={hbcs} />
-        <UnitSection kind="department" units={departments} />
-      </div>
-    </main>
+      <UnitSection kind="hbc" units={hbcs} />
+      <UnitSection kind="department" units={departments} />
+    </StaffShell>
   );
 }
 

@@ -49,6 +49,13 @@ export {
   type SetHighestResult,
 } from "./fwo";
 export { PRIVACY_NOTICE_VERSION } from "./intake";
+export {
+  deskOverview,
+  OVERVIEW_DAYS,
+  registrationOverview,
+  type DeskOverview,
+  type RegistrationOverview,
+} from "./overview";
 export { importParishList } from "./parish-import";
 export { REFERENCE_PATTERN } from "./reference";
 export {
