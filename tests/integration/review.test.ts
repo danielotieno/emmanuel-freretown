@@ -410,7 +410,57 @@ describe("approveRegistration (FR-4, BR-08)", () => {
         fwoHeldByMember: false,
         phoneHeldByMember: false,
         fwoInOpenRegistrations: [],
+        phoneInOpenRegistrations: [],
       });
+    });
+  });
+
+  it("flags two open registrations sharing a phone for each other, names the other and blocks approval until one is resolved (#158, D28)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const first = await registered(tx, { phone: "0700 009 101" });
+      const second = await registered(tx, { phone: "0700 009 101" });
+      const unrelated = await registered(tx);
+      const ids = (await listReviewQueue(tx, { flag: "PHONE_CONFLICT" })).items.map((i) => i.id);
+      expect(ids).toEqual(expect.arrayContaining([first, second]));
+      expect(ids).not.toContain(unrelated);
+
+      const referenceOf = async (id: string) =>
+        (
+          await tx.execute<{ reference: string }>(
+            sql`SELECT reference FROM registration WHERE id = ${id}`,
+          )
+        ).rows[0]!.reference;
+      const live = async (id: string) =>
+        (await openRegistrationForReview(tx, { registrationId: id, actor: ADMIN }))!.live;
+      expect((await live(first)).phoneInOpenRegistrations).toEqual([await referenceOf(second)]);
+      expect((await live(second)).phoneInOpenRegistrations).toEqual([await referenceOf(first)]);
+
+      // Neither is approved until the administrator has called both and one is resolved (D28).
+      const before = await counts(tx);
+      for (const id of [first, second]) {
+        expect(await approve(tx, id)).toEqual({ ok: false, reason: "phone_in_open_registration" });
+      }
+      expect(await counts(tx)).toEqual(before);
+      await rejectRegistration(tx, {
+        registrationId: second,
+        version: await versionOf(tx, second),
+        reason: "Uses a relative's phone; will register at the desk",
+        actor: ADMIN,
+      });
+      expect((await live(first)).phoneInOpenRegistrations).toEqual([]);
+      expect((await approve(tx, first)).ok).toBe(true);
+    });
+  });
+
+  it("doesn't flag registrations with no personal phone for each other (BR-06)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const a = await registered(tx, { noPersonalPhone: true, phone: "" });
+      const b = await registered(tx, { noPersonalPhone: true, phone: "" });
+      const ids = (await listReviewQueue(tx, { flag: "PHONE_CONFLICT" })).items.map((i) => i.id);
+      expect(ids).not.toContain(a);
+      expect(ids).not.toContain(b);
     });
   });
 

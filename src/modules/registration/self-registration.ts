@@ -4,7 +4,12 @@ import { enqueueSms } from "../notifications";
 import { checkUnitsForRegistration } from "../organisation";
 import { redeemRegistrationVerification } from "../verification";
 import type { ValidSelfRegistration } from "./fields";
-import { conflictFlags, insertFirstRevision, insertRegistration } from "./intake";
+import {
+  conflictFlags,
+  flagOpenRegistrations,
+  insertFirstRevision,
+  insertRegistration,
+} from "./intake";
 
 export interface SelfRegistrationSubmission {
   registration: ValidSelfRegistration;
@@ -65,6 +70,15 @@ export async function submitSelfRegistration(
           phoneConflict,
         });
         await insertFirstRevision(tx, registrationId, { ...details, submittedByUserId: null });
+        // Another open registration with this phone is flagged too, so both show (#158, D28).
+        await flagOpenRegistrations(tx, {
+          fwoNumbers: [],
+          phones: [details.phoneE164],
+          exceptRegistrationId: registrationId,
+          cause: "shared_phone",
+          actor: { type: "PUBLIC" },
+          requestId,
+        });
 
         const verified = await redeemRegistrationVerification(
           tx,

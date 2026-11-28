@@ -131,6 +131,11 @@ export default async function ReviewRegistrationPage({
       "This phone number belongs to another member. Call both people to agree who keeps it (D28), then have the registration corrected.",
     );
   }
+  if (reg.live.phoneInOpenRegistrations.length > 0) {
+    blocks.push(
+      `Another registration waiting for review has this phone number: ${reg.live.phoneInOpenRegistrations.join(", ")}. Call both people to agree who keeps it (D28), then have the other one corrected or rejected (BR-06).`,
+    );
+  }
 
   return (
     <main className="min-h-dvh bg-cloud pb-16">
@@ -165,9 +170,11 @@ export default async function ReviewRegistrationPage({
             )}
             {reg.phoneConflict && (
               <Flag>
-                Phone conflict when submitted: the number belonged to another member (BR-06).
+                Phone conflict: when submitted or since, the number belonged to another member or
+                another registration waiting for review (BR-06).
               </Flag>
             )}
+
             {details.isNewMember && (
               <Flag>New member: registered without an FWO number (BR-16).</Flag>
             )}

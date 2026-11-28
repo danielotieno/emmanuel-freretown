@@ -49,6 +49,8 @@ const REFUSALS: Record<DecisionRefusal, string> = {
     "Another registration waiting for review has this FWO number. Compare the two and reject the duplicate with a reason first (BR-03, D33).",
   phone_held:
     "This phone number belongs to another member. Call both people to agree who keeps it (D28), have the registration corrected, then approve.",
+  phone_in_open_registration:
+    "Another registration waiting for review has this phone number. Call both people to agree who keeps it (D28), have the other one corrected or rejected, then approve.",
   units: "The HBC or a department on this registration has been deactivated. Ask for a correction.",
 };
 

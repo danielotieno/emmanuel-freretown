@@ -13,7 +13,7 @@ import { enqueueSms } from "../notifications";
 import { SafeError } from "../observability";
 import { checkUnitsForRegistration } from "../organisation";
 import { checkReason } from "./fields";
-import { openRegistrationsWithFwo } from "./intake";
+import { openRegistrationsWithFwo, openRegistrationsWithPhone } from "./intake";
 
 /**
  * The review queue and the administrator's decisions (FR-4): approve, reject, request a
@@ -176,6 +176,11 @@ export interface RegistrationForReview {
     phoneHeldByMember: boolean;
     /** References of other open registrations with this FWO (BR-03): reject the duplicate. */
     fwoInOpenRegistrations: string[];
+    /**
+     * References of other open registrations with this phone (BR-06, #158): call both people
+     * (D28) and have one corrected or rejected first.
+     */
+    phoneInOpenRegistrations: string[];
   };
 }
 
@@ -243,6 +248,7 @@ export async function openRegistrationForReview(
     fwoHeldByMember,
     phoneHeldByMember,
     fwoInOpen,
+    phoneInOpen,
   ] = await Promise.all([
     safeQuery(() =>
       db
@@ -319,6 +325,7 @@ export async function openRegistrationForReview(
     waiting && row.fwoNumber ? fwoBelongsToMember(db, row.fwoNumber) : false,
     waiting && row.phoneE164 ? phoneBelongsToMember(db, row.phoneE164) : false,
     waiting && row.fwoNumber ? openRegistrationsWithFwo(db, row.fwoNumber, registrationId) : [],
+    waiting && row.phoneE164 ? openRegistrationsWithPhone(db, row.phoneE164, registrationId) : [],
   ]);
 
   return {
@@ -359,7 +366,12 @@ export async function openRegistrationForReview(
         .filter((d) => d.revisionNo === r.revisionNo)
         .map((d) => d.id),
     })),
-    live: { fwoHeldByMember, phoneHeldByMember, fwoInOpenRegistrations: fwoInOpen },
+    live: {
+      fwoHeldByMember,
+      phoneHeldByMember,
+      fwoInOpenRegistrations: fwoInOpen,
+      phoneInOpenRegistrations: phoneInOpen,
+    },
   };
 }
 
@@ -375,6 +387,8 @@ export async function openRegistrationForReview(
  * - `fwo_in_open_registration`: another open registration has the same FWO (BR-03, FR-4): the
  *   administrator compares them and rejects the duplicate first.
  * - `phone_held`: the phone belongs to an active or inactive member (BR-06, D28).
+ * - `phone_in_open_registration`: another open registration has the same phone (BR-06, #158):
+ *   the administrator calls both people (D28) and has one corrected or rejected first.
  * - `units`: the HBC or a department was deactivated since (BR-04).
  */
 export type DecisionRefusal =
@@ -387,6 +401,7 @@ export type DecisionRefusal =
   | "fwo_held"
   | "fwo_in_open_registration"
   | "phone_held"
+  | "phone_in_open_registration"
   | "units";
 
 export type DecisionResult =
@@ -536,6 +551,12 @@ export async function approveRegistration(db: DbOrTx, decision: Decision): Promi
     }
     if (revision.phoneE164 && (await phoneBelongsToMember(tx, revision.phoneE164))) {
       throw new Refused("phone_held");
+    }
+    if (
+      revision.phoneE164 &&
+      (await openRegistrationsWithPhone(tx, revision.phoneE164, registrationId)).length > 0
+    ) {
+      throw new Refused("phone_in_open_registration");
     }
 
     const created = await createMember(
