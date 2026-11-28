@@ -372,6 +372,9 @@ describe("approveRegistration (FR-4, BR-08)", () => {
       await asApp(tx);
       const holder = await registered(tx, { fwoNumber: "7710" });
       const duplicate = await registered(tx, { fwoNumber: "7710" });
+      // Both are under the FWO-conflict filter, the earlier one too (#163).
+      const flagged = (await listReviewQueue(tx, { flag: "FWO_CONFLICT" })).items.map((i) => i.id);
+      expect(flagged).toEqual(expect.arrayContaining([holder, duplicate]));
       const { rows } = await tx.execute<{ reference: string }>(
         sql`SELECT reference FROM registration WHERE id = ${holder}`,
       );

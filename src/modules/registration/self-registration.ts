@@ -6,7 +6,7 @@ import { redeemRegistrationVerification } from "../verification";
 import type { ValidSelfRegistration } from "./fields";
 import {
   conflictFlags,
-  flagOpenRegistrations,
+  flagOthersSharing,
   insertFirstRevision,
   insertRegistration,
 } from "./intake";
@@ -38,8 +38,9 @@ class VerificationRefused extends Error {}
  *
  * An FWO already held by a member or by another open registration (BR-03), or a phone already
  * held by a member or by another open registration (BR-06), is accepted and flagged for the
- * administrator; another open registration with the phone is flagged too (#158). The result is
- * the same either way: the public never learns that an FWO or phone is in use (rule 3).
+ * administrator; another open registration with the FWO number or phone is flagged too (#158,
+ * #163). The result is the same either way: the public never learns that an FWO or phone is in
+ * use (rule 3).
  */
 export async function submitSelfRegistration(
   db: DbOrTx,
@@ -71,12 +72,10 @@ export async function submitSelfRegistration(
           phoneConflict,
         });
         await insertFirstRevision(tx, registrationId, { ...details, submittedByUserId: null });
-        // Another open registration with this phone is flagged too, so both show (#158, D28).
-        await flagOpenRegistrations(tx, {
-          fwoNumbers: [],
-          phones: [details.phoneE164],
-          exceptRegistrationId: registrationId,
-          cause: "shared_phone",
+        await flagOthersSharing(tx, {
+          registrationId,
+          fwoNumber: details.fwoNumber,
+          phoneE164: details.phoneE164,
           actor: { type: "PUBLIC" },
           requestId,
         });
