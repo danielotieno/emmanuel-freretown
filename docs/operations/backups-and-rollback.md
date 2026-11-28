@@ -13,7 +13,7 @@ How code reaches staging and production, how to undo a bad deploy, and how the d
 | 5 | R2 enabled; bucket `ack-backups` in the EU jurisdiction with a 35-day lifecycle rule | Done 24 Nov 2026 (location EEUR; rule `expire-35-days`). R2 token scoped to `ack-backups`, expires Nov 2027 |
 | 6 | Backup login `ack_backup` on staging and production | Done 24 Nov 2026; verified read-only on both |
 | 7 | age key pair; private key held offline | Done 24 Nov 2026: public key set; round trip tested. Private key: technical lead's password manager and a sealed copy with the Vicar |
-| 8 | Nightly backup (`backup.yml`) running | First manual run after this merges |
+| 8 | Nightly backup (`backup.yml`) running | Not yet: the four nightly runs of 25–28 Nov 2026 all failed, because `pg_dump` couldn't verify Neon's certificate (#164). Fixed in #164; done once a run by hand after that merges shows an encrypted object of a sensible size |
 | 9 | Weekly drift check (`drift.yml`) running | First manual run after this merges |
 | 10 | Restore drill performed before go-live, then monthly | Not started |
 | 11 | Repository public, so GitHub Actions runs free (billing had blocked CI); `main` protected (the three CI jobs must pass, no force-push or deletion, administrators may bypass in an emergency); workflows on outside contributors' PRs need approval; secret scanning with push protection | Done 27 Nov 2026, with the Vicar's agreement, after an audit of the history, issues and PRs found no secrets or members' data (#146). Everything in commits, issues, PRs and workflow logs is public: CLAUDE.md rule 2 matters more than ever |
@@ -91,6 +91,7 @@ Or use the dashboard: Workers → `ack-emmanuel-freretown-production` → Deploy
 - **Neon restore window:** 7 days of point-in-time history on `ack-production` (D26). This is the first line of defence.
 - **Nightly logical backup** (`backup.yml`, 04:00 Nairobi time):
   - `pg_dump` as `ack_backup` (read-only), encrypted with age, streamed to R2 bucket `ack-backups`.
+  - `pg_dump` and `pg_restore` (libpq) are run with `PGSSLROOTCERT=system`: with `sslmode=verify-full` they otherwise look for `~/.postgresql/root.crt` and refuse to connect (#164). The same applies to `psql` on your own machine.
   - The bucket is in Cloudflare's **EU jurisdiction**, so the data stays in the EU (NFR-1).
   - Objects are deleted after **35 days**, so data redacted under BR-14 doesn't live on in old backups.
   - Nothing unencrypted is written to disk (DPIA R8).
@@ -140,7 +141,7 @@ A failure means a live database was changed outside the migrations, or a migrati
 Monthly, and before registration opens. About 15 minutes.
 
 1. Neon → `ack-production` → **Branches → New branch** from `production`, named `restore-drill-<date>`, **auto-delete after 1 day**. On that branch, add a database named `ack_restore`.
-2. On your machine (`brew install age libpq`), put the owner strings for `ack_restore` and `neondb` on that branch in `RESTORE_DATABASE_URL` and `LIVE_COPY_URL`, then:
+2. On your machine (`brew install age libpq`), put the owner strings for `ack_restore` and `neondb` on that branch in `RESTORE_DATABASE_URL` and `LIVE_COPY_URL`. Change `sslmode=require` to `sslmode=verify-full` in both, as in `environments.md` §1: `pg_restore` refuses a weaker mode (#164). Then:
 
    ```bash
    scripts/restore-drill.sh production/<latest>.dump.age ~/path/to/ack-backup.key
