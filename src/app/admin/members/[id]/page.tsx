@@ -14,6 +14,7 @@ import { AuditTrail, pageBefore, staffIdsIn } from "../../_components/audit-entr
 import { formatDateTime } from "../../review/format";
 import { LANGUAGE_NAMES, REMOVED_NAME, STATUS_NAMES } from "../names";
 import { MemberForms } from "./member-forms";
+import { StaffShell } from "../../_components/staff-shell";
 
 export const metadata: Metadata = { title: "Member · Staff" };
 
@@ -69,136 +70,127 @@ export default async function MemberPage({
   ];
 
   return (
-    <main className="min-h-dvh bg-cloud pb-16">
-      <div className="mx-auto max-w-prose px-4 pt-4 sm:px-6 sm:pt-8">
-        <Link
-          href="/members"
-          className="inline-flex min-h-11 items-center gap-2 text-small text-ink-muted hover:text-ink"
-        >
-          <ArrowIcon className="rotate-180" />
-          Members
-        </Link>
-        <h1 className="mt-4 text-title">{record.fullName ?? REMOVED_NAME}</h1>
-        <p className="mt-2 text-ink-muted">
-          FWO <span className="tabular-nums">{record.fwoNumber}</span> ·{" "}
-          {STATUS_NAMES[record.status]}
+    <StaffShell staff={staff} current="members" width="prose">
+      <Link
+        href="/members"
+        className="inline-flex min-h-11 items-center gap-2 text-small text-ink-muted hover:text-ink"
+      >
+        <ArrowIcon className="rotate-180" />
+        Members
+      </Link>
+      <h1 className="mt-4 text-title">{record.fullName ?? REMOVED_NAME}</h1>
+      <p className="mt-2 text-ink-muted">
+        FWO <span className="tabular-nums">{record.fwoNumber}</span> · {STATUS_NAMES[record.status]}
+      </p>
+
+      {done && (
+        <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
+          <CheckIcon size="size-5" />
+          <span>{done}</span>
         </p>
+      )}
+      {closed && (
+        <p className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
+          <InfoIcon className="mt-1 text-brand" />
+          <span>
+            This record is closed: the member is {STATUS_NAMES[record.status].toLowerCase()}. It can
+            be viewed but not changed, and their mobile number is free for another member (D20).{" "}
+            {record.personalDataRedactedAt
+              ? `Their name, mobile number and departments were removed on ${formatDateTime(record.personalDataRedactedAt)}, one year after the change (D45). The FWO number is kept so it is never issued again.`
+              : "Their name, mobile number and departments are removed one year after the change (D45)."}
+          </span>
+        </p>
+      )}
 
-        {done && (
-          <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
-            <CheckIcon size="size-5" />
-            <span>{done}</span>
-          </p>
-        )}
-        {closed && (
-          <p className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
-            <InfoIcon className="mt-1 text-brand" />
-            <span>
-              This record is closed: the member is {STATUS_NAMES[record.status].toLowerCase()}. It
-              can be viewed but not changed, and their mobile number is free for another member
-              (D20).{" "}
-              {record.personalDataRedactedAt
-                ? `Their name, mobile number and departments were removed on ${formatDateTime(record.personalDataRedactedAt)}, one year after the change (D45). The FWO number is kept so it is never issued again.`
-                : "Their name, mobile number and departments are removed one year after the change (D45)."}
+      <section aria-labelledby="details-heading" className="mt-8">
+        <h2 id="details-heading" className="text-subtitle">
+          Record
+        </h2>
+        <dl className="in-card mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-paper text-card">
+          <Row term="Full name">{record.fullName ?? "Removed (D45)"}</Row>
+          <Row term="FWO number">
+            <span className="tabular-nums">{record.fwoNumber}</span>
+          </Row>
+          <Row term="Mobile number">
+            {record.phoneE164 ? (
+              <span className="tabular-nums">{record.phoneE164}</span>
+            ) : record.personalDataRedactedAt ? (
+              "Removed (D45)"
+            ) : (
+              "No personal phone"
+            )}
+          </Row>
+          <Row term="SMS language">{LANGUAGE_NAMES[record.language]}</Row>
+          <Row term="HBC">{hbcName(record.hbcId)}</Row>
+          <Row term="Departments">
+            {record.departments.length
+              ? record.departments
+                  .map(
+                    (d) =>
+                      `${units.departments.get(d.departmentId) ?? "A department"}${d.state === "DECLARED" ? " (declared)" : ""}`,
+                  )
+                  .join(", ")
+              : record.personalDataRedactedAt
+                ? "Removed (D45)"
+                : "None"}
+          </Row>
+          <Row term="Status">
+            {STATUS_NAMES[record.status]}
+            {record.statusReason && (
+              <span className="mt-1 block text-ink-muted">Reason: {record.statusReason}</span>
+            )}
+          </Row>
+          <Row term="In the registry since">
+            {formatDateTime(record.createdAt)}
+            <span className="mt-1 block text-ink-muted">
+              {record.importedAt
+                ? "Imported from the parish list (D47)"
+                : "Approved from a registration"}
             </span>
-          </p>
-        )}
+          </Row>
+        </dl>
+      </section>
 
-        <section aria-labelledby="details-heading" className="mt-8">
-          <h2 id="details-heading" className="text-subtitle">
-            Record
-          </h2>
-          <dl className="in-card mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-paper text-card">
-            <Row term="Full name">{record.fullName ?? "Removed (D45)"}</Row>
-            <Row term="FWO number">
-              <span className="tabular-nums">{record.fwoNumber}</span>
-            </Row>
-            <Row term="Mobile number">
-              {record.phoneE164 ? (
-                <span className="tabular-nums">{record.phoneE164}</span>
-              ) : record.personalDataRedactedAt ? (
-                "Removed (D45)"
-              ) : (
-                "No personal phone"
-              )}
-            </Row>
-            <Row term="SMS language">{LANGUAGE_NAMES[record.language]}</Row>
-            <Row term="HBC">{hbcName(record.hbcId)}</Row>
-            <Row term="Departments">
-              {record.departments.length
-                ? record.departments
-                    .map(
-                      (d) =>
-                        `${units.departments.get(d.departmentId) ?? "A department"}${d.state === "DECLARED" ? " (declared)" : ""}`,
-                    )
-                    .join(", ")
-                : record.personalDataRedactedAt
-                  ? "Removed (D45)"
-                  : "None"}
-            </Row>
-            <Row term="Status">
-              {STATUS_NAMES[record.status]}
-              {record.statusReason && (
-                <span className="mt-1 block text-ink-muted">Reason: {record.statusReason}</span>
-              )}
-            </Row>
-            <Row term="In the registry since">
-              {formatDateTime(record.createdAt)}
-              <span className="mt-1 block text-ink-muted">
-                {record.importedAt
-                  ? "Imported from the parish list (D47)"
-                  : "Approved from a registration"}
+      <section aria-labelledby="history-heading" className="mt-8">
+        <h2 id="history-heading" className="text-subtitle">
+          HBC history
+        </h2>
+        <ol className="in-card mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-paper text-card">
+          {record.hbcHistory.map((p) => (
+            <li
+              key={p.validFrom.toISOString()}
+              className="grid gap-1 px-5 py-3 sm:grid-cols-3 sm:gap-4"
+            >
+              <span>{hbcName(p.hbcId)}</span>
+              <span className="text-ink-muted sm:col-span-2">
+                From {formatDateTime(p.validFrom)}
+                {p.validTo ? ` to ${formatDateTime(p.validTo)}` : " · current"}
               </span>
-            </Row>
-          </dl>
-        </section>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-        <section aria-labelledby="history-heading" className="mt-8">
-          <h2 id="history-heading" className="text-subtitle">
-            HBC history
-          </h2>
-          <ol className="in-card mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-paper text-card">
-            {record.hbcHistory.map((p) => (
-              <li
-                key={p.validFrom.toISOString()}
-                className="grid gap-1 px-5 py-3 sm:grid-cols-3 sm:gap-4"
-              >
-                <span>{hbcName(p.hbcId)}</span>
-                <span className="text-ink-muted sm:col-span-2">
-                  From {formatDateTime(p.validFrom)}
-                  {p.validTo ? ` to ${formatDateTime(p.validTo)}` : " · current"}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        {!closed && (
-          <MemberForms
-            memberId={record.id}
-            version={record.version}
-            current={{
-              fullName: record.fullName ?? "",
-              noPersonalPhone: record.phoneE164 === null,
-              phone: record.phoneE164 ?? "",
-              language: record.language,
-              departmentIds: record.departments.map((d) => d.departmentId),
-              hbcId: record.hbcId,
-            }}
-            statuses={nextStatuses(record.status).map((s) => ({ value: s, name: STATUS_NAMES[s] }))}
-            hbcs={hbcs.filter((h) => h.id !== record.hbcId)}
-            departments={offered}
-          />
-        )}
-
-        <AuditTrail
-          trail={trail}
-          names={names}
-          path={`/members/${record.id}`}
-          before={trailBefore}
+      {!closed && (
+        <MemberForms
+          memberId={record.id}
+          version={record.version}
+          current={{
+            fullName: record.fullName ?? "",
+            noPersonalPhone: record.phoneE164 === null,
+            phone: record.phoneE164 ?? "",
+            language: record.language,
+            departmentIds: record.departments.map((d) => d.departmentId),
+            hbcId: record.hbcId,
+          }}
+          statuses={nextStatuses(record.status).map((s) => ({ value: s, name: STATUS_NAMES[s] }))}
+          hbcs={hbcs.filter((h) => h.id !== record.hbcId)}
+          departments={offered}
         />
-      </div>
-    </main>
+      )}
+
+      <AuditTrail trail={trail} names={names} path={`/members/${record.id}`} before={trailBefore} />
+    </StaffShell>
   );
 }
 

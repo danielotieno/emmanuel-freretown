@@ -37,7 +37,7 @@ test("an officer registers a member whose phone is at the desk, with a code (FR-
   page,
 }) => {
   await signIn(page, ["REGISTRATION_OFFICER"]);
-  await page.getByRole("link", { name: "Open the registration desk" }).click();
+  await page.getByRole("link", { name: "Registration desk" }).click();
   await expect(page.getByRole("heading", { level: 1, name: en.desk_title })).toBeVisible();
   await expectNoAxeViolations(page);
 
@@ -167,7 +167,7 @@ test("staff without the Registration Officer role can't open the desk (NFR-8)", 
   page,
 }) => {
   await signIn(page, ["MEMBERSHIP_ADMIN", "SUPER_ADMIN"]);
-  await expect(page.getByRole("link", { name: "Open the registration desk" })).toBeHidden();
+  await expect(page.getByRole("link", { name: "Registration desk" })).toBeHidden();
   const response = await page.goto(`${ADMIN}/desk`);
   expect(response?.status()).toBe(404);
 });

@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getDb } from "@/app/_lib/db";
 import { requireStaff } from "@/app/_lib/staff";
-import { ArrowIcon, ChevronIcon } from "@/components/icons";
+import { ChevronIcon } from "@/components/icons";
 import {
   listMembers,
   MEMBER_STATUSES,
@@ -14,6 +14,7 @@ import { listActiveHbcs } from "@/modules/organisation";
 import { MemberList } from "./member-list";
 import { STATUS_NAMES } from "./names";
 import { SearchForm } from "./search-form";
+import { StaffShell } from "../_components/staff-shell";
 
 export const metadata: Metadata = { title: "Members · Staff" };
 
@@ -41,7 +42,7 @@ function filtersOf(search: Search): MemberListFilters {
  * #25). Viewing the list is not recorded (D31); a search, opening a record and an export are.
  */
 export default async function MembersPage({ searchParams }: { searchParams: Promise<Search> }) {
-  await requireStaff("MEMBERSHIP_ADMIN");
+  const staff = await requireStaff("MEMBERSHIP_ADMIN");
   const filters = filtersOf(await searchParams);
   const db = await getDb();
   const [{ items, total }, hbcs] = await Promise.all([
@@ -51,89 +52,80 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const filtered = Object.values(filters).some(Boolean);
 
   return (
-    <main className="min-h-dvh bg-cloud pb-16">
-      <div className="mx-auto max-w-content px-4 pt-4 sm:px-6 sm:pt-8 lg:px-10">
-        <Link
-          href="/"
-          className="inline-flex min-h-11 items-center gap-2 text-small text-ink-muted hover:text-ink"
-        >
-          <ArrowIcon className="rotate-180" />
-          Staff home
-        </Link>
-        <h1 className="mt-4 text-title">Members</h1>
-        <p className="mt-2 text-ink-muted">
-          The official registry. Open a record to view it, correct the details, move the member to
-          another HBC or change their status.
-        </p>
+    <StaffShell staff={staff} current="members">
+      <h1 className="text-title">Members</h1>
+      <p className="mt-2 text-ink-muted">
+        The official registry. Open a record to view it, correct the details, move the member to
+        another HBC or change their status.
+      </p>
 
-        <SearchForm />
+      <SearchForm />
 
-        <section aria-labelledby="list-heading" className="mt-12">
-          <h2 id="list-heading" className="text-subtitle">
-            All members
-          </h2>
-          <form method="get" className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
-            <Select label="HBC" name="hbc" value={filters.hbcId}>
-              <option value="">All HBCs</option>
-              {hbcs.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.name}
-                </option>
-              ))}
-            </Select>
-            <Select label="Status" name="status" value={filters.status}>
-              <option value="">Any status</option>
-              {MEMBER_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_NAMES[s]}
-                </option>
-              ))}
-            </Select>
-            <div className="flex gap-3">
-              <button type="submit" className="btn-primary flex-1">
-                Filter
-              </button>
-              {filtered && (
-                <Link href="/members" className="btn-text">
-                  Clear
-                </Link>
-              )}
-            </div>
-          </form>
-
-          <p className="mt-6 text-small text-ink-muted" aria-live="polite">
-            {total === 0
-              ? filtered
-                ? "No members match these filters."
-                : "The registry has no members yet."
-              : items.length < total
-                ? `Showing the first ${items.length} of ${total}, by name. Filter or search to find others.`
-                : `${total} ${total === 1 ? "member" : "members"}.`}
-          </p>
-          <MemberList items={items} />
-        </section>
-
-        <section aria-labelledby="export-heading" className="mt-12">
-          <h2 id="export-heading" className="text-subtitle">
-            Export
-          </h2>
-          <p className="mt-2 text-ink-muted">
-            Every active member as a CSV file: FWO number, name, mobile number, HBC and departments.
-            Each download is recorded in the audit log, with how many members it holds.
-          </p>
-          <p className="mt-2 text-ink-muted">
-            The file holds members&rsquo; personal details. Keep it only where it is needed, and
-            delete it when you are done.
-          </p>
-          {/* A POST, so no link or reload runs an export (src/app/admin/members/export). */}
-          <form method="post" action="/members/export" className="mt-4">
-            <button type="submit" className="btn-secondary">
-              Download the CSV
+      <section aria-labelledby="list-heading" className="mt-12">
+        <h2 id="list-heading" className="text-subtitle">
+          All members
+        </h2>
+        <form method="get" className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+          <Select label="HBC" name="hbc" value={filters.hbcId}>
+            <option value="">All HBCs</option>
+            {hbcs.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.name}
+              </option>
+            ))}
+          </Select>
+          <Select label="Status" name="status" value={filters.status}>
+            <option value="">Any status</option>
+            {MEMBER_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_NAMES[s]}
+              </option>
+            ))}
+          </Select>
+          <div className="flex gap-3">
+            <button type="submit" className="btn-primary flex-1">
+              Filter
             </button>
-          </form>
-        </section>
-      </div>
-    </main>
+            {filtered && (
+              <Link href="/members" className="btn-text">
+                Clear
+              </Link>
+            )}
+          </div>
+        </form>
+
+        <p className="mt-6 text-small text-ink-muted" aria-live="polite">
+          {total === 0
+            ? filtered
+              ? "No members match these filters."
+              : "The registry has no members yet."
+            : items.length < total
+              ? `Showing the first ${items.length} of ${total}, by name. Filter or search to find others.`
+              : `${total} ${total === 1 ? "member" : "members"}.`}
+        </p>
+        <MemberList items={items} />
+      </section>
+
+      <section aria-labelledby="export-heading" className="mt-12">
+        <h2 id="export-heading" className="text-subtitle">
+          Export
+        </h2>
+        <p className="mt-2 text-ink-muted">
+          Every active member as a CSV file: FWO number, name, mobile number, HBC and departments.
+          Each download is recorded in the audit log, with how many members it holds.
+        </p>
+        <p className="mt-2 text-ink-muted">
+          The file holds members&rsquo; personal details. Keep it only where it is needed, and
+          delete it when you are done.
+        </p>
+        {/* A POST, so no link or reload runs an export (src/app/admin/members/export). */}
+        <form method="post" action="/members/export" className="mt-4">
+          <button type="submit" className="btn-secondary">
+            Download the CSV
+          </button>
+        </form>
+      </section>
+    </StaffShell>
   );
 }
 

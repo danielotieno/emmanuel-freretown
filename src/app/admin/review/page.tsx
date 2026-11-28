@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getDb } from "@/app/_lib/db";
 import { requireStaff } from "@/app/_lib/staff";
-import { ArrowIcon, CheckIcon, ChevronIcon } from "@/components/icons";
+import { CheckIcon, ChevronIcon } from "@/components/icons";
 import { listActiveHbcs, unitNames } from "@/modules/organisation";
 import {
   listQueueEvents,
@@ -13,6 +13,7 @@ import {
   type QueueFlag,
 } from "@/modules/registration";
 import { formatDateTime } from "./format";
+import { StaffShell } from "../_components/staff-shell";
 
 export const metadata: Metadata = { title: "Review queue · Staff" };
 
@@ -53,7 +54,7 @@ function filtersOf(search: Search): QueueFilters {
  * registration is.
  */
 export default async function ReviewQueuePage({ searchParams }: { searchParams: Promise<Search> }) {
-  await requireStaff("MEMBERSHIP_ADMIN");
+  const staff = await requireStaff("MEMBERSHIP_ADMIN");
   const search = await searchParams;
   const filters = filtersOf(search);
   const db = await getDb();
@@ -67,106 +68,97 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
   const filtered = Object.values(filters).some(Boolean);
 
   return (
-    <main className="min-h-dvh bg-cloud pb-16">
-      <div className="mx-auto max-w-content px-4 pt-4 sm:px-6 sm:pt-8 lg:px-10">
-        <Link
-          href="/"
-          className="inline-flex min-h-11 items-center gap-2 text-small text-ink-muted hover:text-ink"
-        >
-          <ArrowIcon className="rotate-180" />
-          Staff home
-        </Link>
-        <h1 className="mt-4 text-title">Review queue</h1>
-        <p className="mt-2 text-ink-muted">Registrations waiting for a decision, oldest first.</p>
+    <StaffShell staff={staff} current="review">
+      <h1 className="text-title">Review queue</h1>
+      <p className="mt-2 text-ink-muted">Registrations waiting for a decision, oldest first.</p>
 
-        {done && (
-          <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
-            <CheckIcon size="size-5" />
-            <span>{done}</span>
-          </p>
-        )}
-
-        <form method="get" className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
-          <Select label="HBC" name="hbc" value={filters.hbcId}>
-            <option value="">All HBCs</option>
-            {hbcs.map((h) => (
-              <option key={h.id} value={h.id}>
-                {h.name}
-              </option>
-            ))}
-          </Select>
-          <Select label="Channel" name="channel" value={filters.channel}>
-            <option value="">Both channels</option>
-            <option value="SELF">Self-registration</option>
-            <option value="ASSISTED">Assisted</option>
-          </Select>
-          <Select label="Flag" name="flag" value={filters.flag}>
-            <option value="">Any</option>
-            {QUEUE_FLAGS.map((f) => (
-              <option key={f} value={f}>
-                {FLAG_NAMES[f]}
-              </option>
-            ))}
-          </Select>
-          <Select label="Event" name="event" value={filters.eventLabel}>
-            <option value="">Any event</option>
-            {events.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </Select>
-          <div className="flex gap-3">
-            <button type="submit" className="btn-primary flex-1">
-              Filter
-            </button>
-            {filtered && (
-              <Link href="/review" className="btn-text">
-                Clear
-              </Link>
-            )}
-          </div>
-        </form>
-
-        <p className="mt-6 text-small text-ink-muted" aria-live="polite">
-          {total === 0
-            ? filtered
-              ? "No registrations match these filters."
-              : "Nothing is waiting for review."
-            : items.length < total
-              ? `Showing the oldest ${items.length} of ${total}.`
-              : `${total} waiting.`}
+      {done && (
+        <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
+          <CheckIcon size="size-5" />
+          <span>{done}</span>
         </p>
+      )}
 
-        {items.length > 0 && (
-          <ul className="in-card mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-paper text-card">
-            {items.map((item) => (
-              <li key={item.id}>
-                <Link
-                  href={`/review/${item.id}`}
-                  className="grid gap-1 px-5 py-4 hover:bg-mist sm:grid-cols-12 sm:items-center sm:gap-4"
-                >
-                  <span className="text-brand tabular-nums sm:col-span-2">{item.reference}</span>
-                  <span className="sm:col-span-3">{item.fullName}</span>
-                  <span className="text-ink-muted sm:col-span-2">
-                    {item.hbcId ? units.hbcs.get(item.hbcId) : "HBC to be set"}
-                  </span>
-                  <span className="text-small text-ink-muted sm:col-span-3">
-                    {item.channel === "SELF" ? "Self" : `Assisted · ${item.eventLabel ?? ""}`}
-                    <span className="block">{formatDateTime(item.submittedAt)}</span>
-                  </span>
-                  <span className="flex flex-wrap gap-1.5 sm:col-span-2">
-                    {item.fwoConflict && <Tag>{FLAG_NAMES.FWO_CONFLICT}</Tag>}
-                    {item.phoneConflict && <Tag>{FLAG_NAMES.PHONE_CONFLICT}</Tag>}
-                    {item.isNewMember && <Tag>{FLAG_NAMES.NEW_MEMBER}</Tag>}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </main>
+      <form method="get" className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
+        <Select label="HBC" name="hbc" value={filters.hbcId}>
+          <option value="">All HBCs</option>
+          {hbcs.map((h) => (
+            <option key={h.id} value={h.id}>
+              {h.name}
+            </option>
+          ))}
+        </Select>
+        <Select label="Channel" name="channel" value={filters.channel}>
+          <option value="">Both channels</option>
+          <option value="SELF">Self-registration</option>
+          <option value="ASSISTED">Assisted</option>
+        </Select>
+        <Select label="Flag" name="flag" value={filters.flag}>
+          <option value="">Any</option>
+          {QUEUE_FLAGS.map((f) => (
+            <option key={f} value={f}>
+              {FLAG_NAMES[f]}
+            </option>
+          ))}
+        </Select>
+        <Select label="Event" name="event" value={filters.eventLabel}>
+          <option value="">Any event</option>
+          {events.map((e) => (
+            <option key={e} value={e}>
+              {e}
+            </option>
+          ))}
+        </Select>
+        <div className="flex gap-3">
+          <button type="submit" className="btn-primary flex-1">
+            Filter
+          </button>
+          {filtered && (
+            <Link href="/review" className="btn-text">
+              Clear
+            </Link>
+          )}
+        </div>
+      </form>
+
+      <p className="mt-6 text-small text-ink-muted" aria-live="polite">
+        {total === 0
+          ? filtered
+            ? "No registrations match these filters."
+            : "Nothing is waiting for review."
+          : items.length < total
+            ? `Showing the oldest ${items.length} of ${total}.`
+            : `${total} waiting.`}
+      </p>
+
+      {items.length > 0 && (
+        <ul className="in-card mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-paper text-card">
+          {items.map((item) => (
+            <li key={item.id}>
+              <Link
+                href={`/review/${item.id}`}
+                className="grid gap-1 px-5 py-4 hover:bg-mist sm:grid-cols-12 sm:items-center sm:gap-4"
+              >
+                <span className="text-brand tabular-nums sm:col-span-2">{item.reference}</span>
+                <span className="sm:col-span-3">{item.fullName}</span>
+                <span className="text-ink-muted sm:col-span-2">
+                  {item.hbcId ? units.hbcs.get(item.hbcId) : "HBC to be set"}
+                </span>
+                <span className="text-small text-ink-muted sm:col-span-3">
+                  {item.channel === "SELF" ? "Self" : `Assisted · ${item.eventLabel ?? ""}`}
+                  <span className="block">{formatDateTime(item.submittedAt)}</span>
+                </span>
+                <span className="flex flex-wrap gap-1.5 sm:col-span-2">
+                  {item.fwoConflict && <Tag>{FLAG_NAMES.FWO_CONFLICT}</Tag>}
+                  {item.phoneConflict && <Tag>{FLAG_NAMES.PHONE_CONFLICT}</Tag>}
+                  {item.isNewMember && <Tag>{FLAG_NAMES.NEW_MEMBER}</Tag>}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </StaffShell>
   );
 }
 

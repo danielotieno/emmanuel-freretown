@@ -81,7 +81,8 @@ test("a Super Administrator adds a staff member, who replaces the temporary pass
   await officer.getByRole("button", { name: "Change password" }).click();
   await expect(officer).toHaveURL(`${ADMIN}/enrol`);
   await setUpAuthenticator(officer, NEW_PASSWORD);
-  await expect(officer.getByText("Role: Registration Officer.")).toBeVisible();
+  // The overview names their one role under the greeting.
+  await expect(officer.getByText(/· Registration Officer$/)).toBeVisible();
 
   // Back to the Super Administrator: grant a role, then reset the authenticator app.
   await page.goto(`${ADMIN}${href}`);

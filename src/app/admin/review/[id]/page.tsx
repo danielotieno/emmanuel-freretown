@@ -19,6 +19,7 @@ import { formatDateTime } from "../format";
 import { RevisionList } from "../revisions";
 import { DecisionForms } from "./decision-forms";
 import { IssueFwoForm } from "./issue-fwo-form";
+import { StaffShell } from "../../_components/staff-shell";
 
 export const metadata: Metadata = { title: "Registration · Review · Staff" };
 
@@ -138,184 +139,182 @@ export default async function ReviewRegistrationPage({
   }
 
   return (
-    <main className="min-h-dvh bg-cloud pb-16">
-      <div className="mx-auto max-w-prose px-4 pt-4 sm:px-6 sm:pt-8">
-        <Link
-          href="/review"
-          className="inline-flex min-h-11 items-center gap-2 text-small text-ink-muted hover:text-ink"
-        >
-          <ArrowIcon className="rotate-180" />
-          Review queue
-        </Link>
-        <h1 className="mt-4 text-title tabular-nums">{reg.reference}</h1>
-        <p className="mt-2 text-ink-muted">
-          {STATUS_NAMES[reg.status]} ·{" "}
-          {reg.channel === "SELF" ? "Self-registration" : "Assisted registration"} · submitted{" "}
-          {formatDateTime(reg.submittedAt)}
+    <StaffShell staff={staff} current="review" width="prose">
+      <Link
+        href="/review"
+        className="inline-flex min-h-11 items-center gap-2 text-small text-ink-muted hover:text-ink"
+      >
+        <ArrowIcon className="rotate-180" />
+        Review queue
+      </Link>
+      <h1 className="mt-4 text-title tabular-nums">{reg.reference}</h1>
+      <p className="mt-2 text-ink-muted">
+        {STATUS_NAMES[reg.status]} ·{" "}
+        {reg.channel === "SELF" ? "Self-registration" : "Assisted registration"} · submitted{" "}
+        {formatDateTime(reg.submittedAt)}
+      </p>
+      {fwoIssued && (
+        <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
+          <CheckIcon size="size-5" />
+          <span>FWO number entered. The registration can now be approved.</span>
         </p>
-        {fwoIssued && (
-          <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
-            <CheckIcon size="size-5" />
-            <span>FWO number entered. The registration can now be approved.</span>
-          </p>
-        )}
+      )}
 
-        {(reg.fwoConflict || reg.phoneConflict || details.isNewMember) && (
-          <ul className="mt-6 space-y-2">
-            {reg.fwoConflict && (
-              <Flag>
-                FWO conflict: when submitted or since, the number matched a member or another open
-                registration (BR-03).
-              </Flag>
-            )}
-            {reg.phoneConflict && (
-              <Flag>
-                Phone conflict: when submitted or since, the number belonged to another member or
-                another open registration (BR-06).
-              </Flag>
-            )}
-            {details.isNewMember && (
-              <Flag>New member: registered without an FWO number (BR-16).</Flag>
-            )}
-          </ul>
-        )}
+      {(reg.fwoConflict || reg.phoneConflict || details.isNewMember) && (
+        <ul className="mt-6 space-y-2">
+          {reg.fwoConflict && (
+            <Flag>
+              FWO conflict: when submitted or since, the number matched a member or another open
+              registration (BR-03).
+            </Flag>
+          )}
+          {reg.phoneConflict && (
+            <Flag>
+              Phone conflict: when submitted or since, the number belonged to another member or
+              another open registration (BR-06).
+            </Flag>
+          )}
+          {details.isNewMember && (
+            <Flag>New member: registered without an FWO number (BR-16).</Flag>
+          )}
+        </ul>
+      )}
 
-        <Section title="Details">
-          <dl className="divide-y divide-line">
-            <Row term="Full name">{details.fullName ?? REMOVED}</Row>
-            <Row term="FWO number">
-              {details.fwoNumber ? (
-                <span className="tabular-nums">{details.fwoNumber}</span>
-              ) : removed ? (
-                REMOVED
-              ) : (
-                "None yet (new member)"
-              )}
-            </Row>
-            <Row term="Mobile number">
-              {details.noPersonalPhone ? (
-                "No personal phone"
-              ) : details.phoneE164 ? (
-                <span className="tabular-nums">{details.phoneE164}</span>
-              ) : (
-                REMOVED
-              )}
-            </Row>
-            <Row term="HBC">
-              {details.hbcId
-                ? units.hbcs.get(details.hbcId)
-                : details.isNewMember && reg.status === "SUBMITTED"
-                  ? "To be set: the member didn't know it (D49)"
-                  : removed
-                    ? REMOVED
-                    : ""}
-            </Row>
-            <Row term="Departments (declared)">
-              {details.departmentIds.length
-                ? details.departmentIds.map((d) => units.departments.get(d) ?? d).join(", ")
+      <Section title="Details">
+        <dl className="divide-y divide-line">
+          <Row term="Full name">{details.fullName ?? REMOVED}</Row>
+          <Row term="FWO number">
+            {details.fwoNumber ? (
+              <span className="tabular-nums">{details.fwoNumber}</span>
+            ) : removed ? (
+              REMOVED
+            ) : (
+              "None yet (new member)"
+            )}
+          </Row>
+          <Row term="Mobile number">
+            {details.noPersonalPhone ? (
+              "No personal phone"
+            ) : details.phoneE164 ? (
+              <span className="tabular-nums">{details.phoneE164}</span>
+            ) : (
+              REMOVED
+            )}
+          </Row>
+          <Row term="HBC">
+            {details.hbcId
+              ? units.hbcs.get(details.hbcId)
+              : details.isNewMember && reg.status === "SUBMITTED"
+                ? "To be set: the member didn't know it (D49)"
                 : removed
                   ? REMOVED
-                  : "None"}
-            </Row>
-            <Row term="SMS language">{reg.language === "sw" ? "Kiswahili" : "English"}</Row>
-            {reg.channel === "ASSISTED" && (
-              <>
-                <Row term="Event">{reg.eventLabel}</Row>
-                <Row term="Captured by">{who(reg.capturedByUserId)}</Row>
-              </>
-            )}
-            <Row term="Privacy notice">Version {details.privacyNoticeVersion}</Row>
-            <Row term="Revision">
-              {reg.revisionNo} · {formatDateTime(details.submittedAt)}
-              {details.submittedByUserId ? ` · by ${who(details.submittedByUserId)}` : ""}
-            </Row>
-          </dl>
-        </Section>
-
-        {reg.earlierRevisions.length > 0 && (
-          <RevisionList
-            title="Earlier revisions"
-            revisions={reg.earlierRevisions}
-            units={units}
-            who={who}
-          />
-        )}
-
-        <Section title="Verification evidence">
-          {reg.evidence.length === 0 ? (
-            <p className="px-5 py-4 text-ink-muted">None recorded.</p>
-          ) : (
-            <ul className="divide-y divide-line">
-              {reg.evidence.map((e, i) => (
-                <li key={i} className="px-5 py-4">
-                  {EVIDENCE_NAMES[e.kind] ?? e.kind}
-                  {e.forEarlierPhone && (
-                    <span className="block text-ink-muted">
-                      For an earlier number: a correction has changed the phone since.
-                    </span>
-                  )}
-                  <span className="block text-small text-ink-muted">
-                    {[who(e.actorUserId), e.eventLabel, formatDateTime(e.at)]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  : ""}
+          </Row>
+          <Row term="Departments (declared)">
+            {details.departmentIds.length
+              ? details.departmentIds.map((d) => units.departments.get(d) ?? d).join(", ")
+              : removed
+                ? REMOVED
+                : "None"}
+          </Row>
+          <Row term="SMS language">{reg.language === "sw" ? "Kiswahili" : "English"}</Row>
+          {reg.channel === "ASSISTED" && (
+            <>
+              <Row term="Event">{reg.eventLabel}</Row>
+              <Row term="Captured by">{who(reg.capturedByUserId)}</Row>
+            </>
           )}
-        </Section>
+          <Row term="Privacy notice">Version {details.privacyNoticeVersion}</Row>
+          <Row term="Revision">
+            {reg.revisionNo} · {formatDateTime(details.submittedAt)}
+            {details.submittedByUserId ? ` · by ${who(details.submittedByUserId)}` : ""}
+          </Row>
+        </dl>
+      </Section>
 
-        {reg.decisions.length > 0 && (
-          <Section title="Decisions">
-            <ul className="divide-y divide-line">
-              {reg.decisions.map((d, i) => (
-                <li key={i} className="px-5 py-4">
-                  {DECISION_NAMES[d.action] ?? d.action}
-                  {d.reason && <span className="block">{d.reason}</span>}
-                  <span className="block text-small text-ink-muted">
-                    {who(d.actorUserId)} · {formatDateTime(d.at)}
+      {reg.earlierRevisions.length > 0 && (
+        <RevisionList
+          title="Earlier revisions"
+          revisions={reg.earlierRevisions}
+          units={units}
+          who={who}
+        />
+      )}
+
+      <Section title="Verification evidence">
+        {reg.evidence.length === 0 ? (
+          <p className="px-5 py-4 text-ink-muted">None recorded.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {reg.evidence.map((e, i) => (
+              <li key={i} className="px-5 py-4">
+                {EVIDENCE_NAMES[e.kind] ?? e.kind}
+                {e.forEarlierPhone && (
+                  <span className="block text-ink-muted">
+                    For an earlier number: a correction has changed the phone since.
                   </span>
-                </li>
-              ))}
-            </ul>
-          </Section>
+                )}
+                <span className="block text-small text-ink-muted">
+                  {[who(e.actorUserId), e.eventLabel, formatDateTime(e.at)]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
+      </Section>
 
-        {waitingForFwo && (
-          <IssueFwoForm
-            registrationId={reg.id}
-            version={reg.version}
-            suggestion={suggestion}
-            noticeChanged={details.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION}
-            hbcs={activeHbcs}
-          />
-        )}
+      {reg.decisions.length > 0 && (
+        <Section title="Decisions">
+          <ul className="divide-y divide-line">
+            {reg.decisions.map((d, i) => (
+              <li key={i} className="px-5 py-4">
+                {DECISION_NAMES[d.action] ?? d.action}
+                {d.reason && <span className="block">{d.reason}</span>}
+                <span className="block text-small text-ink-muted">
+                  {who(d.actorUserId)} · {formatDateTime(d.at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
 
-        {reg.status === "CORRECTION_REQUESTED" && (
-          <p className="mt-10">
-            <Link href={`/corrections/${reg.id}`} className="btn-secondary">
-              Enter the correction
-            </Link>
-          </p>
-        )}
-
-        <DecisionForms
+      {waitingForFwo && (
+        <IssueFwoForm
           registrationId={reg.id}
           version={reg.version}
-          approvalBlocks={blocks}
-          hasPhone={!details.noPersonalPhone}
-          open={reg.status === "SUBMITTED"}
-          statusName={STATUS_NAMES[reg.status]}
+          suggestion={suggestion}
+          noticeChanged={details.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION}
+          hbcs={activeHbcs}
         />
+      )}
 
-        <AuditTrail
-          trail={trail}
-          names={{ ...units, staff: names }}
-          path={`/review/${reg.id}`}
-          before={trailBefore}
-        />
-      </div>
-    </main>
+      {reg.status === "CORRECTION_REQUESTED" && (
+        <p className="mt-10">
+          <Link href={`/corrections/${reg.id}`} className="btn-secondary">
+            Enter the correction
+          </Link>
+        </p>
+      )}
+
+      <DecisionForms
+        registrationId={reg.id}
+        version={reg.version}
+        approvalBlocks={blocks}
+        hasPhone={!details.noPersonalPhone}
+        open={reg.status === "SUBMITTED"}
+        statusName={STATUS_NAMES[reg.status]}
+      />
+
+      <AuditTrail
+        trail={trail}
+        names={{ ...units, staff: names }}
+        path={`/review/${reg.id}`}
+        before={trailBefore}
+      />
+    </StaffShell>
   );
 }
 

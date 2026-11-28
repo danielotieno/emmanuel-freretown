@@ -18,6 +18,19 @@ export async function getSmsSetting(db: DbOrTx, key: SmsSettingKey): Promise<num
   return rows[0]?.value ?? DEFAULTS[key];
 }
 
+/** Today's SMS (Africa/Nairobi day) against the daily cap (D25), for the staff dashboard. */
+export async function smsUsageToday(db: DbOrTx): Promise<{ sent: number; cap: number }> {
+  const [cap, { rows }] = await Promise.all([
+    getSmsSetting(db, "daily_cap"),
+    safeQuery(() =>
+      db.execute<{ sent: number }>(sql`
+        SELECT sent FROM sms_daily_usage
+         WHERE day = (now() AT TIME ZONE 'Africa/Nairobi')::date`),
+    ),
+  ]);
+  return { sent: rows[0]?.sent ?? 0, cap };
+}
+
 /**
  * Counts one SMS against today's cap (D25: Africa/Nairobi day, every SMS counts, OTP codes
  * included) and says whether it may be sent. At the cap it returns false: OTP sending pauses

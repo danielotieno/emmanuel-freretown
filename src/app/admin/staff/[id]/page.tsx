@@ -15,6 +15,7 @@ import {
 } from "../actions";
 import { DONE_MESSAGES, REFUSAL_MESSAGES } from "../messages";
 import { ResetPasswordForm } from "./reset-password-form";
+import { StaffShell } from "../../_components/staff-shell";
 
 export const metadata: Metadata = { title: "Staff account · Staff" };
 
@@ -40,120 +41,118 @@ export default async function StaffAccountPage({
   const refused = messageFor(REFUSAL_MESSAGES, search.refused);
 
   return (
-    <main className="min-h-dvh bg-cloud pb-16">
-      <div className="mx-auto max-w-prose px-4 pt-4 sm:px-6 sm:pt-8">
-        <Link
-          href="/staff"
-          className="inline-flex min-h-11 items-center gap-2 text-small text-ink-muted hover:text-ink"
+    <StaffShell staff={staff} current="staff" width="prose">
+      <Link
+        href="/staff"
+        className="inline-flex min-h-11 items-center gap-2 text-small text-ink-muted hover:text-ink"
+      >
+        <ArrowIcon className="rotate-180" />
+        Staff accounts
+      </Link>
+      <h1 className="mt-4 text-title">{account.name}</h1>
+      <p className="mt-2 break-all text-ink-muted">{account.email}</p>
+
+      {done && (
+        <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
+          <CheckIcon size="size-5" />
+          <span>{done}</span>
+        </p>
+      )}
+      {refused && (
+        <p
+          role="alert"
+          className="mt-6 flex gap-3 rounded-xl border border-error/40 bg-error/5 p-4 text-error"
         >
-          <ArrowIcon className="rotate-180" />
-          Staff accounts
-        </Link>
-        <h1 className="mt-4 text-title">{account.name}</h1>
-        <p className="mt-2 break-all text-ink-muted">{account.email}</p>
+          <AlertIcon className="mt-1" />
+          <span>{refused}</span>
+        </p>
+      )}
 
-        {done && (
-          <p role="status" className="mt-6 flex gap-3 rounded-xl bg-mist p-4">
-            <CheckIcon size="size-5" />
-            <span>{done}</span>
+      <dl className="in-card mt-8 divide-y divide-line rounded-2xl border border-line bg-paper text-card">
+        <Row label="Password">
+          {account.mustChangePassword ? "Temporary: not yet replaced" : "Their own"}
+        </Row>
+        <Row label="Authenticator app">{account.hasAuthenticator ? "Set up" : "Not set up"}</Row>
+        <Row label="Signed in">
+          {account.openSessions === 0
+            ? "Nowhere"
+            : `${account.openSessions} ${account.openSessions === 1 ? "session" : "sessions"}`}
+        </Row>
+      </dl>
+
+      <section aria-labelledby="roles-heading" className="mt-12">
+        <h2 id="roles-heading" className="text-subtitle">
+          Roles
+        </h2>
+        <ul className="in-card mt-3 divide-y divide-line rounded-2xl border border-line bg-paper text-card">
+          {STAFF_ROLES.map((role) => {
+            const held = account.roles.includes(role);
+            return (
+              <li
+                key={role}
+                className="flex flex-wrap items-center justify-between gap-2 px-5 py-3"
+              >
+                <span className={held ? "" : "text-ink-muted"}>
+                  {ROLE_NAMES[role]}
+                  {!held && <span> · Not held</span>}
+                </span>
+                {(!held || !own) && (
+                  <form action={held ? revokeRoleAction : grantRoleAction}>
+                    <input type="hidden" name="userId" value={account.id} />
+                    <input type="hidden" name="role" value={role} />
+                    <button type="submit" className="btn-text">
+                      {held ? "Revoke" : "Grant"}
+                      <span className="sr-only"> {ROLE_NAMES[role]}</span>
+                    </button>
+                  </form>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section aria-labelledby="access-heading" className="mt-12">
+        <h2 id="access-heading" className="text-subtitle">
+          Signing in
+        </h2>
+        {own ? (
+          <p className="mt-3">
+            This is your account. Another Super Administrator resets its authenticator app or
+            password. <Link href="/change-password">Change your password</Link>.
           </p>
+        ) : (
+          <div className="in-card mt-3 divide-y divide-line rounded-2xl border border-line bg-paper text-card">
+            <Confirm summary="Reset their authenticator app">
+              <p>
+                For a lost or replaced phone. This removes the app and its backup codes, and signs
+                them out everywhere. At their next sign-in, with their password, they set up an app
+                again.
+              </p>
+              <ButtonForm action={resetSecondFactorAction} userId={account.id}>
+                Remove the authenticator app
+              </ButtonForm>
+            </Confirm>
+            <Confirm summary="Reset their password">
+              <p>
+                For a forgotten password. This gives them a new temporary password and signs them
+                out everywhere. They choose their own at their next sign-in.
+              </p>
+              <ResetPasswordForm userId={account.id} name={account.name} />
+            </Confirm>
+            <Confirm summary="Sign them out everywhere">
+              <p>
+                Ends every session they have, for example when they leave. They can sign in again
+                while they hold a role and are on the Cloudflare Access allow-list.
+              </p>
+              <ButtonForm action={revokeSessionsAction} userId={account.id}>
+                Sign them out
+              </ButtonForm>
+            </Confirm>
+          </div>
         )}
-        {refused && (
-          <p
-            role="alert"
-            className="mt-6 flex gap-3 rounded-xl border border-error/40 bg-error/5 p-4 text-error"
-          >
-            <AlertIcon className="mt-1" />
-            <span>{refused}</span>
-          </p>
-        )}
-
-        <dl className="in-card mt-8 divide-y divide-line rounded-2xl border border-line bg-paper text-card">
-          <Row label="Password">
-            {account.mustChangePassword ? "Temporary: not yet replaced" : "Their own"}
-          </Row>
-          <Row label="Authenticator app">{account.hasAuthenticator ? "Set up" : "Not set up"}</Row>
-          <Row label="Signed in">
-            {account.openSessions === 0
-              ? "Nowhere"
-              : `${account.openSessions} ${account.openSessions === 1 ? "session" : "sessions"}`}
-          </Row>
-        </dl>
-
-        <section aria-labelledby="roles-heading" className="mt-12">
-          <h2 id="roles-heading" className="text-subtitle">
-            Roles
-          </h2>
-          <ul className="in-card mt-3 divide-y divide-line rounded-2xl border border-line bg-paper text-card">
-            {STAFF_ROLES.map((role) => {
-              const held = account.roles.includes(role);
-              return (
-                <li
-                  key={role}
-                  className="flex flex-wrap items-center justify-between gap-2 px-5 py-3"
-                >
-                  <span className={held ? "" : "text-ink-muted"}>
-                    {ROLE_NAMES[role]}
-                    {!held && <span> · Not held</span>}
-                  </span>
-                  {(!held || !own) && (
-                    <form action={held ? revokeRoleAction : grantRoleAction}>
-                      <input type="hidden" name="userId" value={account.id} />
-                      <input type="hidden" name="role" value={role} />
-                      <button type="submit" className="btn-text">
-                        {held ? "Revoke" : "Grant"}
-                        <span className="sr-only"> {ROLE_NAMES[role]}</span>
-                      </button>
-                    </form>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        <section aria-labelledby="access-heading" className="mt-12">
-          <h2 id="access-heading" className="text-subtitle">
-            Signing in
-          </h2>
-          {own ? (
-            <p className="mt-3">
-              This is your account. Another Super Administrator resets its authenticator app or
-              password. <Link href="/change-password">Change your password</Link>.
-            </p>
-          ) : (
-            <div className="in-card mt-3 divide-y divide-line rounded-2xl border border-line bg-paper text-card">
-              <Confirm summary="Reset their authenticator app">
-                <p>
-                  For a lost or replaced phone. This removes the app and its backup codes, and signs
-                  them out everywhere. At their next sign-in, with their password, they set up an
-                  app again.
-                </p>
-                <ButtonForm action={resetSecondFactorAction} userId={account.id}>
-                  Remove the authenticator app
-                </ButtonForm>
-              </Confirm>
-              <Confirm summary="Reset their password">
-                <p>
-                  For a forgotten password. This gives them a new temporary password and signs them
-                  out everywhere. They choose their own at their next sign-in.
-                </p>
-                <ResetPasswordForm userId={account.id} name={account.name} />
-              </Confirm>
-              <Confirm summary="Sign them out everywhere">
-                <p>
-                  Ends every session they have, for example when they leave. They can sign in again
-                  while they hold a role and are on the Cloudflare Access allow-list.
-                </p>
-                <ButtonForm action={revokeSessionsAction} userId={account.id}>
-                  Sign them out
-                </ButtonForm>
-              </Confirm>
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
+      </section>
+    </StaffShell>
   );
 }
 

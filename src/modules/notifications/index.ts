@@ -3,7 +3,7 @@
  * (D25) and the SMS provider, Mobile Sasa (D43).
  * Public API of this module. Other code imports only from here.
  */
-export { getSmsSetting, reserveSms, type SmsSettingKey } from "./cap";
+export { getSmsSetting, reserveSms, smsUsageToday, type SmsSettingKey } from "./cap";
 export { checkSmsBalance, isSmsConfigured, smsProviderFromEnv } from "./config";
 export {
   recordDeliveryReport,

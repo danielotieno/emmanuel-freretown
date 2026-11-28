@@ -39,6 +39,7 @@ export {
 } from "./password";
 export {
   GLOBAL,
+  isAllowed,
   STAFF_ROLES,
   type RoleGrant,
   type RoleRequirement,

@@ -1,4 +1,9 @@
-@import "tailwindcss";
+/*
+ * The shared stylesheet: tokens, base rules and controls. It is never loaded by itself. Each of
+ * the two sites has its own entry, which brings in Tailwind and then this file:
+ * `(public)/site.css` for members, which leaves the staff portal's classes out so public pages
+ * stay under 200 KB (NFR-2), and `admin/staff.css` for the staff portal.
+ */
 
 /*
  * Design tokens from DESIGN.md. Use these; don't invent colours.
@@ -29,7 +34,7 @@
   /*
    * Typography (DESIGN.md §3 and §10): one family in two cuts, self-hosted in
    * src/app/(public)/fonts.ts. Instrument Serif sets every title; Instrument Sans everything else.
-   * The staff portal loads neither, so there both fall back to the system sans.
+   * The public site and the staff portal both load them.
    */
   --font-sans:
     var(--font-instrument-sans, system-ui), system-ui, -apple-system, "Segoe UI", Roboto,
@@ -40,10 +45,10 @@
 
   /*
    * The type scale: seven steps, nothing in between (DESIGN.md §10 rule 1). The larger the step,
-   * the tighter its tracking and line height (rules 7 and 8). Titles are the serif at 400 on
-   * public pages (its only weight) and the system sans at 500 on the staff portal; body is 400
-   * (rule 3). Card text and button text are 1px under body text (rules 5 and 6). Tailwind's
-   * default text-* sizes remain for the staff portal; public pages use only these.
+   * the tighter its tracking and line height (rules 7 and 8). Titles are the serif at 400, its
+   * only weight; body is 400 (rule 3). Card text and button text are 1px under body text (rules 5 and 6). Tailwind's
+   * default text-* sizes remain for the staff portal's dense parts (tables, tiles, the
+   * navigation); public pages use only these.
    */
   --text-display: clamp(2.875rem, 1.7rem + 5.2vw, 5.75rem); /* the hero's h1 */
   --text-display--line-height: 1.02;
@@ -90,13 +95,13 @@
   :root {
     color-scheme: light; /* Release 1 is light only (DESIGN.md §2) */
     --fs-body: 1.0625rem; /* 17px on mobile, never below 16px */
-    /* Titles: 500 in the system sans (staff portal); 400 where the serif is loaded (below). */
+    /* Titles: 500 if the serif is missing; 400 where it is loaded (below). */
     --title-weight: 500;
     accent-color: var(--color-brand);
     caret-color: var(--color-brand);
   }
 
-  /* The public site (src/app/(public)/layout.tsx) loads the serif, whose one weight is 400. */
+  /* The public site and the staff portal load the serif, whose one weight is 400. */
   .site {
     --title-weight: 400;
   }

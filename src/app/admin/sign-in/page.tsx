@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SignInForm } from "./sign-in-form";
+import { AuthFrame } from "../_components/auth-frame";
 
 export const metadata: Metadata = { title: "Sign in · Staff" };
 
@@ -14,8 +15,7 @@ export default async function SignInPage({
 }) {
   const { timeout } = await searchParams;
   return (
-    <main className="mx-auto max-w-form px-4 py-10">
-      <h1 className="text-4xl">Staff sign-in</h1>
+    <AuthFrame title="Staff sign-in">
       {timeout ? (
         <p className="mt-4 rounded-xl bg-mist p-4">
           You were signed out because the page was left idle. Sign in again to carry on.
@@ -24,6 +24,6 @@ export default async function SignInPage({
       <div className="mt-8">
         <SignInForm />
       </div>
-    </main>
+    </AuthFrame>
   );
 }
