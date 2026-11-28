@@ -51,8 +51,8 @@ jobs:
           set -o pipefail
           key="production/$(date -u +%Y-%m-%dT%H%MZ).dump.age"
           partial="${key}.partial"
-          # On any failure below, remove the partial upload (best effort; the bucket's 35-day
-          # rule deletes it anyway).
+          # If the dump fails or is too small, remove the partial upload (best effort; the
+          # bucket's 35-day rule deletes it anyway).
           trap 'aws s3 rm "s3://${R2_BUCKET}/${partial}" --endpoint-url "$R2_ENDPOINT" --only-show-errors || true' ERR
           /usr/lib/postgresql/18/bin/pg_dump --format=custom --no-password "$BACKUP_DATABASE_URL" \
             | age --recipient "$AGE_RECIPIENT" \
@@ -63,6 +63,10 @@ jobs:
             echo "Backup $key is only $size bytes; something is wrong."
             false
           fi
+          # The dump is complete from here: if the rename fails, keep the .partial, which is a
+          # whole backup to rename by hand. R2 has no object tagging, which the CLI's default
+          # multipart copy (over 8 MiB) asks for, so copy no properties.
+          trap - ERR
           aws s3 mv "s3://${R2_BUCKET}/${partial}" "s3://${R2_BUCKET}/${key}" \
-            --endpoint-url "$R2_ENDPOINT" --only-show-errors
+            --endpoint-url "$R2_ENDPOINT" --copy-props none --only-show-errors
           echo "### Backup \`${key}\`: ${size} bytes, encrypted" >> "$GITHUB_STEP_SUMMARY"

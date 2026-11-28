@@ -38,7 +38,7 @@ check "CSP header" "script-src 'self' 'nonce-" "$(curl -s -D - -o /dev/null "$PU
 # Plain http must redirect to https (zone setting "Always Use HTTPS"): 301 or 308.
 check "http redirects to https" '^30[18]$' "$(curl -s -o /dev/null -w '%{http_code}' "${PUBLIC/https:/http:}/")"
 check "no /admin on the public host" '^404$' "$(curl -s -o /dev/null -w '%{http_code}' "$PUBLIC/admin")"
-check "staff host is behind Cloudflare Access" "cloudflareaccess.com" \
+check "staff host is behind Cloudflare Access" 'cloudflareaccess\.com' \
   "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$ADMIN/")"
 
 exit "$fail"

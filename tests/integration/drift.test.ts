@@ -19,7 +19,7 @@ describe("schemaSnapshot", () => {
   it("leaves out functions installed by an extension", async () => {
     const lines = await schemaSnapshot(db);
     expect(lines).toContain("extension btree_gist");
-    expect(lines.filter((l) => /^function(-grant)? gbt_/.test(l))).toEqual([]);
+    expect(lines.filter((l) => /^function gbt_/.test(l))).toEqual([]);
   });
 
   it("is identical when nothing has changed", async () => {

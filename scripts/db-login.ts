@@ -84,13 +84,14 @@ async function verify(client: ClientBase, name: string, memberOf: string): Promi
     super: boolean;
     createrole: boolean;
     createdb: boolean;
+    replication: boolean;
     bypassrls: boolean;
     member: boolean;
     others: string[];
     owned: number;
   }>(
     `SELECT r.rolsuper AS super, r.rolcreaterole AS createrole, r.rolcreatedb AS createdb,
-            r.rolbypassrls AS bypassrls, pg_has_role(r.oid, $2, 'USAGE') AS member,
+            r.rolreplication AS replication, r.rolbypassrls AS bypassrls, pg_has_role(r.oid, $2, 'USAGE') AS member,
             ARRAY(SELECT g.rolname::text FROM pg_auth_members m JOIN pg_roles g ON g.oid = m.roleid
                    WHERE m.member = r.oid AND g.rolname <> $2 ORDER BY 1) AS others,
             (SELECT count(*)::int FROM pg_class WHERE relowner = r.oid) AS owned
@@ -103,6 +104,7 @@ async function verify(client: ClientBase, name: string, memberOf: string): Promi
     role.super && "is a superuser",
     role.createrole && "can create roles",
     role.createdb && "can create databases",
+    role.replication && "can replicate",
     role.bypassrls && "bypasses row-level security",
     !role.member && `does not inherit ${memberOf}`,
     role.others.length > 0 && `is also a member of ${role.others.join(", ")}`,

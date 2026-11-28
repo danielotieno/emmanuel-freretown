@@ -56,10 +56,12 @@ describe("ensureAppLogin", () => {
     expect(rows[0]).toEqual({ read: true, update: false });
   });
 
-  it("refuses a login that bypasses row-level security", async () => {
+  it("refuses a login that can replicate or bypasses row-level security", async () => {
     await ensureAppLogin(db, NAME, PASSWORD);
-    await db.query(`ALTER ROLE ${NAME} BYPASSRLS`);
-    await expect(ensureAppLogin(db, NAME, PASSWORD)).rejects.toThrow(/bypasses row-level security/);
+    await db.query(`ALTER ROLE ${NAME} REPLICATION BYPASSRLS`);
+    await expect(ensureAppLogin(db, NAME, PASSWORD)).rejects.toThrow(
+      /can replicate, bypasses row-level security/,
+    );
   });
 
   it("refuses a login that is a member of any other role", async () => {
