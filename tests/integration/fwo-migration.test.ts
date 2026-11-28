@@ -59,9 +59,8 @@ describe("migration 0015: FWO numbers without leading zeros (D61)", () => {
     expect(setting[0]!.highest_issued).toBe("61000");
 
     const { rows: audit } = await db.query(
-      // The newest: the test database's own migration wrote one before this test ran.
       `SELECT actor_type, actor_id, entity_type, entity_id, after FROM audit_entry
-        WHERE action = 'member.drop_fwo_leading_zeros' ORDER BY id DESC LIMIT 1`,
+        WHERE action = 'member.drop_fwo_leading_zeros'`,
     );
     expect(audit).toEqual([
       {
@@ -72,6 +71,15 @@ describe("migration 0015: FWO numbers without leading zeros (D61)", () => {
         after: { members: 2, revisions: 1, setting: 1 },
       },
     ]);
+  });
+
+  it("writes no audit entry when no number has a leading zero", async () => {
+    await member("63001");
+    await db.query(MIGRATION);
+    const { rows } = await db.query(
+      "SELECT 1 FROM audit_entry WHERE action = 'member.drop_fwo_leading_zeros'",
+    );
+    expect(rows).toEqual([]);
   });
 
   it("stops, naming no number, when two members' numbers differ only by leading zeros", async () => {

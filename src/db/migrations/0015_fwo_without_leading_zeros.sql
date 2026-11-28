@@ -11,7 +11,8 @@
 -- log is public), until a Membership Administrator decides which of them keeps it (BR-02). Open
 -- registrations that now share a number aren't flagged here; approval checks again (BR-03).
 --
--- One SYSTEM audit entry records the rewrite (rule 4), with counts only.
+-- One SYSTEM audit entry records the rewrite (rule 4), with counts only, when anything was
+-- rewritten: a database with no number stored that way changes nothing and gets no entry.
 DO $$
 DECLARE
   v_members integer;
@@ -39,8 +40,10 @@ BEGIN
    WHERE highest_issued LIKE '0_%';
   GET DIAGNOSTICS v_setting = ROW_COUNT;
 
-  INSERT INTO public.audit_entry (actor_type, action, entity_type, entity_id, after)
-  VALUES ('SYSTEM', 'member.drop_fwo_leading_zeros', 'member', '*',
-          jsonb_build_object('members', v_members, 'revisions', v_revisions,
-                             'setting', v_setting));
+  IF v_members + v_revisions + v_setting > 0 THEN
+    INSERT INTO public.audit_entry (actor_type, action, entity_type, entity_id, after)
+    VALUES ('SYSTEM', 'member.drop_fwo_leading_zeros', 'member', '*',
+            jsonb_build_object('members', v_members, 'revisions', v_revisions,
+                               'setting', v_setting));
+  END IF;
 END $$;
