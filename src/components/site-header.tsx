@@ -8,7 +8,8 @@ import { m } from "@/paraglide/messages";
 
 /**
  * The header on every public page: the parish lockup (crest and name, DESIGN.md §1), the main
- * navigation and the language switch. The crest is the Diocese of Mombasa coat of arms, from a
+ * navigation and the language switch. About is its own page (/about); the other links go to the
+ * homepage's sections. The crest is the Diocese of Mombasa coat of arms, from a
  * scan, until the official file arrives (#87).
  *
  * The navigation is plain links with no JavaScript. On phones the links sit in a row under
@@ -19,24 +20,27 @@ export function SiteHeader({
   locale,
   onRegistration = false,
   onStatusCheck = false,
+  onAbout = false,
 }: {
   locale: Locale;
   /** On /registration the form's own button is the page's one solid pill, so Register is outlined. */
   onRegistration?: boolean;
   /** The status check (FR-7) has its own solid button too, so Register is outlined there as well. */
   onStatusCheck?: boolean;
+  /** On /about the About link is marked as the current page. */
+  onAbout?: boolean;
 }) {
   const o = { locale };
   const current = onRegistration ? ("page" as const) : undefined;
   const outlined = onRegistration || onStatusCheck;
   const links = [
-    ["/#about", m.nav_about({}, o)],
-    ["/#services", m.nav_services({}, o)],
-    ["/#ministries", m.nav_ministries({}, o)],
-    ["/#visit", m.nav_visit({}, o)],
+    ["/about", m.nav_about({}, o), onAbout],
+    ["/#services", m.nav_services({}, o), false],
+    ["/#ministries", m.nav_ministries({}, o), false],
+    ["/#visit", m.nav_visit({}, o), false],
   ] as const;
   return (
-    <header className="mx-auto w-full max-w-content px-4 pt-4 sm:px-6 sm:pt-5 lg:px-10">
+    <header className="mx-auto w-full max-w-content px-4 pt-4 sm:px-6 sm:pt-6 lg:px-10">
       <div className="flex items-center justify-between gap-4">
         <Link
           href="/"
@@ -47,10 +51,10 @@ export function SiteHeader({
           {/* Read as the full name, in one piece; the two visual lines are hidden from readers. */}
           <span className="sr-only">{m.site_name({}, o)}</span>
           <span aria-hidden="true" className="min-w-0 leading-tight">
-            <span className="block font-medium tracking-[-0.016em]">
+            <span className="block font-display text-[1.375rem] leading-none tracking-[-0.01em]">
               {m.site_name_short({}, o)}
             </span>
-            <span className="block truncate text-small text-ink-muted">
+            <span className="mt-1 block truncate text-small text-ink-muted">
               {m.site_name_place({}, o)}
             </span>
           </span>
@@ -92,7 +96,7 @@ export function SiteHeader({
 /** The section links, used for both the phone row and the wide-screen bar. */
 function NavLinks(props: {
   label: string;
-  links: readonly (readonly [string, string])[];
+  links: readonly (readonly [string, string, boolean])[];
   className: string;
   children?: ReactNode;
 }) {
@@ -100,11 +104,12 @@ function NavLinks(props: {
   return (
     <nav aria-label={label} className={className}>
       <ul className="-mx-1.5 flex flex-wrap items-center text-button font-normal sm:-mx-2 sm:gap-x-1 md:mx-0">
-        {links.map(([href, text]) => (
+        {links.map(([href, text, current]) => (
           <li key={href}>
             <a
               href={href}
-              className="inline-flex min-h-11 items-center rounded-full px-1.5 text-ink-muted no-underline transition-colors hover:text-ink sm:px-2 md:px-3 md:hover:bg-cloud"
+              aria-current={current ? "page" : undefined}
+              className="inline-flex min-h-11 items-center rounded-full px-1.5 text-ink-muted no-underline transition-colors hover:text-ink aria-[current=page]:text-ink sm:px-2 md:px-3 md:hover:bg-cloud"
             >
               {text}
             </a>

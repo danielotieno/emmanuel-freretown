@@ -73,3 +73,58 @@ export function InfoIcon({ className }: { className?: string }) {
     </Icon>
   );
 }
+
+/** The bell that gave Kengeleni its name, drawn as a single line (DESIGN.md §1). Decorative. */
+export function BellIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 48 52"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path d="M16 4h16M24 4v6" />
+      <path d="M24 10c-8 0-12 7-12 17v7l-4 6h32l-4-6v-7c0-10-4-17-12-17Z" />
+      <path d="M18 18c1.5-2 3.5-3 6-3" />
+      <circle cx="24" cy="45" r="3.5" />
+    </svg>
+  );
+}
+
+/** Facebook's "f", for the link to the parish's page. Decorative: the link's words name it. */
+export function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+      className={`size-6 shrink-0 ${className ?? ""}`}
+    >
+      <path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.5V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.500V21h3Z" />
+    </svg>
+  );
+}
+
+/** YouTube's play mark, for the link to the live services. Decorative. */
+export function YouTubeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+      className={`size-6 shrink-0 ${className ?? ""}`}
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.2 5.500h13.6A2.7 2.7 0 0 1 21.5 8.2v7.6a2.7 2.7 0 0 1-2.7 2.7H5.2a2.7 2.7 0 0 1-2.7-2.7V8.2a2.7 2.7 0 0 1 2.7-2.7Zm4.8 3.6v5.8l5-2.9-5-2.9Z"
+      />
+    </svg>
+  );
+}

@@ -105,31 +105,44 @@ test("has no WCAG 2.2 AA violations", async ({ page }) => {
   expect(results.violations).toEqual([]);
 });
 
-test("first load stays under 200 KB, plus one hero photo within its cap (D46)", async ({
+test("first load stays under 200 KB, plus the hero photo and later photos within their caps (D46)", async ({
   page,
 }) => {
   const rest: Promise<number>[] = [];
-  const photos: Promise<number>[] = [];
+  const hero: Promise<number>[] = [];
+  const later: Promise<number>[] = [];
   page.on("requestfinished", (request) => {
     const size = request.sizes().then((s) => s.responseBodySize + s.responseHeadersSize);
-    (/\/_next\/static\/media\/church-/.test(request.url()) ? photos : rest).push(size);
+    const url = request.url();
+    if (/\/_next\/static\/media\/church-/.test(url)) hero.push(size);
+    else if (/\/_next\/static\/media\/[^/]+\.webp/.test(url) && !/crest/.test(url))
+      later.push(size);
+    else rest.push(size);
   });
   await page.goto("/", { waitUntil: "networkidle" });
   const sum = async (sizes: Promise<number>[]) =>
     (await Promise.all(sizes)).reduce((total, size) => total + size, 0);
   expect(await sum(rest)).toBeLessThan(PAGE_WEIGHT_BUDGET_BYTES);
 
-  // Exactly one photo, sized for the screen: phones get the small one at any pixel density.
-  expect(photos).toHaveLength(1);
+  // Exactly one hero photo, sized for the screen: phones get the small one at any pixel density.
+  expect(hero).toHaveLength(1);
   const width = page.viewportSize()!.width;
   const cap = width <= 600 ? 35 * 1024 : width <= 1100 ? 60 * 1024 : 110 * 1024;
-  expect(await sum(photos)).toBeLessThan(cap);
+  expect(await sum(hero)).toBeLessThan(cap);
+
+  // Photos further down load only as the reader nears them, and each stays small.
+  for (const size of await Promise.all(later)) expect(size).toBeLessThan(50 * 1024);
+  const eager = await page.locator("main img:not([loading=lazy])").count();
+  expect(eager).toBe(1);
 });
 
-test("the navigation reaches every section and registration", async ({ page }) => {
+test("the navigation reaches the About page, every section and registration", async ({ page }) => {
   await page.goto("/");
+  // About is its own page; the other links go to the homepage's sections.
+  await expect(
+    page.getByRole("navigation", { name: en.nav_label }).getByRole("link", { name: en.nav_about }),
+  ).toHaveAttribute("href", "/about");
   for (const [label, id] of [
-    [en.nav_about, "about"],
     [en.nav_services, "services"],
     [en.nav_ministries, "ministries"],
     [en.nav_visit, "visit"],
@@ -213,7 +226,41 @@ test("shows service times, the theme of the year and the HBCs from the register"
   await page.goto("/");
   await expect(page.getByText(en.home_time_kiswahili)).toBeVisible();
   await expect(page.getByRole("heading", { name: en.home_theme_title })).toBeVisible();
-  await expect(page.locator("#ministries").getByText("Judea", { exact: true })).toBeVisible();
+  await expect(page.locator("#hbcs").getByText("Judea", { exact: true })).toBeVisible();
+});
+
+test("each part of the homepage is a section of its own", async ({ page }) => {
+  await page.goto("/");
+  for (const title of [
+    en.home_services_title,
+    en.home_week_title,
+    en.home_theme_title,
+    en.home_ministries_title,
+    en.home_hbc_title,
+    en.home_visit_title,
+  ]) {
+    await expect(page.getByRole("region", { name: title })).toHaveCount(1);
+  }
+});
+
+test("each ministry shows its verse written out, with its reference", async ({ page }) => {
+  await page.goto("/");
+  const ministries = page.locator("#ministries");
+  for (const [verse, reference] of [
+    [en.home_verse_kama_text, en.home_verse_kama],
+    [en.home_verse_mu_text, en.home_verse_mu],
+    [en.home_verse_kayo_text, en.home_verse_kayo],
+    [en.home_verse_children_text, en.home_verse_children],
+  ] as const) {
+    await expect(ministries.getByText(verse)).toBeVisible();
+    await expect(ministries.getByText(reference, { exact: true })).toBeVisible();
+  }
+});
+
+test("says members vote in church elections, not only their HBC's", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText(en.home_register_body)).toBeVisible();
+  expect(en.home_register_body + en.landing_step3_body + en.reg_intro).not.toMatch(/HBC/);
 });
 
 test("sends a nonce-based CSP and the page runs without violations", async ({ page }) => {

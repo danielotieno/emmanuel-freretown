@@ -147,7 +147,10 @@ test("a new member who doesn't know their HBC registers; an existing member can'
   await page.getByLabel(en.reg_privacy_label).check();
   await page.getByLabel(en.reg_consent_label).check();
   await next(page);
-  await expect(page.getByText(en.reg_hbc_unknown_value)).toBeVisible();
+  // The review list (the member's card beside the form, on wide screens, shows it too).
+  await expect(
+    page.getByRole("definition").filter({ hasText: en.reg_hbc_unknown_value }),
+  ).toBeVisible();
   await expect(page.locator('input[name="cf-turnstile-response"]')).toHaveValue(/.+/, {
     timeout: 15_000,
   });
@@ -192,6 +195,24 @@ test.describe("languages", () => {
     await expect(page.getByLabel(sw.reg_name_label)).toBeVisible();
     await context.close();
   });
+});
+
+test("the member's card beside the form fills in with their answers (wide screens)", async ({
+  page,
+}) => {
+  test.skip(page.viewportSize()!.width < 1200, "the card is shown from 1200px");
+  await page.goto("/registration");
+  await page.getByLabel(en.reg_name_label).fill("Test Cardholder");
+  await next(page);
+  await page.getByLabel(en.reg_fwo_label).fill("002");
+  await next(page);
+  const card = page.getByRole("region", { name: en.reg_steps_label });
+  await expect(card.getByText("Test Cardholder")).toBeVisible();
+  await expect(card.getByText("002", { exact: true })).toBeVisible();
+  await expect(card.getByRole("listitem").filter({ hasText: en.reg_step_hbc })).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
 });
 
 test("has no WCAG 2.2 AA violations on the first step and the review", async ({ page }) => {

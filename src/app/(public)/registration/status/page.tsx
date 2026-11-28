@@ -21,9 +21,9 @@ export default async function StatusPage() {
   return (
     <>
       <SiteHeader locale={locale} onStatusCheck />
-      {/* As on /registration (#96): the page sits on Cloud down to the footer. */}
-      <main id="main" className="mt-4 -mb-20 flex-1 bg-cloud pb-20 sm:mt-6 md:-mb-28 md:pb-28">
-        <div className="mx-auto max-w-content px-4 pt-8 sm:px-6 sm:pt-12 lg:px-10">
+      {/* As on /registration: a white page beside the Black panel. */}
+      <main id="main" className="flex-1">
+        <div className="mx-auto max-w-content px-4 pt-5 sm:px-6 sm:pt-8 lg:px-10">
           <StatusForm text={statusText(locale)} turnstileSiteKey={turnstileSiteKey(env)} />
         </div>
       </main>

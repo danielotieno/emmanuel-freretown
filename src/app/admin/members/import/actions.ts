@@ -158,7 +158,9 @@ function fileErrorDetail(error: ImportFileError): string[] {
 
 /** The Vicar's confirmation date: a real date, not in the future (Africa/Nairobi). */
 function checkConsentDate(value: string): string | undefined {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
+  // Round-tripped, because Date.parse accepts 31 February and moves it into March.
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null;
+  if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
     return "Enter the date the Vicar confirmed the members' consent.";
   }
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi" }).format(new Date());

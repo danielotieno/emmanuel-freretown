@@ -4,7 +4,7 @@
 
 The website and member platform of ACK Emmanuel Freretown - Kengeleni, an Anglican parish in Mombasa, Kenya. It has three public faces and one staff face:
 
-- **Landing page** (`/`): who the church is, service times, programmes, departments and HBCs, how to join.
+- **Landing page** (`/`): who the church is, service times, programmes, departments and HBCs, how to join. The church's history has its own page (`/about`).
 - **Registration** (`/registration`): adult members join the official register, or check their status.
 - **Voting** (`/vote`): members vote in HBC, department and parish elections during short voting windows.
 - **Admin** (`admin.` subdomain): the Secretary, Wardens and officers review registrations and run elections.
@@ -32,14 +32,14 @@ The website and member platform of ACK Emmanuel Freretown - Kengeleni, an Anglic
 ## Constraints
 
 - Mobile first; design at 360px wide before anything else.
-- Public pages under 200 KB on first load; usable on 3G. The homepage may add one hero photo of the church building on top, within D46's caps. Few web fonts, small images, no heavy animation on registration or voting.
+- Public pages under 200 KB on first load; usable on 3G. The homepage may add one hero photo of the church building on top, within D46's caps, and further lazy-loaded photos below the first screen (D46 as amended). Few web fonts, small images, no heavy animation on registration or voting.
 - Minimum 16px body text, large tap targets, WCAG 2.2 AA contrast.
 - Errors explained in words next to the field, in the member's language.
 - Light theme for outdoor readability. Release 1 is light only (DESIGN.md §2); dark mode may come later.
 
 ## Avoid
 
-- Generic SaaS dashboard looks, gradient-heavy "AI" aesthetics, and default component-library styling. Clean is the aim (DESIGN.md §7: kurax.vercel.app), but it must still feel like this church — the crest, its Signal Blue and Midnight palette (DESIGN.md §2), real photographs — not like a tech product.
+- Generic SaaS dashboard looks, gradient-heavy "AI" aesthetics, and default component-library styling. Clean is the aim (DESIGN.md §7: kurax.vercel.app), but it must still feel like this church — the crest, its Signal Blue, black and white palette (DESIGN.md §2), real photographs — not like a tech product.
 - Stock photos of strangers.
 - Cleverness that slows people down on registration or voting screens.
 - Anything that looks like it is asking for money or passwords.

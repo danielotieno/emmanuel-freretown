@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowIcon } from "@/components/icons";
 import { SiteHeader } from "@/components/site-header";
 import type { Locale } from "@/i18n/locale";
 import { m } from "@/paraglide/messages";
@@ -57,8 +58,8 @@ export function LegalPage(props: {
           ))}
         </div>
         <p className="mt-14 border-t border-line pt-6">
-          <Link href="/" prefetch={false}>
-            <span aria-hidden="true">← </span>
+          <Link href="/" prefetch={false} className="inline-flex min-h-11 items-center gap-2">
+            <ArrowIcon className="rotate-180" />
             {m.legal_back_home({}, { locale })}
           </Link>
         </p>

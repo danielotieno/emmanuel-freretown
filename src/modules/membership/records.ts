@@ -221,7 +221,9 @@ export async function searchMembers(
   search: { query: string; actor: audit.StaffActor; requestId?: string },
 ): Promise<MemberSearchResult> {
   const query = search.query.trim().replace(/\s+/g, " ");
-  if ([...query].length < 2) return { ok: false, reason: "too_short" };
+  // An FWO number can be a single digit (BR-01 has no length rule), so digits are never too short.
+  const digitsOnly = /^[0-9]+$/.test(query);
+  if ([...query].length < (digitsOnly ? 1 : 2)) return { ok: false, reason: "too_short" };
   if ([...query].length > 120) return { ok: false, reason: "too_long" };
 
   const matches: SQL[] = [];
