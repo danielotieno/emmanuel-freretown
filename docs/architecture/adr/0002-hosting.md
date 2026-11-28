@@ -70,3 +70,19 @@ Decision: **production on Launch with a 7-day restore window; non-production on 
 ### Vendor risk
 
 Databricks announced it would acquire Neon in May 2025. The exit path is unchanged: Neon is standard PostgreSQL 18, the nightly encrypted `pg_dump` in R2 can be restored to any Postgres provider, and the application only needs a new connection string in Hyperdrive.
+
+## Amendment — 28 November 2026: Workers plan confirmed (#90)
+
+The Cloudflare account was found on Workers Free (26 Nov 2026), not the Paid plan decided above. Free allows 10 ms of CPU per request, per cron run and per queue batch. Measured on staging on 28 Nov 2026, three requests each (`wrangler tail`):
+
+| Request | CPU time |
+|---|---|
+| `/` | 13–20 ms |
+| `/registration` | 13–39 ms |
+| `/registration/status` | 8–15 ms |
+| `/vote` | 15–23 ms |
+| One staff password hash or check (Better Auth's scrypt, measured in Node) | about 60 ms |
+
+Almost every page view is already over the limit before a form is submitted, and every staff sign-in, password change and password reset needs six times the limit for hashing alone. All the requests returned 200 only because Cloudflare tolerates some overruns on Free; it doesn't promise to, and a request it stops fails with error 1102, mid-registration or at the officer desk.
+
+Decision: **Workers Paid ($5 a month), as decided above.** Staying on Free while measuring (#90's other option) is ruled out: it needed P99 under 10 ms, and even the median is over. The plan is per account, so staging and production move together. The technical lead subscribed on 28 Nov 2026, before registration opens (go-live item 20, D60), so Workers Logs keep 7 days (`observability.md`).
