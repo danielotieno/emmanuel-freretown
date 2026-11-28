@@ -56,6 +56,8 @@ Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui, Zod,
 | `admin.ackemmanuelfreretown.org/units` | HBCs and departments (FR-9, #23): add, rename, reorder, deactivate. Membership Administrators |
 | `admin.ackemmanuelfreretown.org/corrections` | Corrections by staff (FR-5, #21). Registration Officers and Membership Administrators |
 | `admin.ackemmanuelfreretown.org/audit` | The full audit log (FR-11, #24). Super Administrators only. Each registration's and member's own trail is on its page |
+| `admin.ackemmanuelfreretown.org/staff` | Staff accounts (FR-10, #91): add staff, grant and revoke roles, reset an authenticator app or password, sign out everywhere. Super Administrators only |
+| `admin.ackemmanuelfreretown.org/change-password` | Any staff member changes their own password; a temporary one must be replaced here first (#91) |
 
 ## Code layout
 

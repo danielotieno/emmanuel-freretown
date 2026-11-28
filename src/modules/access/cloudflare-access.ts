@@ -96,29 +96,30 @@ function decodeJson(part: string): Record<string, unknown> | null {
 const LEEWAY_S = 60;
 
 /**
- * Whether `token` is a valid Access JWT for this application: RS256, signed by one of the
- * team's current keys, issued by the team, for this application's audience, and not expired.
+ * The claims of `token` if it is a valid Access JWT for this application: RS256, signed by one
+ * of the team's current keys, issued by the team, for this application's audience, and not
+ * expired. Null otherwise.
  */
-export async function verifyAccessJwt(
+async function verifiedClaims(
   token: string | null | undefined,
   policy: Extract<AccessJwtPolicy, { mode: "verify" }>,
-  now: Date = new Date(),
-): Promise<boolean> {
-  if (!token) return false;
+  now: Date,
+): Promise<Record<string, unknown> | null> {
+  if (!token) return null;
   const parts = token.split(".");
-  if (parts.length !== 3) return false;
+  if (parts.length !== 3) return null;
   const [headerPart, payloadPart, signaturePart] = parts as [string, string, string];
   const header = decodeJson(headerPart);
   const payload = decodeJson(payloadPart);
-  if (!header || !payload || header.alg !== "RS256" || typeof header.kid !== "string") return false;
+  if (!header || !payload || header.alg !== "RS256" || typeof header.kid !== "string") return null;
 
   const nowS = Math.floor(now.getTime() / 1000);
   const aud = payload.aud;
   const audiences = Array.isArray(aud) ? aud : [aud];
-  if (!audiences.includes(policy.audience)) return false;
-  if (payload.iss !== `https://${policy.teamDomain}`) return false;
-  if (typeof payload.exp !== "number" || payload.exp + LEEWAY_S < nowS) return false;
-  if (typeof payload.nbf === "number" && payload.nbf - LEEWAY_S > nowS) return false;
+  if (!audiences.includes(policy.audience)) return null;
+  if (payload.iss !== `https://${policy.teamDomain}`) return null;
+  if (typeof payload.exp !== "number" || payload.exp + LEEWAY_S < nowS) return null;
+  if (typeof payload.nbf === "number" && payload.nbf - LEEWAY_S > nowS) return null;
 
   const fetcher = policy.fetch ?? globalThis.fetch;
   let keys = await teamKeys(policy.teamDomain, fetcher, now.getTime());
@@ -127,7 +128,7 @@ export async function verifyAccessJwt(
     keys = await teamKeys(policy.teamDomain, fetcher, now.getTime(), true);
     jwk = keys.find((k) => k.kid === header.kid);
   }
-  if (!jwk || jwk.kty !== "RSA") return false;
+  if (!jwk || jwk.kty !== "RSA") return null;
 
   try {
     const key = await crypto.subtle.importKey(
@@ -137,24 +138,54 @@ export async function verifyAccessJwt(
       false,
       ["verify"],
     );
-    return await crypto.subtle.verify(
+    const valid = await crypto.subtle.verify(
       "RSASSA-PKCS1-v1_5",
       key,
       base64UrlDecode(signaturePart),
       new TextEncoder().encode(`${headerPart}.${payloadPart}`),
     );
+    return valid ? payload : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
+/**
+ * What the Access check found for a request:
+ * - `refused`: no valid JWT, or a policy that refuses everything.
+ * - `skipped`: local development and tests, where there is no Access in front.
+ * - `verified`: a valid JWT, with the email address Access checked (lowercased), or null for a
+ *   token without one (a service token).
+ */
+export type AccessResult =
+  { status: "refused" } | { status: "skipped" } | { status: "verified"; email: string | null };
+
 /** Applies the policy to a request's headers. */
-export async function passesAccess(
+export async function checkAccess(
   headers: Headers,
   policy: AccessJwtPolicy,
-  now?: Date,
-): Promise<boolean> {
-  if (policy.mode === "skip") return true;
-  if (policy.mode === "refuse") return false;
-  return verifyAccessJwt(headers.get(ACCESS_JWT_HEADER), policy, now);
+  now: Date = new Date(),
+): Promise<AccessResult> {
+  if (policy.mode === "skip") return { status: "skipped" };
+  if (policy.mode === "refuse") return { status: "refused" };
+  const claims = await verifiedClaims(headers.get(ACCESS_JWT_HEADER), policy, now);
+  if (!claims) return { status: "refused" };
+  const email = typeof claims.email === "string" ? claims.email.trim().toLowerCase() : null;
+  return { status: "verified", email: email || null };
+}
+
+/**
+ * Whether the person Access let through owns the staff account with this email (#91). Access
+ * checks who they are by a one-time PIN to that address; without this, a staff member who
+ * knew another's password could use their account from behind their own Access login. Always
+ * true where Access is skipped (local development); never for a refused request or a token
+ * without an email.
+ */
+export function isAccessIdentity(access: AccessResult, staffEmail: string): boolean {
+  if (access.status === "skipped") return true;
+  return (
+    access.status === "verified" &&
+    access.email !== null &&
+    access.email === staffEmail.trim().toLowerCase()
+  );
 }

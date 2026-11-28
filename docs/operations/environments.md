@@ -91,7 +91,7 @@ In Cloudflare Zero Trust → Access → Applications, add a **self-hosted** appl
 - Keep the allow-lists as reusable policies (Access controls → Policies), one per environment, so a staff change is one edit. When someone leaves, also revoke their session under Team & Resources → Users.
 - Session duration: 24 hours.
 
-Access is a gate in front of the staff portal, not its security boundary. Staff still sign in to the app with a password and a second factor, and authorisation stays in the modules and server actions (CLAUDE.md rule 1).
+Access is a gate in front of the staff portal, not its security boundary. It also names the person: a staff member can sign in only to the staff account with the email address Access checked by one-time PIN (D59), so each staff account's email must be the one on the allow-list. Staff still sign in to the app with a password and a second factor, and authorisation stays in the modules and server actions (CLAUDE.md rule 1).
 
 **The app checks Access's JWT too (#17).** Every staff page, action and auth endpoint verifies the `Cf-Access-Jwt-Assertion` header Access adds: signed by the team's current key, issued by `https://ack-emmanuel.cloudflareaccess.com`, for this environment's application, not expired. So a request that reaches the Worker without passing Access is still refused. It needs two settings per environment:
 
@@ -161,5 +161,11 @@ DATABASE_URL='<owner connection string, direct endpoint>' pnpm staff:bootstrap -
 The email and name stay in your shell history; on a shared machine, close the terminal afterwards and delete that line from your history file (`~/.zsh_history` or `~/.bash_history`). Run the command in one terminal tab, after setting `DATABASE_URL` there: the script ignores `.env`, and prints the database host before asking for anything, so check it. It asks twice for their password (not shown; at least 12 characters), then creates the staff user, their password login and a GLOBAL Super Administrator grant, with audit entries, in one transaction. It refuses if an active Super Administrator already exists. Run it with the person beside you so they type their own password, or have them run it.
 
 Then the Super Administrator opens the staff host (`admin.` or `admin-staging.`), passes Cloudflare Access (their email must be on the environment's allow-list, §5), signs in with the password and sets up an authenticator app. They can reach nothing else until they do. The 30-minute idle timeout applies to them (D32).
+
+Give `--email` exactly the address the person signs in to Cloudflare Access with (§5): from #91 a staff member can use only the staff account with the email Access checked (D59), so any other address, an alias included, is refused at sign-in as a wrong password.
+
+**Before deploying #91 to an environment**, compare its staff accounts with its Access allow-list: `SELECT name, email FROM "user"` as the owner, and every email must be on the list exactly (capitals don't matter). If one isn't, fix the account before the deploy. Afterwards, a Super Administrator locked out this way is recovered with the owner's connection string: `UPDATE "user" SET email = lower('<their Access email>') WHERE id = '<their staff user id>';`, then they sign in again. Note the change for the audit trail in the parish's records, as owner changes aren't in the audit log.
+
+Every other staff member is added by a Super Administrator at `/staff` (#91, D59), never with this script. Add their email to the environment's Cloudflare Access allow-list too; the portal shows a temporary password once, to hand over in person or by phone call. Ask the second Super Administrator (D40) to reset your own authenticator app or password.
 
 Locally, `pnpm dev` serves the staff portal on `http://admin.localhost:3000`; put a `BETTER_AUTH_SECRET` in `.dev.vars` first.

@@ -56,6 +56,11 @@ const ACTION_NAMES: Record<string, string> = {
   "staff_user.grant_role": "Role granted",
   "staff_user.enable_second_factor": "Authenticator app set up",
   "staff_user.use_backup_code": "Backup code used",
+  "staff_user.revoke_role": "Role revoked",
+  "staff_user.reset_second_factor": "Authenticator app reset",
+  "staff_user.reset_password": "Temporary password issued",
+  "staff_user.change_password": "Password changed",
+  "staff_user.revoke_sessions": "Signed out everywhere",
 };
 
 /** Value names where splitting the key into words isn't enough. */
@@ -196,7 +201,11 @@ function recordOf(e: AuditRecord, names: AuditNames): ReactNode {
     case "member":
       return <RecordLink href={`/members/${e.entityId}`}>Member record</RecordLink>;
     case "staff_user":
-      return `Staff: ${names.staff.get(e.entityId) ?? "a staff member"}`;
+      return (
+        <RecordLink href={`/staff/${encodeURIComponent(e.entityId)}`}>
+          {`Staff: ${names.staff.get(e.entityId) ?? "a staff member"}`}
+        </RecordLink>
+      );
     case "hbc":
       return `HBC: ${names.hbcs.get(e.entityId) ?? "an HBC"}`;
     case "department":

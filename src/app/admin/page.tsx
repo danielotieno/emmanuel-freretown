@@ -1,13 +1,7 @@
 import Link from "next/link";
 import { requireStaff } from "@/app/_lib/staff";
-import type { StaffRole } from "@/modules/access";
+import { ROLE_NAMES } from "./_components/role-names";
 import { SignOutButton } from "./_components/sign-out-button";
-
-const ROLE_NAMES: Record<StaffRole, string> = {
-  SUPER_ADMIN: "Super Administrator",
-  MEMBERSHIP_ADMIN: "Membership Administrator",
-  REGISTRATION_OFFICER: "Registration Officer",
-};
 
 /** Staff home. Any staff member with an active role. */
 export default async function AdminHome() {
@@ -81,8 +75,18 @@ export default async function AdminHome() {
           </Link>
         </p>
       )}
-      <div className="mt-8">
+      {superAdmin && (
+        <p className="mt-4">
+          <Link href="/staff" className="btn-secondary">
+            Staff accounts
+          </Link>
+        </p>
+      )}
+      <div className="mt-8 flex flex-wrap items-center gap-4">
         <SignOutButton />
+        <Link href="/change-password" className="btn-text">
+          Change your password
+        </Link>
       </div>
     </main>
   );

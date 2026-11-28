@@ -64,6 +64,11 @@ export async function asOwner(text: string, values: unknown[] = []): Promise<voi
 /** The staff users this worker created, disabled when its tests are done. */
 const created: string[] = [];
 
+/** For a staff user a spec created through the staff portal: disable it with the others. */
+export function disableLater(userId: string): void {
+  created.push(userId);
+}
+
 /**
  * Call from each spec's afterAll: the staff users its worker created lose every way to sign in
  * and every role. Their password is in this file. The user rows stay, as audit entries may name
@@ -166,7 +171,12 @@ export async function signIn(page: Page, roles: string[], name?: string) {
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(`${ADMIN}/enrol`);
-  await page.getByLabel("Password").fill(PASSWORD);
+  await setUpAuthenticator(page, PASSWORD);
+}
+
+/** On the enrolment page: confirms the password and sets up the authenticator app (FR-10). */
+export async function setUpAuthenticator(page: Page, password: string) {
+  await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.locator("p.font-mono")).toBeVisible();
   const setupKey = await page.locator("p.font-mono").innerText();

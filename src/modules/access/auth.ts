@@ -15,6 +15,10 @@ export interface AuthConfig {
 
 const APP_NAME = "ACK Emmanuel Freretown - Kengeleni";
 
+/** Staff passwords: at least 12 characters (FR-10); 128 at most, as Better Auth's default. */
+export const MIN_PASSWORD_LENGTH = 12;
+export const MAX_PASSWORD_LENGTH = 128;
+
 /**
  * How long a session can last at most, whatever the staff member does. The idle timeouts that
  * matter (D32: 30 minutes, or 4 hours for Registration Officers alone) are shorter and are
@@ -98,7 +102,17 @@ export function createAuth({ db, secret, baseURL }: AuthConfig) {
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
-      minPasswordLength: 12,
+      minPasswordLength: MIN_PASSWORD_LENGTH,
+      maxPasswordLength: MAX_PASSWORD_LENGTH,
+    },
+    user: {
+      additionalFields: {
+        /**
+         * True while the staff member signs in with a temporary password a Super Administrator
+         * gave them (#91): they choose their own before anything else.
+         */
+        mustChangePassword: { type: "boolean", required: true, defaultValue: false, input: false },
+      },
     },
     session: {
       expiresIn: SESSION_MAX_AGE_SECONDS,

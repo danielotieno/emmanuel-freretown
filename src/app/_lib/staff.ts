@@ -6,8 +6,9 @@ import {
   accessJwtPolicy,
   createAuth,
   handleAuthRequest as handleAuthRequestInModule,
-  passesAccess,
+  checkAccess,
   requireEnrollingStaff as enrollingStaffInModule,
+  requirePasswordChange as passwordChangeInModule,
   requireStaff as requireStaffInModule,
   StaffAccessError,
   type AccessJwtPolicy,
@@ -73,8 +74,9 @@ async function refuse(error: unknown): Promise<never> {
   (await getLogger()).info("staff.refused", { reason: error.reason });
   if (error.reason === "idle_timeout") redirect("/sign-in?timeout=1");
   if (error.reason === "signed_out") redirect("/sign-in");
+  if (error.reason === "password_change_required") redirect("/change-password");
   if (error.reason === "second_factor_required") redirect("/enrol");
-  // Wrong host, no Access JWT, or no role for this: give nothing away.
+  // Wrong host, no Access JWT, someone else's Access login, or no role: give nothing away.
   notFound();
 }
 
@@ -90,21 +92,28 @@ async function refuse(error: unknown): Promise<never> {
  * The checks themselves are `requireStaff` in src/modules/access.
  */
 export async function requireStaff(role: RoleRequirement, scope?: Scope): Promise<Staff> {
-  const req = await staffRequest();
-  if (!req) notFound();
-  try {
-    return await requireStaffInModule(req, role, scope);
-  } catch (error) {
-    return refuse(error);
-  }
+  return check((req) => requireStaffInModule(req, role, scope));
 }
 
 /** For the enrolment page: the staff member who must set up an authenticator app, or null. */
 export async function requireEnrollingStaff(): Promise<EnrollingStaff | null> {
+  return check(enrollingStaffInModule);
+}
+
+/**
+ * For the change-password page and its action: the signed-in staff member, `forced` while they
+ * hold a temporary password from a Super Administrator.
+ */
+export async function requirePasswordChange(): Promise<Staff & { forced: boolean }> {
+  return check(passwordChangeInModule);
+}
+
+/** Runs one of the access module's checks on this request; a refusal redirects or answers 404. */
+async function check<T>(run: (req: StaffRequest) => Promise<T>): Promise<T> {
   const req = await staffRequest();
   if (!req) notFound();
   try {
-    return await enrollingStaffInModule(req);
+    return await run(req);
   } catch (error) {
     return refuse(error);
   }
@@ -116,10 +125,9 @@ export async function requireEnrollingStaff(): Promise<EnrollingStaff | null> {
  */
 export async function handleAuthRequest(request: Request): Promise<Response> {
   const config = await getAuthConfig();
-  const env = await getEnv();
-  if (!config || !(await passesAccess(request.headers, accessPolicy(env, config.baseURL)))) {
-    return new Response("Not found", { status: 404 });
-  }
+  if (!config) return new Response("Not found", { status: 404 });
+  const access = await checkAccess(request.headers, accessPolicy(await getEnv(), config.baseURL));
+  if (access.status === "refused") return new Response("Not found", { status: 404 });
   // Better Auth routes by path under /api/auth. The middleware rewrites admin requests into
   // the /admin tree; give Better Auth the path the browser used.
   const url = new URL(request.url);
@@ -130,5 +138,5 @@ export async function handleAuthRequest(request: Request): Promise<Response> {
     headers: request.headers,
     body: hasBody ? await request.arrayBuffer() : undefined,
   });
-  return handleAuthRequestInModule(await getDb(), config, forwarded);
+  return handleAuthRequestInModule(await getDb(), config, forwarded, access);
 }
