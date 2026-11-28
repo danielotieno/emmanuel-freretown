@@ -47,6 +47,9 @@ jobs:
         env:
           BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
           AGE_RECIPIENT: ${{ vars.AGE_RECIPIENT }}
+          # The URL says sslmode=verify-full. libpq looks for ~/.postgresql/root.crt unless told
+          # to check Neon's certificate against the runner's trusted roots (#164).
+          PGSSLROOTCERT: system
         run: |
           set -o pipefail
           key="production/$(date -u +%Y-%m-%dT%H%MZ).dump.age"

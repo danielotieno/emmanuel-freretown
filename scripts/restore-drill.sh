@@ -9,7 +9,8 @@
 # Both databases live on a temporary branch of ack-production (never ack-nonprod: production
 # data never leaves the production project). The backup is streamed: download | decrypt |
 # pg_restore, so no unencrypted copy is written to disk. Needs wrangler (logged in), age and
-# pg_restore 18 (`brew install age libpq`).
+# pg_restore 18 (`brew install age libpq`). pg_restore checks the server's certificate against
+# the system's trusted roots (sslmode=verify-full in the URL, #164).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -30,7 +31,7 @@ echo "1/3 Restoring $KEY into $db_name ..."
 started=$(date +%s)
 pnpm exec wrangler r2 object get "$BUCKET/$KEY" --jurisdiction eu --remote --pipe \
   | age --decrypt --identity "$IDENTITY" \
-  | "$PG_RESTORE" --exit-on-error --single-transaction --no-owner --dbname "$RESTORE_DATABASE_URL"
+  | PGSSLROOTCERT="${PGSSLROOTCERT:-system}" "$PG_RESTORE" --exit-on-error --single-transaction --no-owner --dbname "$RESTORE_DATABASE_URL"
 echo "    restored in $(($(date +%s) - started)) seconds"
 
 echo "2/3 Schema of the restore against the live copy (must match) ..."
