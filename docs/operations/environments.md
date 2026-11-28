@@ -1,6 +1,6 @@
 # Environments: Neon, Hyperdrive and Cloudflare
 
-How to set up and maintain staging and production (issue #6, ADR 0002 and its amendment). These steps run in the technical lead's Neon and Cloudflare accounts (D40), so they need the account owner or an invited administrator. Nothing on this page should ever contain a password or connection string.
+How to set up and maintain staging and production (issue #6, ADR 0002 and its amendments). These steps run in the technical lead's Neon and Cloudflare accounts (D40), so they need the account owner or an invited administrator. Nothing on this page should ever contain a password or connection string.
 
 ## Status
 

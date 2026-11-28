@@ -45,7 +45,7 @@ Staff are people too: their names, emails and IP addresses are personal data.
 | Neon point-in-time history | Every change to the database | 7 days (the restore window, D26) | Neon project setting (`environments.md`). Pre-deploy restore branches: 7 days |
 | Backups (Cloudflare R2, EU) | Encrypted nightly dumps | 35 days | Lifecycle rule `expire-35-days` (`backups-and-rollback.md`). A removal under BR-14 or D45 is therefore gone from every backup 35 days later |
 | GitHub Actions (backup job) | The dump passes through the runner and is encrypted there | Not stored | `backups-and-rollback.md` |
-| Cloudflare Workers logs | Request lines and structured log lines: ids, counts and outcomes, never names, phones, FWO numbers or codes (CLAUDE.md rule 2) | 3 days on Workers Free, 7 on Workers Paid | Set by the plan (`observability.md`); the notice says "up to 7 days" |
+| Cloudflare Workers logs | Request lines and structured log lines: ids, counts and outcomes, never names, phones, FWO numbers or codes (CLAUDE.md rule 2) | 7 days (Workers Paid, D60) | Set by the plan (`observability.md`); the notice says "up to 7 days" |
 | Sentry (EU) | Error events with request data, user, IP, breadcrumbs and personal data stripped (`scrubEvent`) | The plan's retention; confirm it in the project settings and record it here | `observability.md` |
 | Cloudflare Access | Staff email and sign-in events for the staff host | Cloudflare's Access log retention for the account; confirm and record it here | Staff only, never members |
 | Mobile Sasa | Phone number and message text of each SMS sent | Mobile Sasa's own retention, under its terms as processor (D43); confirm and record it here | Messages carry the reference and status only (FR-8) |
