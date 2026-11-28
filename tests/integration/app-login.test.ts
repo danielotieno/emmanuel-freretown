@@ -56,6 +56,20 @@ describe("ensureAppLogin", () => {
     expect(rows[0]).toEqual({ read: true, update: false });
   });
 
+  it("refuses a login that bypasses row-level security", async () => {
+    await ensureAppLogin(db, NAME, PASSWORD);
+    await db.query(`ALTER ROLE ${NAME} BYPASSRLS`);
+    await expect(ensureAppLogin(db, NAME, PASSWORD)).rejects.toThrow(/bypasses row-level security/);
+  });
+
+  it("refuses a login that is a member of any other role", async () => {
+    await ensureAppLogin(db, NAME, PASSWORD);
+    await db.query(`GRANT pg_read_all_data TO ${NAME}`);
+    await expect(ensureAppLogin(db, NAME, PASSWORD)).rejects.toThrow(
+      /is also a member of pg_read_all_data/,
+    );
+  });
+
   it("rejects unsafe role names and short passwords", async () => {
     await expect(ensureAppLogin(db, "Robert'); DROP TABLE member;--", PASSWORD)).rejects.toThrow(
       /Invalid role name/,

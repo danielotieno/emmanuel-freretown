@@ -2,7 +2,9 @@ name: Nightly backup
 
 # Issue #8 (NFR-7, ADR 0002). An encrypted logical backup of production, in addition to Neon's
 # 7-day restore window. The dump is streamed: pg_dump | age | upload. No unencrypted copy is
-# ever written to the runner's disk (DPIA risk R8). The bucket is in Cloudflare's EU
+# ever written to the runner's disk (DPIA risk R8). It is uploaded under a `.partial` name and
+# renamed only once the whole pipeline has succeeded, so a failed dump never leaves a truncated
+# object that looks like a backup (#51). The bucket is in Cloudflare's EU
 # jurisdiction and deletes objects after 35 days, so data redacted under BR-14 does not live
 # on in old dumps. Decrypting needs the age private key, which is held offline, never here.
 
@@ -48,13 +50,19 @@ jobs:
         run: |
           set -o pipefail
           key="production/$(date -u +%Y-%m-%dT%H%MZ).dump.age"
+          partial="${key}.partial"
+          # On any failure below, remove the partial upload (best effort; the bucket's 35-day
+          # rule deletes it anyway).
+          trap 'aws s3 rm "s3://${R2_BUCKET}/${partial}" --endpoint-url "$R2_ENDPOINT" --only-show-errors || true' ERR
           /usr/lib/postgresql/18/bin/pg_dump --format=custom --no-password "$BACKUP_DATABASE_URL" \
             | age --recipient "$AGE_RECIPIENT" \
-            | aws s3 cp - "s3://${R2_BUCKET}/${key}" --endpoint-url "$R2_ENDPOINT" --no-progress
-          size="$(aws s3api head-object --bucket "$R2_BUCKET" --key "$key" \
+            | aws s3 cp - "s3://${R2_BUCKET}/${partial}" --endpoint-url "$R2_ENDPOINT" --no-progress
+          size="$(aws s3api head-object --bucket "$R2_BUCKET" --key "$partial" \
             --endpoint-url "$R2_ENDPOINT" --query ContentLength --output text)"
           if (( size < 1024 )); then
             echo "Backup $key is only $size bytes; something is wrong."
-            exit 1
+            false
           fi
+          aws s3 mv "s3://${R2_BUCKET}/${partial}" "s3://${R2_BUCKET}/${key}" \
+            --endpoint-url "$R2_ENDPOINT" --only-show-errors
           echo "### Backup \`${key}\`: ${size} bytes, encrypted" >> "$GITHUB_STEP_SUMMARY"

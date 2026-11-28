@@ -16,6 +16,12 @@ describe("schemaSnapshot", () => {
     expect(lines.some((l) => l.startsWith("migration 1 "))).toBe(true);
   });
 
+  it("leaves out functions installed by an extension", async () => {
+    const lines = await schemaSnapshot(db);
+    expect(lines).toContain("extension btree_gist");
+    expect(lines.filter((l) => /^function(-grant)? gbt_/.test(l))).toEqual([]);
+  });
+
   it("is identical when nothing has changed", async () => {
     expect(compare(await schemaSnapshot(db), await schemaSnapshot(db))).toEqual({
       missing: [],

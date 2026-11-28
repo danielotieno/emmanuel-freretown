@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import type { ErrorEvent } from "@sentry/cloudflare";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { SafeError } from "./errors";
 import { errorTags, registerErrorReporter, reportError, scrubEvent, sentryOptions } from "./sentry";
@@ -63,6 +66,17 @@ describe("sentryOptions", () => {
     const options = sentryOptions({ SENTRY_DSN: "https://k@o0.ingest.de.sentry.io/1" })!;
     expect("tracesSampleRate" in options).toBe(false);
     expect("tracesSampler" in options).toBe(false);
+  });
+
+  it("is built with tracing compiled out in every Worker environment (#51)", () => {
+    // TypeScript's parser reads wrangler.jsonc's comments and trailing commas.
+    const path = fileURLToPath(new URL("../../../wrangler.jsonc", import.meta.url));
+    const { config } = ts.parseConfigFileTextToJson(path, readFileSync(path, "utf8"));
+    const environments = [config, ...Object.values<object>(config.env)];
+    expect(environments).toHaveLength(3);
+    for (const environment of environments) {
+      expect(environment).toHaveProperty("define.__SENTRY_TRACING__", "false");
+    }
   });
 
   it("turns off every kind of data collection and all breadcrumbs (Sentry 11 defaults are on)", () => {

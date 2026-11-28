@@ -29,6 +29,10 @@
   // Neon can scale to zero. Environments inherit this.
   "triggers": { "crons": ["0 1 * * *"] },
   "vars": { "SENTRY_ENVIRONMENT": "local" },
+  // Sentry tracing compiled out of the bundle, so a SENTRY_TRACES_SAMPLE_RATE variable can never
+  // turn it on (src/modules/observability/sentry.ts). `define` isn't inherited: each environment
+  // repeats it.
+  "define": { "__SENTRY_TRACING__": "false" },
   // The job queue (retries, e.g. SMS in #14). Bindings aren't inherited, so each environment
   // names its own queue; create them once with `wrangler queues create` (environments.md §7).
   "queues": {
@@ -62,6 +66,7 @@
         "TURNSTILE_SITE_KEY": "0x4AAAAAAGSxdHaXpQTNGov4",
         "CF_ACCESS_TEAM_DOMAIN": "ack-emmanuel.cloudflareaccess.com",
       },
+      "define": { "__SENTRY_TRACING__": "false" },
       "queues": {
         "producers": [{ "binding": "JOBS", "queue": "ack-jobs-staging" }],
         "consumers": [{ "queue": "ack-jobs-staging", "max_batch_size": 10, "max_retries": 4 }],
@@ -92,6 +97,7 @@
         "CF_ACCESS_TEAM_DOMAIN": "ack-emmanuel.cloudflareaccess.com",
         "TURNSTILE_SITE_KEY": "0x4AAAAAAGSw6xC2FNX6wX0k",
       },
+      "define": { "__SENTRY_TRACING__": "false" },
       "queues": {
         "producers": [{ "binding": "JOBS", "queue": "ack-jobs-production" }],
         "consumers": [{ "queue": "ack-jobs-production", "max_batch_size": 10, "max_retries": 4 }],

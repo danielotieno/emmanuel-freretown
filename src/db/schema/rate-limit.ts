@@ -5,7 +5,7 @@ import { tz } from "./columns";
 export const rateLimitBucket = pgTable(
   "rate_limit_bucket",
   {
-    /** e.g. 'otp:phone:<sha256>' or 'form:ip:<sha256>' */
+    /** e.g. 'otp:phone:<HMAC-SHA256>' or 'form:ip:<HMAC-SHA256>', keyed with a server secret (#13) */
     key: text("key").notNull(),
     windowStart: tz("window_start").notNull(),
     count: integer("count").notNull().default(0),

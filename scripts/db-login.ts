@@ -75,17 +75,24 @@ async function execute(client: ClientBase, template: string, args: string[]): Pr
   await client.query(rows[0]!.sql);
 }
 
-/** The login must be an ordinary member of `memberOf`: no superpowers, owning nothing. */
+/**
+ * The login must be an ordinary member of `memberOf` and nothing else (database-design.md §4):
+ * no superpowers, no other role memberships, owning nothing.
+ */
 async function verify(client: ClientBase, name: string, memberOf: string): Promise<void> {
   const { rows } = await client.query<{
     super: boolean;
     createrole: boolean;
     createdb: boolean;
+    bypassrls: boolean;
     member: boolean;
+    others: string[];
     owned: number;
   }>(
     `SELECT r.rolsuper AS super, r.rolcreaterole AS createrole, r.rolcreatedb AS createdb,
-            pg_has_role(r.oid, $2, 'USAGE') AS member,
+            r.rolbypassrls AS bypassrls, pg_has_role(r.oid, $2, 'USAGE') AS member,
+            ARRAY(SELECT g.rolname::text FROM pg_auth_members m JOIN pg_roles g ON g.oid = m.roleid
+                   WHERE m.member = r.oid AND g.rolname <> $2 ORDER BY 1) AS others,
             (SELECT count(*)::int FROM pg_class WHERE relowner = r.oid) AS owned
        FROM pg_roles r WHERE r.rolname = $1`,
     [name, memberOf],
@@ -96,7 +103,9 @@ async function verify(client: ClientBase, name: string, memberOf: string): Promi
     role.super && "is a superuser",
     role.createrole && "can create roles",
     role.createdb && "can create databases",
+    role.bypassrls && "bypasses row-level security",
     !role.member && `does not inherit ${memberOf}`,
+    role.others.length > 0 && `is also a member of ${role.others.join(", ")}`,
     role.owned > 0 && `owns ${role.owned} relation(s)`,
   ].filter(Boolean);
   if (problems.length > 0) {

@@ -66,7 +66,7 @@ pnpm exec wrangler hyperdrive create ack-staging --connection-string="$APP_URL" 
 pnpm exec wrangler hyperdrive create ack-production --connection-string="$APP_URL" --caching-disabled
 ```
 
-Copy each returned id into `wrangler.jsonc`, replacing `REPLACE_WITH_STAGING_HYPERDRIVE_ID` and `REPLACE_WITH_PRODUCTION_HYPERDRIVE_ID`, in a pull request. The ids are not secrets. Confirm caching is off with `pnpm exec wrangler hyperdrive get <id>`.
+Each returned id goes in `wrangler.jsonc`, under that environment's `hyperdrive` binding, in a pull request (both are there now). The ids are not secrets. Confirm caching is off with `pnpm exec wrangler hyperdrive get <id>`.
 
 **Rotating the app password:** run step 2's `db:app-login` again, then `pnpm exec wrangler hyperdrive update <id> --connection-string="$APP_URL"`. The old password stops working immediately, so do it outside registration hours.
 

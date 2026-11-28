@@ -26,7 +26,8 @@ Run `pnpm i18n:watch` in a second terminal while editing `messages/*.json`.
 | `pnpm dev`                     | Next.js dev server with Cloudflare bindings                                                |
 | `pnpm build` / `pnpm start`    | Production Node build and server (used by Playwright)                                      |
 | `pnpm preview`                 | Build the Worker with OpenNext and run it locally in workerd                               |
-| `pnpm deploy`                  | Build and deploy to Cloudflare Workers                                                     |
+| `pnpm deploy:staging`          | Build and deploy to staging by hand (normally the Deploy workflow does it)                 |
+| `pnpm deploy:production`       | Build and deploy to production by hand (normally the Deploy workflow does it)              |
 | `pnpm check`                   | Types, lint, dependency rules, formatting and unit tests                                   |
 | `pnpm test`                    | Unit tests (Vitest)                                                                        |
 | `pnpm test:integration`        | Integration tests at `TEST_DATABASE_URL`, wiped and migrated each run (see below)          |
