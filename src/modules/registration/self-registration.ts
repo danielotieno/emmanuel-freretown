@@ -37,8 +37,9 @@ class VerificationRefused extends Error {}
  * stored or none of it.
  *
  * An FWO already held by a member or by another open registration (BR-03), or a phone already
- * held by a member (BR-06), is accepted and flagged for the administrator. The result is the
- * same either way: the public never learns that an FWO or phone is in use (rule 3).
+ * held by a member or by another open registration (BR-06), is accepted and flagged for the
+ * administrator; another open registration with the phone is flagged too (#158). The result is
+ * the same either way: the public never learns that an FWO or phone is in use (rule 3).
  */
 export async function submitSelfRegistration(
   db: DbOrTx,

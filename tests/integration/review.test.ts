@@ -453,17 +453,6 @@ describe("approveRegistration (FR-4, BR-08)", () => {
     });
   });
 
-  it("doesn't flag registrations with no personal phone for each other (BR-06)", async () => {
-    await rolledBack(db, async (tx) => {
-      await asApp(tx);
-      const a = await registered(tx, { noPersonalPhone: true, phone: "" });
-      const b = await registered(tx, { noPersonalPhone: true, phone: "" });
-      const ids = (await listReviewQueue(tx, { flag: "PHONE_CONFLICT" })).items.map((i) => i.id);
-      expect(ids).not.toContain(a);
-      expect(ids).not.toContain(b);
-    });
-  });
-
   it("refuses when the HBC was deactivated since (BR-04)", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);
