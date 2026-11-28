@@ -24,7 +24,7 @@ When a period or a place changes, update this file, the privacy notice (with a n
 | Rate-limit counters (phone and IP) | `rate_limit_bucket` | 1 day. Keys are HMACs, never readable numbers or addresses | `ratelimit.purge` |
 | SMS sent: phone number, template and parameters (reference and status only, FR-8) | `sms_outbox` | 90 days | `sms.purge` |
 | Imports of the parish list | `member_import` | Permanently: counts, consent confirmation and the administrator. No member's details | Never |
-| Election records (Release 2) | — | Electorate and participation: one week after the final result (D51). Nominations: two weeks (D52). Turnout counts: permanently (D53). Office-holders: permanently (D52) | #121, not built yet |
+| Election records (Release 2) | — | Electorate and participation: one week after the final result (D51). Nominations: two weeks (D52). Turnout counts: permanently (D53). Office-holders: permanently (D52). Who signed a roster or list check, and on what date (D62): not decided, Q30 | #121, not built yet |
 
 ## Staff accounts (Neon)
 
@@ -51,7 +51,7 @@ Staff are people too: their names, emails and IP addresses are personal data.
 | Mobile Sasa | Phone number and message text of each SMS sent | Mobile Sasa's own retention, under its terms as processor (D43); confirm and record it here | Messages carry the reference and status only (FR-8) |
 | Exported CSV files (FR-12) | Every active member's name, FWO, phone, HBC, departments | Wherever the administrator saved it. The page asks them to keep it only where needed and delete it when done; each export is audited with its row count | Outside the platform's control |
 | The officer desk's unfinished form | A member's details being typed | That browser tab's `sessionStorage`, until the form is sent or the tab is closed; cleared on sign-out | Never on the server |
-| Paper | Members who decline storage outside Kenya (BR-15), paper ballots and tallies | The church office's paper records | Outside the platform; Q17 |
+| Paper | Members who decline storage outside Kenya (BR-15), paper ballots and tallies, and the signed department and HBC lists, names only (D62) | The church office's paper records; the signed lists with the election committee until the complaint window closes | Outside the platform; Q17, and Q30 for the signed lists |
 
 ## Open items
 
