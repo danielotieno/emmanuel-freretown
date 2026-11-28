@@ -126,7 +126,7 @@ describe("checkImportRows (FR-13)", () => {
     expect(valid).toEqual([
       {
         rowNumber: 2,
-        fwoNumber: "0042",
+        fwoNumber: "42",
         fullName: "Test Person",
         phoneE164: "+254712000001",
         hbcId: "hbc-zion-leisure",
@@ -136,9 +136,23 @@ describe("checkImportRows (FR-13)", () => {
     ]);
   });
 
-  it("keeps the FWO number exactly, records no personal phone when blank, and English by default", () => {
+  it("drops the FWO number's leading zeros, records no personal phone when blank, and English by default", () => {
     const { valid } = check(["0042,Test Person,,Judea,,"]);
-    expect(valid[0]).toMatchObject({ fwoNumber: "0042", phoneE164: null, language: "en" });
+    expect(valid[0]).toMatchObject({ fwoNumber: "42", phoneE164: null, language: "en" });
+  });
+
+  it("reads numbers that differ only by leading zeros as one number (D61)", () => {
+    const { valid, skipped } = check([
+      "0900,Test One,,Judea,,",
+      "07,Test Two,,Judea,,",
+      "7,Test Three,,Judea,,",
+    ]);
+    expect(valid).toEqual([]);
+    expect(skipped).toEqual([
+      { rowNumber: 2, problems: ["fwo_held"] },
+      { rowNumber: 3, problems: ["fwo_repeated"] },
+      { rowNumber: 4, problems: ["fwo_repeated"] },
+    ]);
   });
 
   it("names every rule a row breaks, by row number only", () => {

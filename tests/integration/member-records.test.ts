@@ -179,15 +179,16 @@ describe("searchMembers (D31: recorded with the number of results, never the ter
       await asApp(tx);
       const id = await aMember(tx, {
         fullName: "Test Wanjiru Searchable",
-        fwoNumber: "0220042",
+        fwoNumber: "220042",
         phone: "+254700229042",
       });
       const found = async (query: string) => {
         const result = await searchMembers(tx, { query, actor: ADMIN });
         return result.ok ? result.items.map((m) => m.id).includes(id) : "refused";
       };
-      expect(await found("0220042")).toBe(true);
-      expect(await found("220042")).toBe(false); // D29: leading zeros count
+      expect(await found("220042")).toBe(true);
+      expect(await found("0220042")).toBe(true); // D61: leading zeros don't count
+      expect(await found("2200420")).toBe(false);
       expect(await found("0700 229 042")).toBe(true);
       expect(await found("+254700229042")).toBe(true);
       expect(await found("wanjiru searCH")).toBe(true);
@@ -195,7 +196,7 @@ describe("searchMembers (D31: recorded with the number of results, never the ter
       expect(await found("Test%Searchable")).toBe(false); // % is a character, not a wildcard
 
       const entries = await searchEntries(tx);
-      expect(entries).toHaveLength(6); // the refused one ran nothing and recorded nothing
+      expect(entries).toHaveLength(7); // the refused one ran nothing and recorded nothing
       for (const entry of entries) {
         expect(entry.entity_id).toBe("*");
         expect(Object.keys(entry.after)).toEqual(["results"]);

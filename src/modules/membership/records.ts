@@ -10,6 +10,7 @@ import {
 import * as audit from "../audit";
 import { checkUnitsForRegistration } from "../organisation";
 import { normalizeKenyanPhone } from "../verification";
+import { readFwoNumber } from "./fwo-number";
 
 /**
  * Member records (FR-6, #22): administrators find, open and maintain the official record. Every
@@ -211,7 +212,7 @@ export type MemberSearchResult =
   | { ok: false; reason: "too_short" | "too_long" };
 
 /**
- * Finds members, in any status, by FWO number (exactly as written, D29), phone number (any
+ * Finds members, in any status, by FWO number (leading zeros don't count, D61), phone number (any
  * Kenyan form, matched in E.164) or part of the name (ignoring case). Records `member.search`
  * with the number of results, never the terms (D31), before returning anything. The terms must
  * never reach a URL or a log (rule 2): the page posts them.
@@ -227,7 +228,8 @@ export async function searchMembers(
   if ([...query].length > 120) return { ok: false, reason: "too_long" };
 
   const matches: SQL[] = [];
-  if (digitsOnly) matches.push(eq(member.fwoNumber, query));
+  const fwoNumber = readFwoNumber(query);
+  if (fwoNumber !== null) matches.push(eq(member.fwoNumber, fwoNumber));
   const phone = /^[0-9+\s-]+$/.test(query) ? normalizeKenyanPhone(query) : null;
   if (phone) matches.push(eq(member.phoneE164, phone));
   if (/\p{L}/u.test(query)) {

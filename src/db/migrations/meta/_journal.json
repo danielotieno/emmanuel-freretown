@@ -106,6 +106,20 @@
       "when": 1795809711437,
       "tag": "0014_staff_must_change_password",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1795854908858,
+      "tag": "0015_fwo_without_leading_zeros",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795854928981,
+      "tag": "0016_fwo_check_no_leading_zeros",
+      "breakpoints": true
     }
   ]
 }

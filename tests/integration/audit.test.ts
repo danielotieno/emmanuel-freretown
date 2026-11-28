@@ -44,7 +44,10 @@ async function entriesFor(tx: Transaction, entityId: string): Promise<Row[]> {
   const { rows } = await tx.execute<Row>(sql`
     SELECT actor_type, actor_id, action, entity_type, entity_id, before, after, request_id,
            redacted_at, at > now() - interval '1 minute' AS recent
-      FROM audit_entry WHERE entity_id = ${entityId} ORDER BY id`);
+      FROM audit_entry
+     -- Migration 0015 wrote one entry about every member, before any test ran (D61).
+     WHERE entity_id = ${entityId} AND action <> 'member.drop_fwo_leading_zeros'
+     ORDER BY id`);
   return rows;
 }
 

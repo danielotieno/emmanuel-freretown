@@ -88,10 +88,16 @@ describe("member", () => {
     ).toBe(PG.checkViolation);
   });
 
-  it("keeps leading zeros in FWO numbers", async () => {
-    const id = await insertMember("0042", null);
-    const { rows } = await db.query("SELECT fwo_number FROM member WHERE id = $1", [id]);
-    expect(rows[0].fwo_number).toBe("0042");
+  it("refuses a stored FWO number with a leading zero: 0042 is stored as 42 (D61)", async () => {
+    for (const statement of [
+      "INSERT INTO member (fwo_number, full_name) VALUES ('0042', 'A Name')",
+      "INSERT INTO member (fwo_number, full_name) VALUES ('00', 'A Name')",
+      "INSERT INTO fwo_setting (highest_issued, updated_by_user_id) VALUES ('0500', 'test')",
+    ]) {
+      expect(await pgErrorCode(db, statement), statement).toBe(PG.checkViolation);
+    }
+    await insertMember("0", null);
+    await insertMember("42", null);
   });
 
   it("gives a phone number to one active or inactive member only (D20)", async () => {

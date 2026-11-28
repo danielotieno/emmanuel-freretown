@@ -40,6 +40,7 @@ const ACTION_NAMES: Record<string, string> = {
   "member.transfer_hbc": "Moved to another HBC",
   "member.change_status": "Status changed",
   "member.redact": "Personal details removed",
+  "member.drop_fwo_leading_zeros": "FWO numbers rewritten without leading zeros (D61)",
   "member_import.create": "Parish list imported",
   "hbc.create": "HBC added",
   "hbc.rename": "HBC renamed",

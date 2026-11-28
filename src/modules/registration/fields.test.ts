@@ -29,8 +29,10 @@ describe("checkFullName", () => {
 });
 
 describe("checkFwoNumber (BR-01, BR-16)", () => {
-  it("keeps the number exactly as typed, leading zeros included", () => {
-    expect(checkFwoNumber("0042", false)).toEqual({ ok: true, value: "0042" });
+  it("drops leading zeros, which don't count: 0042 is 42 (D61)", () => {
+    expect(checkFwoNumber("0042", false)).toEqual({ ok: true, value: "42" });
+    expect(checkFwoNumber("054", false)).toEqual({ ok: true, value: "54" });
+    expect(checkFwoNumber("000", false)).toEqual({ ok: true, value: "0" });
     expect(checkFwoNumber(" 42 ", false)).toEqual({ ok: true, value: "42" });
   });
 
@@ -83,7 +85,7 @@ describe("checkSelfRegistration (FR-1, BR-07, BR-15)", () => {
       value: {
         fullName: "Test Person",
         isNewMember: false,
-        fwoNumber: "0042",
+        fwoNumber: "42",
         phoneE164: "+254712345678",
         hbcId: valid.hbcId,
         departmentIds: ["d1", "d2"],
@@ -201,7 +203,7 @@ describe("checkAssistedRegistration (FR-3)", () => {
       value: {
         fullName: "Test Person",
         isNewMember: false,
-        fwoNumber: "0042",
+        fwoNumber: "42",
         phoneE164: "+254712345678",
         noPersonalPhone: false,
         hbcId: "hbc-1",
@@ -291,7 +293,7 @@ describe("checkCorrection (FR-5)", () => {
       ok: true,
       value: {
         fullName: "Test Person",
-        fwoNumber: "0042",
+        fwoNumber: "42",
         phoneE164: "+254712345678",
         noPersonalPhone: false,
         hbcId: HBC,

@@ -3,6 +3,7 @@
  * Public API of this module. Other code imports only from here.
  */
 export { fwoBelongsToMember, phoneBelongsToMember } from "./conflicts";
+export { readFwoNumber } from "./fwo-number";
 export { createMember, type CreateMemberResult, type NewMember } from "./members";
 export { findActiveMemberForStatusCheck, type MemberForStatusCheck } from "./status";
 export {

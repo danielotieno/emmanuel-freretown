@@ -51,8 +51,8 @@ export default async function ImportPage() {
             </pre>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               <li>
-                <strong>fwo_number</strong>: digits only. Format the column as Text in Excel before
-                saving, or numbers like 0042 lose their leading zeros (D29).
+                <strong>fwo_number</strong>: digits only. Leading zeros don&rsquo;t count: 0042 is
+                read as 42 (D61).
               </li>
               <li>
                 <strong>phone</strong>: a Kenyan mobile number, or empty when the member has no

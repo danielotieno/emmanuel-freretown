@@ -5,6 +5,7 @@ import * as audit from "../audit";
 import { listActiveDepartments, listActiveHbcs, unitKey } from "../organisation";
 import { normalizeKenyanPhone } from "../verification";
 import { normalizeLineEnds, parseCsv } from "./csv";
+import { readFwoNumber } from "./fwo-number";
 
 /**
  * The import of the parish list (D47, FR-13, #104). The Church Secretary's cleaned list arrives
@@ -199,15 +200,13 @@ function checkRow(row: ImportRow, lookups: ImportLookups): CheckedRow {
     problems.push("control_characters");
   }
 
-  // BR-01: digits only, kept exactly as written: "0042" and "42" are different numbers (D29).
+  // BR-01: digits only, leading zeros dropped: "0042" is 42, so a file that has both "0042"
+  // and "42" repeats one number (D61).
   const fwo = cell("fwo_number");
-  let fwoNumber: string | undefined;
+  const fwoNumber = readFwoNumber(fwo) ?? undefined;
   if (!fwo) problems.push("fwo_missing");
-  else if (!/^[0-9]+$/.test(fwo)) problems.push("fwo_invalid");
-  else {
-    fwoNumber = fwo;
-    if (lookups.heldFwoNumbers.has(fwo)) problems.push("fwo_held");
-  }
+  else if (fwoNumber === undefined) problems.push("fwo_invalid");
+  else if (lookups.heldFwoNumbers.has(fwoNumber)) problems.push("fwo_held");
 
   // The database CHECK's rule: 2–120 characters, counted as Postgres counts them (code points).
   const name = cell("full_name").replace(/\s+/g, " ");
@@ -263,7 +262,9 @@ function checkRow(row: ImportRow, lookups: ImportLookups): CheckedRow {
 async function loadLookups(db: DbOrTx, rows: ImportRow[]): Promise<ImportLookups> {
   const fwoNumbers = [
     ...new Set(
-      rows.map((r) => (r.cells.fwo_number ?? "").trim()).filter((v) => /^[0-9]+$/.test(v)),
+      rows
+        .map((r) => readFwoNumber(r.cells.fwo_number ?? ""))
+        .filter((v): v is string => v !== null),
     ),
   ];
   const phones = [

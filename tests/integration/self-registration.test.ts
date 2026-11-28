@@ -159,7 +159,7 @@ describe("submitSelfRegistration (FR-1)", () => {
         },
         revision: {
           full_name: "Test Person",
-          fwo_number: "0042",
+          fwo_number: "42", // typed as 0042: leading zeros don't count (D61)
           phone_e164: "+254700000061",
           adult_declared: true,
           transfer_consent: true,
