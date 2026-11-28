@@ -164,7 +164,7 @@ export default async function ReviewRegistrationPage({
           <ul className="mt-6 space-y-2">
             {reg.fwoConflict && (
               <Flag>
-                FWO conflict when submitted: the number matched a member or another open
+                FWO conflict: when submitted or since, the number matched a member or another open
                 registration (BR-03).
               </Flag>
             )}
