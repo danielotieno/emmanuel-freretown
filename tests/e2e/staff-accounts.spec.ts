@@ -1,4 +1,5 @@
 import { test } from "@playwright/test";
+import en from "../../messages/en.json" with { type: "json" };
 import {
   ADMIN,
   disableCreatedStaff,
@@ -34,6 +35,8 @@ test("a Super Administrator adds a staff member, who replaces the temporary pass
   browser,
 }) => {
   await signIn(page, ["SUPER_ADMIN"], "E2E Super Administrator");
+  // The staff home page has the portal's own title, with the parish's name from site_name (#68).
+  await expect(page).toHaveTitle(`Staff · ${en.site_name}`);
   await page.getByRole("link", { name: "Staff accounts" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Staff accounts" })).toBeVisible();
   await expectNoAxeViolations(page);
