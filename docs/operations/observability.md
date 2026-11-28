@@ -44,7 +44,7 @@ Set in `wrangler.jsonc` for every environment:
 | `redact_query_string` | `true` | Query strings are removed from request URLs in logs. Our URLs never carry personal data (rule 2); this protects against a mistake or a crafted link |
 | `logs.invocation_logs` | `true` | One line per request (method, URL, outcome), needed to see failures that log nothing themselves. Cloudflare doesn't document which request fields it records: after the first staging deploy, open one invocation log and check for headers (cookies), client IP and `cf` geo data. If present, note it in the DPIA, or turn invocation logs off |
 | `traces.enabled` | `false` | Automatic tracing is in beta and records subrequest metadata we haven't reviewed. Turn it on only after checking its attributes contain no personal data |
-| Retention | Set by the plan: 3 days on Workers Free, 7 days on Workers Paid | Not configurable. Short retention suits us: logs are for live debugging, not records. The audit log (BR-12) is the record |
+| Retention | Set by the plan: 7 days on Workers Paid (D60) | Not configurable. Short retention suits us: logs are for live debugging, not records. The audit log (BR-12) is the record |
 
 Cloudflare moves Workers Logs to Cloudflare Observability pricing on 1 December 2026; check the bill after the first month.
 

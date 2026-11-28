@@ -1,6 +1,6 @@
 # Environments: Neon, Hyperdrive and Cloudflare
 
-How to set up and maintain staging and production (issue #6, ADR 0002 and its amendment). These steps run in the technical lead's Neon and Cloudflare accounts (D40), so they need the account owner or an invited administrator. Nothing on this page should ever contain a password or connection string.
+How to set up and maintain staging and production (issue #6, ADR 0002 and its amendments). These steps run in the technical lead's Neon and Cloudflare accounts (D40), so they need the account owner or an invited administrator. Nothing on this page should ever contain a password or connection string.
 
 ## Status
 
@@ -16,6 +16,7 @@ How to set up and maintain staging and production (issue #6, ADR 0002 and its am
 | 8 | Secrets in Cloudflare; local ones documented in `.dev.vars.example` | Example done; secrets added as each feature lands |
 | 9 | Job queues `ack-jobs-staging` and `ack-jobs-production` (#10) | Done 24 Nov 2026: both created with `wrangler queues create`. A Worker bound to a missing queue fails to deploy, so a new environment needs its queue first |
 | 10 | `CF_ACCESS_AUD` secret in staging and production (§5); first Super Administrator in each (§8) | Secrets done 26 Nov 2026: `BETTER_AUTH_SECRET` and `CF_ACCESS_AUD` set in staging and production. First Super Administrator: staging done 26 Nov 2026 (before the #17 deploy; signing in needs it); production to do after #17 is deployed |
+| 11 | Cloudflare account on **Workers Paid** (ADR 0002, D60) | Done 28 Nov 2026 (go-live item 20). The plan is per account, so it covers both environments |
 
 ## The rules
 
