@@ -311,6 +311,20 @@ async function loadLookups(db: DbOrTx, rows: ImportRow[]): Promise<ImportLookups
  * Active units by `unitKey`. Two units whose names differ only in case, spacing or apostrophes
  * share a key: neither is matched, so no row goes to the wrong one by chance.
  */
+/**
+ * The date the Vicar confirmed the members' consent (BR-15, D47): a real calendar date written
+ * YYYY-MM-DD, and not after `today` (the same form, in the parish's time zone). Round-tripped,
+ * because JavaScript reads 31 February as a date in March.
+ */
+export function checkConsentDate(value: string, today: string): "invalid" | "future" | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "invalid";
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    return "invalid";
+  }
+  return value > today ? "future" : null;
+}
+
 export function unitsByKey(units: { id: string; name: string }[]): Map<string, string> {
   const map = new Map<string, string>();
   const ambiguous = new Set<string>();

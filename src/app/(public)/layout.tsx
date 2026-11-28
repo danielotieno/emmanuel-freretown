@@ -4,7 +4,7 @@ import { getLocale } from "@/app/_lib/i18n";
 import { SiteFooter } from "@/components/site-footer";
 import { m } from "@/paraglide/messages";
 import "../globals.css";
-import { inter } from "./fonts";
+import { instrumentSans, instrumentSerif } from "./fonts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -25,7 +25,11 @@ export const viewport: Viewport = {
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   return (
-    <html lang={locale} data-scroll-behavior="smooth" className={inter.variable}>
+    <html
+      lang={locale}
+      data-scroll-behavior="smooth"
+      className={`site ${instrumentSans.variable} ${instrumentSerif.variable}`}
+    >
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"
@@ -33,8 +37,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         >
           {m.skip_to_content({}, { locale })}
         </a>
-        {/* A flex column, so a page's main can fill down to the footer (registration's Cloud
-            ground). Its direct children with mx-auto need w-full, or they shrink to their content. */}
+        {/* A flex column, so a page's main can fill down to the footer. Its direct children with mx-auto need w-full, or they shrink to their content. */}
         <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter locale={locale} />
       </body>

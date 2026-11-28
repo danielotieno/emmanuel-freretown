@@ -364,7 +364,7 @@ function Desk({ text, officerId, hbcs, departments, turnstileSiteKey, privacyUrl
                     onChange={(e) => set({ hbcId: e.target.value })}
                     disabled={values.isNewMember && values.hbcUnknown}
                     {...invalid("hbcId", errors)}
-                    className="field cursor-pointer appearance-none pr-12 disabled:opacity-60"
+                    className="select disabled:opacity-60"
                   >
                     <option value="">{text.hbcChoose}</option>
                     {hbcs.map((h) => (

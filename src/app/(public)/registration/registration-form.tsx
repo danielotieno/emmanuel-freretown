@@ -6,15 +6,14 @@ import { Turnstile } from "@/components/turnstile";
 import { registrationStep } from "./actions";
 import {
   BACK,
-  CARD,
   FieldError,
-  HelpPanel,
+  FormShell,
   INPUT,
   invalid,
   Notice,
   PRIMARY,
   Question,
-  QUESTION,
+  QUESTION_LARGE,
   SECONDARY,
   SubmitButton,
   useScripted,
@@ -52,9 +51,10 @@ const RAIL_STEPS = STEPS.filter((s): s is Exclude<Step, "done"> => s !== "done")
  * notes (DESIGN.md). A plain form posting to a server action, so it works without JavaScript
  * until the code step, where Turnstile needs it.
  *
- * Layout (#96): the question sits on a card; beside it on wide screens, a rail lists every step
- * with its state, and a panel says where to get help. Each button shows a spinner while its post
- * is on the way, and the question dims, so a tap is answered at once on a slow connection.
+ * Layout: the question stands large on the white page, one to a screen. Beside it on wide
+ * screens a Black panel holds the title and the member's card: every step with its state and the
+ * answers given so far. Each button shows a spinner while its post is on the way, and the
+ * question dims, so a tap is answered at once on a slow connection.
  */
 export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: Props) {
   const [state, formAction, pending] = useActionState(registrationStep, INITIAL);
@@ -74,48 +74,63 @@ export function RegistrationForm({ text, hbcs, departments, turnstileSiteKey }: 
   const done = step === "done";
   const index = done ? COUNTED_STEPS : STEPS.indexOf(step) + 1;
 
+  // What the member has said so far, shown beside each finished step: the card fills in as
+  // they go, so the review at the end holds no surprises.
+  const { values } = state;
+  const answers: Partial<Record<Step, string>> = {
+    name: values.fullName,
+    fwo: values.isNewMember ? text.newMemberValue : values.fwoNumber,
+    hbc:
+      values.isNewMember && values.hbcUnknown
+        ? text.hbcUnknownValue
+        : (hbcs.find((h) => h.id === values.hbcId)?.name ?? ""),
+    departments:
+      departments
+        .filter((d) => values.departmentIds.includes(d.id))
+        .map((d) => d.name)
+        .join(", ") || text.none,
+    phone: values.phone,
+  };
+
   return (
-    <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
-      <div className="lg:col-span-7">
-        <h1 className="text-title">{text.title}</h1>
-        <p className="mt-4 max-w-[52ch] text-lead text-ink-muted">{text.intro}</p>
-        {/* Members already on the church's list check first instead of registering again (D47,
-            D48). A plain link: a client-side navigation would keep this page's policy (CSP). */}
-        {step === "name" && (
-          <p className="mt-3 max-w-[52ch]">
+    <FormShell
+      title={text.title}
+      intro={text.intro}
+      started={step !== "name"}
+      help={{ title: text.helpTitle, body: text.helpBody }}
+      // Members already on the church's list check first instead of registering again (D47,
+      // D48). A plain link: a client-side navigation would keep this page's policy (CSP).
+      note={
+        step === "name" && (
+          <p>
             {text.checkFirst}{" "}
-            <a href="/registration/status" className="underline underline-offset-4">
+            <a
+              href="/registration/status"
+              className="text-paper underline decoration-sky underline-offset-4 hover:decoration-paper"
+            >
               {text.checkFirstLink}
             </a>
           </p>
-        )}
-
-        <div className={CARD}>
-          {done ? (
-            <Done text={text} reference={state.reference} />
-          ) : (
-            <StepForm
-              text={text}
-              state={state}
-              index={index}
-              pending={pending}
-              formAction={formAction}
-              hbcs={hbcs}
-              departments={departments}
-              turnstileSiteKey={turnstileSiteKey}
-              scripted={scripted}
-            />
-          )}
-        </div>
-      </div>
-
-      <aside className="space-y-4 lg:col-span-4 lg:col-start-9 lg:pt-3">
-        <div className="sticky top-6 space-y-4">
-          <StepRail text={text} current={done ? null : step} index={index} />
-          <HelpPanel title={text.helpTitle} body={text.helpBody} />
-        </div>
-      </aside>
-    </div>
+        )
+      }
+      panel={<StepRail text={text} current={done ? null : step} index={index} answers={answers} />}
+    >
+      {done ? (
+        <Done text={text} reference={state.reference} />
+      ) : (
+        <StepForm
+          text={text}
+          state={state}
+          index={index}
+          pending={pending}
+          formAction={formAction}
+          hbcs={hbcs}
+          departments={departments}
+          turnstileSiteKey={turnstileSiteKey}
+          scripted={scripted}
+        />
+      )}
+    </FormShell>
   );
 }
 
@@ -147,11 +162,12 @@ function StepForm(props: {
       {hidden}
 
       {/* While a post is on the way the question dims, so the tap is visibly answered. */}
-      <div className="mt-8 space-y-7 transition-opacity duration-200 lg:mt-0 group-aria-busy:opacity-55">
+      <div className="mt-8 space-y-7 transition-opacity duration-200 sm:mt-10 group-aria-busy:opacity-55">
         <Notice message={state.notice} />
 
         {step === "name" && (
           <Question
+            large
             id="fullName"
             label={text.nameLabel}
             hint={text.nameHint}
@@ -171,6 +187,7 @@ function StepForm(props: {
 
         {step === "fwo" && (
           <Question
+            large
             id="fwoNumber"
             label={text.fwoLabel}
             hint={text.fwoHint}
@@ -195,14 +212,14 @@ function StepForm(props: {
         )}
 
         {step === "hbc" && (
-          <Question id="hbcId" label={text.hbcLabel} error={errors.hbcId}>
+          <Question large id="hbcId" label={text.hbcLabel} error={errors.hbcId}>
             <div className="relative">
               <select
                 id="hbcId"
                 name="hbcId"
                 defaultValue={values.hbcId}
                 {...invalid("hbcId", errors)}
-                className={`${INPUT} cursor-pointer appearance-none pr-12`}
+                className="select"
               >
                 <option value="">{text.hbcChoose}</option>
                 {hbcs.map((h) => (
@@ -228,7 +245,7 @@ function StepForm(props: {
         {step === "departments" && (
           <fieldset aria-describedby="departments-hint departments-error" className="space-y-3">
             <legend className="mb-3">
-              <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+              <h2 id="step-heading" tabIndex={-1} className={QUESTION_LARGE}>
                 {text.departmentsLabel}
               </h2>
             </legend>
@@ -254,7 +271,13 @@ function StepForm(props: {
         )}
 
         {step === "phone" && (
-          <Question id="phone" label={text.phoneLabel} hint={text.phoneHint} error={errors.phone}>
+          <Question
+            large
+            id="phone"
+            label={text.phoneLabel}
+            hint={text.phoneHint}
+            error={errors.phone}
+          >
             <input
               id="phone"
               name="phone"
@@ -277,7 +300,7 @@ function StepForm(props: {
         {step === "declarations" && (
           <fieldset className="space-y-3">
             <legend className="mb-3">
-              <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+              <h2 id="step-heading" tabIndex={-1} className={QUESTION_LARGE}>
                 {text.declarationsTitle}
               </h2>
             </legend>
@@ -310,7 +333,7 @@ function StepForm(props: {
 
         {step === "review" && (
           <section aria-labelledby="step-heading" className="space-y-5">
-            <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+            <h2 id="step-heading" tabIndex={-1} className={QUESTION_LARGE}>
               {text.reviewTitle}
             </h2>
             <dl className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
@@ -348,6 +371,7 @@ function StepForm(props: {
 
         {step === "code" && (
           <Question
+            large
             id="code"
             label={text.codeLabel}
             hint={`${text.codeSent.replace("{phone}", values.phone)} ${text.codeHint}`}
@@ -367,7 +391,7 @@ function StepForm(props: {
       </div>
 
       {/* The primary button comes first in the markup: pressing Enter submits the first one. */}
-      <div className="mt-10 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row-reverse sm:items-center sm:justify-between">
+      <div className="mt-10 flex flex-col gap-3 sm:mt-12 sm:flex-row-reverse sm:items-center sm:justify-between">
         <SubmitButton intent="next" className={PRIMARY}>
           {step === "review" ? text.sendCode : step === "code" ? text.verify : text.continue}
           <ArrowIcon />
@@ -388,24 +412,21 @@ function StepForm(props: {
   );
 }
 
-/** The step header: "Step 3 of 8", over a bar of eight segments on phones and tablets. */
+/** The step header: "Step 3 of 8", over a bar of eight segments. */
 function Progress(props: { text: RegistrationText; index: number }) {
   const { text, index } = props;
   return (
     <div>
-      {/* From lg the rail beside the card marks the step, so the count is kept for screen
-          readers only (it still announces each step). */}
-      <p className="text-small text-brand tabular-nums lg:sr-only" aria-live="polite">
+      <p className="text-small text-brand tabular-nums" aria-live="polite">
         {text.progress
           .replace("{current}", String(index))
           .replace("{total}", String(COUNTED_STEPS))}
       </p>
-      {/* On wide screens the rail beside the card shows progress, so the bar is for phones. */}
-      <ol aria-hidden="true" className="mt-3 grid grid-flow-col gap-1.5 lg:hidden">
+      <ol aria-hidden="true" className="mt-3 grid grid-flow-col gap-1.5">
         {RAIL_STEPS.map((s, i) => (
           <li
             key={s}
-            className={`h-1.5 rounded-full transition-colors duration-300 ${
+            className={`h-1 rounded-full transition-colors duration-300 ${
               i < index ? "bg-brand" : "bg-line"
             }`}
           />
@@ -415,42 +436,54 @@ function Progress(props: { text: RegistrationText; index: number }) {
   );
 }
 
-/** Every step by name, with its state: done, current or still to come. Wide screens only. */
-function StepRail(props: { text: RegistrationText; current: Step | null; index: number }) {
-  const { text, current, index } = props;
+/**
+ * The member's card, on the Black panel beside the question (wide screens): every step by name
+ * with its state, and under each finished step what the member answered. Their own details, on
+ * their own screen, and nowhere else (rule 2).
+ */
+function StepRail(props: {
+  text: RegistrationText;
+  current: Step | null;
+  index: number;
+  answers: Partial<Record<Step, string>>;
+}) {
+  const { text, current, index, answers } = props;
   return (
-    <section
-      aria-labelledby="steps-heading"
-      className="hidden rounded-[1.75rem] border border-line bg-paper p-7 lg:block"
-    >
-      <h2 id="steps-heading" className="text-subtitle">
+    <section aria-labelledby="steps-heading">
+      <h2 id="steps-heading" className="font-sans text-small font-normal tracking-normal text-sky">
         {text.stepsLabel}
       </h2>
-      <ol className="mt-5 space-y-1 text-card">
+      <ol className="mt-3 border-t border-night-soft text-card">
         {RAIL_STEPS.map((s, i) => {
           const isCurrent = s === current;
           const isDone = current === null || i + 1 < index;
+          const answer = isDone ? answers[s] : undefined;
           return (
             <li
               key={s}
               aria-current={isCurrent ? "step" : undefined}
-              className={`flex min-h-11 items-center gap-3.5 rounded-xl px-2 ${
-                isCurrent ? "bg-mist text-ink" : isDone ? "text-ink" : "text-ink-muted"
+              className={`grid min-h-12 grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-x-3.5 border-b border-night-soft py-2.5 ${
+                isCurrent || isDone ? "text-paper" : "text-sky"
               }`}
             >
               <span
                 aria-hidden="true"
-                className={`grid size-7 shrink-0 place-items-center rounded-full text-small tabular-nums ${
+                className={`grid size-7 place-items-center rounded-full text-small tabular-nums ${
                   isDone
                     ? "bg-brand text-paper"
                     : isCurrent
-                      ? "border-2 border-brand text-brand"
-                      : "border border-line-strong"
+                      ? "bg-paper text-night"
+                      : "border border-night-soft"
                 }`}
               >
                 {isDone ? <CheckIcon size="size-4" /> : i + 1}
               </span>
-              {text.stepNames[s]}
+              <span className="min-w-0 lg:flex lg:items-baseline lg:justify-between lg:gap-4">
+                <span className="block shrink-0">{text.stepNames[s]}</span>
+                {answer && (
+                  <span className="block truncate text-small text-sky tabular-nums">{answer}</span>
+                )}
+              </span>
             </li>
           );
         })}
@@ -461,19 +494,19 @@ function StepRail(props: { text: RegistrationText; current: Step | null; index: 
 
 function Done({ text, reference }: { text: RegistrationText; reference?: string }) {
   return (
-    <section aria-labelledby="step-heading" className="space-y-6">
+    <section aria-labelledby="step-heading" className="space-y-7">
       <span
         aria-hidden="true"
         className="grid size-14 place-items-center rounded-full bg-success text-paper"
       >
         <CheckIcon size="size-7" />
       </span>
-      <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+      <h2 id="step-heading" tabIndex={-1} className={QUESTION_LARGE}>
         {text.doneTitle}
       </h2>
-      <div className="rounded-2xl bg-mist p-6 sm:p-7">
+      <div className="rounded-[1.75rem] bg-mist p-7 sm:p-9">
         <p className="text-small text-ink-muted">{text.doneReference}</p>
-        <p className="mt-1 text-title text-brand tabular-nums">{reference}</p>
+        <p className="mt-2 text-display text-brand">{reference}</p>
         <p className="mt-4 text-ink-muted">{text.doneSms}</p>
       </div>
       <p>{text.doneNext}</p>

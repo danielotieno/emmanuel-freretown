@@ -20,6 +20,12 @@ describe("checkFullName", () => {
     expect(checkFullName("A".repeat(121))).toEqual({ ok: false, error: "too_long" });
     expect(checkFullName("A".repeat(120)).ok).toBe(true);
   });
+
+  it("counts characters as the database does, not UTF-16 units", () => {
+    // One character outside the basic plane is two UTF-16 units but one character to Postgres.
+    expect(checkFullName("\u{1D49C}")).toEqual({ ok: false, error: "too_short" });
+    expect(checkFullName("\u{1D49C}".repeat(120)).ok).toBe(true);
+  });
 });
 
 describe("checkFwoNumber (BR-01, BR-16)", () => {

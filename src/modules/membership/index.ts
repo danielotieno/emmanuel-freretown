@@ -30,6 +30,7 @@ export {
   IMPORT_COLUMNS,
   IMPORT_MAX_BYTES,
   IMPORT_MAX_ROWS,
+  checkConsentDate,
   importMembers,
   previewImport,
   type ImportFileError,

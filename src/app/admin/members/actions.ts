@@ -37,7 +37,7 @@ export async function searchAction(_previous: SearchState, form: FormData): Prom
       query,
       error:
         result.reason === "too_short"
-          ? "Type at least 2 characters: part of a name, an FWO number or a mobile number."
+          ? "Type at least 2 letters of a name, an FWO number or a mobile number."
           : "Type 120 characters or fewer.",
     };
   }

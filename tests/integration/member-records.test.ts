@@ -205,6 +205,19 @@ describe("searchMembers (D31: recorded with the number of results, never the ter
   });
 });
 
+describe("searchMembers: how short a search may be", () => {
+  it("accepts a one-digit FWO number (BR-01 has no length rule) but not one letter", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      expect((await searchMembers(tx, { query: "7", actor: ADMIN })).ok).toBe(true);
+      expect(await searchMembers(tx, { query: "a", actor: ADMIN })).toEqual({
+        ok: false,
+        reason: "too_short",
+      });
+    });
+  });
+});
+
 describe("editMemberDetails (FR-6: every edit needs a reason and is audited)", () => {
   it("changes the details, closes and opens department periods, and audits before and after", async () => {
     await rolledBack(db, async (tx) => {

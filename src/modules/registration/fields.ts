@@ -9,12 +9,16 @@ import { normalizeKenyanPhone } from "../verification";
 export type FieldError = "required" | "too_short" | "too_long" | "invalid" | "must_accept";
 export type FieldResult<T> = { ok: true; value: T } | { ok: false; error: FieldError };
 
-/** Matches the database CHECK: 2–120 characters once trimmed. Inner spaces are collapsed. */
+/**
+ * Matches the database CHECK: 2–120 characters once trimmed, counted as Postgres counts them
+ * (code points, not UTF-16 units). Inner spaces are collapsed.
+ */
 export function checkFullName(input: string): FieldResult<string> {
   const value = input.trim().replace(/\s+/g, " ");
   if (!value) return { ok: false, error: "required" };
-  if (value.length < 2) return { ok: false, error: "too_short" };
-  if (value.length > 120) return { ok: false, error: "too_long" };
+  const length = [...value].length;
+  if (length < 2) return { ok: false, error: "too_short" };
+  if (length > 120) return { ok: false, error: "too_long" };
   return { ok: true, value };
 }
 

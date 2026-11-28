@@ -45,7 +45,8 @@ Next.js (App Router), TypeScript strict, React, Tailwind CSS v4, shadcn/ui, Zod,
 
 | URL | Purpose |
 |---|---|
-| `ackemmanuelfreretown.org/` | Public landing page: church, services, programmes |
+| `ackemmanuelfreretown.org/` | Public landing page: welcome, Sunday services, daily activities, theme of the year, ministries, HBCs, registration, visit and contact |
+| `/about` | About us: the church's history, the Kengeleni bell, mission, values and beliefs |
 | `/registration` | Self-registration, including "I am new / no FWO yet" |
 | `/registration/status` | Check my status (OTP first) |
 | `/vote` | Elections: schedule when closed, ballot when open |
@@ -91,7 +92,7 @@ Each module exposes a small public API from its `index.ts`. Other code imports o
 7. **Ballots never carry a member reference or a timestamp.** Don't add one for "debugging".
 8. **OTP codes are stored hashed.** Every endpoint that can send an SMS has Turnstile and rate limits.
 9. **All member-facing text goes through Paraglide.** No hard-coded strings on public pages or in SMS. English is required; Kiswahili is optional (D44): add it where you can, and a missing Kiswahili message falls back to English.
-10. **Public pages stay light:** under 200 KB on first load, usable on 3G. The homepage may add one responsive hero photo within D46's caps; `/registration`, the status check and `/vote` carry none. Prefer server components; no heavy client libraries on `/registration` or `/vote`.
+10. **Public pages stay light:** under 200 KB on first load, usable on 3G. The homepage may add one responsive hero photo within D46's caps, and it and `/about` may carry further photos below the first screen, lazy-loaded and at most 50 KB each (D46 as amended); `/registration`, the status check and `/vote` carry none. Prefer server components; no heavy client libraries on `/registration` or `/vote`.
 11. **Don't add a dependency without a reason** written in the PR description. Pin versions.
 
 ## Testing and done
