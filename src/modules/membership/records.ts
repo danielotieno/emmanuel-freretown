@@ -207,7 +207,7 @@ export const SEARCH_LIMIT = 50;
 
 export type MemberSearchResult =
   | { ok: true; items: MemberListItem[]; total: number }
-  /** Too short to search for (under 2 characters) or too long (over 120): nothing was run. */
+  /** Too short to search for (under 2 characters, unless all digits) or too long (over 120): nothing was run. */
   | { ok: false; reason: "too_short" | "too_long" };
 
 /**
@@ -227,7 +227,7 @@ export async function searchMembers(
   if ([...query].length > 120) return { ok: false, reason: "too_long" };
 
   const matches: SQL[] = [];
-  if (/^[0-9]+$/.test(query)) matches.push(eq(member.fwoNumber, query));
+  if (digitsOnly) matches.push(eq(member.fwoNumber, query));
   const phone = /^[0-9+\s-]+$/.test(query) ? normalizeKenyanPhone(query) : null;
   if (phone) matches.push(eq(member.phoneE164, phone));
   if (/\p{L}/u.test(query)) {

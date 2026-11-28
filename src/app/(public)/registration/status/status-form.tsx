@@ -62,129 +62,127 @@ export function StatusForm({
       help={{ title: text.helpTitle, body: text.helpBody }}
       panel={<BellIcon className="h-16 w-auto text-gold" />}
     >
-      <div>
-        {step === "result" && state.outcome ? (
-          <Result text={text} outcome={state.outcome} />
-        ) : (
-          <form action={formAction} noValidate aria-busy={pending || undefined} className="group">
-            <input type="hidden" name="step" value={step} />
-            {state.challengeId && (
-              <input type="hidden" name="challengeId" value={state.challengeId} />
-            )}
-            {step !== "details" && (
+      {step === "result" && state.outcome ? (
+        <Result text={text} outcome={state.outcome} />
+      ) : (
+        <form action={formAction} noValidate aria-busy={pending || undefined} className="group">
+          <input type="hidden" name="step" value={step} />
+          {state.challengeId && (
+            <input type="hidden" name="challengeId" value={state.challengeId} />
+          )}
+          {step !== "details" && (
+            <>
+              <input type="hidden" name="phone" value={values.phone} />
+              <input type="hidden" name="key" value={values.key} />
+            </>
+          )}
+
+          <div className="space-y-7 transition-opacity duration-200 group-aria-busy:opacity-55">
+            <Notice message={state.notice} />
+
+            {step === "details" && (
               <>
-                <input type="hidden" name="phone" value={values.phone} />
-                <input type="hidden" name="key" value={values.key} />
+                <Question
+                  id="phone"
+                  label={text.phoneLabel}
+                  hint={text.phoneHint}
+                  error={errors.phone}
+                >
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    defaultValue={values.phone}
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    maxLength={20}
+                    {...invalid("phone", errors)}
+                    className={`${INPUT} tabular-nums`}
+                  />
+                </Question>
+                <Question
+                  id="key"
+                  label={text.keyLabel}
+                  hint={text.keyHint}
+                  error={errors.key}
+                  heading={false}
+                >
+                  <input
+                    id="key"
+                    name="key"
+                    defaultValue={values.key}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    maxLength={20}
+                    {...invalid("key", errors)}
+                    className={`${INPUT} tabular-nums`}
+                  />
+                </Question>
               </>
             )}
 
-            <div className="space-y-7 transition-opacity duration-200 group-aria-busy:opacity-55">
-              <Notice message={state.notice} />
+            {step === "review" && (
+              <section aria-labelledby="step-heading" className="space-y-5">
+                <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+                  {text.reviewTitle}
+                </h2>
+                <dl className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
+                  <Row term={text.phoneLabel}>{values.phone}</Row>
+                  <Row term={text.keyLabel}>{values.key}</Row>
+                </dl>
+                <p className="text-ink-muted">{text.reviewHint}</p>
+                {/* A fresh widget after every answer: a spent token is never reused. */}
+                {turnstileSiteKey && <Turnstile key={state.attempt} siteKey={turnstileSiteKey} />}
+                {(!scripted || !turnstileSiteKey) && (
+                  <p className="flex gap-3 rounded-xl bg-mist p-4">
+                    <InfoIcon className="mt-1 text-brand" />
+                    <span>{text.jsNeeded}</span>
+                  </p>
+                )}
+              </section>
+            )}
 
-              {step === "details" && (
-                <>
-                  <Question
-                    id="phone"
-                    label={text.phoneLabel}
-                    hint={text.phoneHint}
-                    error={errors.phone}
-                  >
-                    <input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      defaultValue={values.phone}
-                      inputMode="tel"
-                      autoComplete="tel-national"
-                      maxLength={20}
-                      {...invalid("phone", errors)}
-                      className={`${INPUT} tabular-nums`}
-                    />
-                  </Question>
-                  <Question
-                    id="key"
-                    label={text.keyLabel}
-                    hint={text.keyHint}
-                    error={errors.key}
-                    heading={false}
-                  >
-                    <input
-                      id="key"
-                      name="key"
-                      defaultValue={values.key}
-                      autoComplete="off"
-                      autoCapitalize="characters"
-                      spellCheck={false}
-                      maxLength={20}
-                      {...invalid("key", errors)}
-                      className={`${INPUT} tabular-nums`}
-                    />
-                  </Question>
-                </>
-              )}
-
-              {step === "review" && (
-                <section aria-labelledby="step-heading" className="space-y-5">
-                  <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
-                    {text.reviewTitle}
-                  </h2>
-                  <dl className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
-                    <Row term={text.phoneLabel}>{values.phone}</Row>
-                    <Row term={text.keyLabel}>{values.key}</Row>
-                  </dl>
-                  <p className="text-ink-muted">{text.reviewHint}</p>
-                  {/* A fresh widget after every answer: a spent token is never reused. */}
-                  {turnstileSiteKey && <Turnstile key={state.attempt} siteKey={turnstileSiteKey} />}
-                  {(!scripted || !turnstileSiteKey) && (
-                    <p className="flex gap-3 rounded-xl bg-mist p-4">
-                      <InfoIcon className="mt-1 text-brand" />
-                      <span>{text.jsNeeded}</span>
-                    </p>
-                  )}
-                </section>
-              )}
-
-              {step === "code" && (
-                <Question
+            {step === "code" && (
+              <Question
+                id="code"
+                label={text.codeLabel}
+                hint={`${text.codeSent.replace("{phone}", values.phone)} ${text.codeHint}`}
+                error={errors.code}
+              >
+                <input
                   id="code"
-                  label={text.codeLabel}
-                  hint={`${text.codeSent.replace("{phone}", values.phone)} ${text.codeHint}`}
-                  error={errors.code}
-                >
-                  <input
-                    id="code"
-                    name="code"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    {...invalid("code", errors)}
-                    className={`${INPUT} max-w-[12ch] text-center text-subtitle tracking-[0.3em] tabular-nums`}
-                  />
-                </Question>
-              )}
-            </div>
+                  name="code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  {...invalid("code", errors)}
+                  className={`${INPUT} max-w-[12ch] text-center text-subtitle tracking-[0.3em] tabular-nums`}
+                />
+              </Question>
+            )}
+          </div>
 
-            {/* The primary button comes first in the markup: pressing Enter submits it. */}
-            <div className="mt-10 flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-between">
-              <SubmitButton intent="next" className={PRIMARY}>
-                {step === "review" ? text.sendCode : step === "code" ? text.check : text.continue}
-                <ArrowIcon />
+          {/* The primary button comes first in the markup: pressing Enter submits it. */}
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-between">
+            <SubmitButton intent="next" className={PRIMARY}>
+              {step === "review" ? text.sendCode : step === "code" ? text.check : text.continue}
+              <ArrowIcon />
+            </SubmitButton>
+            {step === "review" && (
+              <SubmitButton intent="back" className={BACK}>
+                <ArrowIcon className="rotate-180" />
+                {text.back}
               </SubmitButton>
-              {step === "review" && (
-                <SubmitButton intent="back" className={BACK}>
-                  <ArrowIcon className="rotate-180" />
-                  {text.back}
-                </SubmitButton>
-              )}
-              {step === "code" && (
-                <SubmitButton intent="new-code" className={SECONDARY}>
-                  {text.newCode}
-                </SubmitButton>
-              )}
-            </div>
-          </form>
-        )}
-      </div>
+            )}
+            {step === "code" && (
+              <SubmitButton intent="new-code" className={SECONDARY}>
+                {text.newCode}
+              </SubmitButton>
+            )}
+          </div>
+        </form>
+      )}
     </FormShell>
   );
 }

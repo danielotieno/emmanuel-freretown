@@ -106,7 +106,7 @@ export function FacebookIcon({ className }: { className?: string }) {
       focusable="false"
       className={`size-6 shrink-0 ${className ?? ""}`}
     >
-      <path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.5V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.500V21h3Z" />
+      <path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.5V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21h3Z" />
     </svg>
   );
 }
@@ -123,7 +123,7 @@ export function YouTubeIcon({ className }: { className?: string }) {
     >
       <path
         fillRule="evenodd"
-        d="M5.2 5.500h13.6A2.7 2.7 0 0 1 21.5 8.2v7.6a2.7 2.7 0 0 1-2.7 2.7H5.2a2.7 2.7 0 0 1-2.7-2.7V8.2a2.7 2.7 0 0 1 2.7-2.7Zm4.8 3.6v5.8l5-2.9-5-2.9Z"
+        d="M5.2 5.5h13.6A2.7 2.7 0 0 1 21.5 8.2v7.6a2.7 2.7 0 0 1-2.7 2.7H5.2a2.7 2.7 0 0 1-2.7-2.7V8.2a2.7 2.7 0 0 1 2.7-2.7Zm4.8 3.6v5.8l5-2.9-5-2.9Z"
       />
     </svg>
   );

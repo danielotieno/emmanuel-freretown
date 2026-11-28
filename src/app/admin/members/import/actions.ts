@@ -5,6 +5,7 @@ import { getDb } from "@/app/_lib/db";
 import { getLogger } from "@/app/_lib/log";
 import { requireStaff } from "@/app/_lib/staff";
 import {
+  checkConsentDate,
   decodeCsvFile,
   IMPORT_MAX_BYTES,
   previewImport,
@@ -69,7 +70,7 @@ async function confirm(
       error: "Upload the file again and check the preview before importing.",
     };
   }
-  const consentDateError = checkConsentDate(consentConfirmedOn);
+  const consentDateError = consentDateMessage(consentConfirmedOn);
   const consentGivenError = consentGiven
     ? undefined
     : "Tick this to confirm the Vicar's confirmation of the members' consent (BR-15, D47).";
@@ -156,13 +157,10 @@ function fileErrorDetail(error: ImportFileError): string[] {
   }
 }
 
-/** The Vicar's confirmation date: a real date, not in the future (Africa/Nairobi). */
-function checkConsentDate(value: string): string | undefined {
-  // Round-tripped, because Date.parse accepts 31 February and moves it into March.
-  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null;
-  if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
-    return "Enter the date the Vicar confirmed the members' consent.";
-  }
+/** The Vicar's confirmation date, checked against today in Africa/Nairobi. */
+function consentDateMessage(value: string): string | undefined {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi" }).format(new Date());
-  return value > today ? "The date can't be in the future." : undefined;
+  const error = checkConsentDate(value, today);
+  if (error === "invalid") return "Enter the date the Vicar confirmed the members' consent.";
+  return error === "future" ? "The date can't be in the future." : undefined;
 }

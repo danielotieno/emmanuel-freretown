@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeCsvFile, normalizeLineEnds, parseCsv } from "./csv";
 import {
+  checkConsentDate,
   checkImportRows,
   IMPORT_MAX_ROWS,
   importDigest,
@@ -225,5 +226,25 @@ describe("unitKey and importDigest", () => {
     expect(await importDigest("a")).toBe(await importDigest("a"));
     expect(await importDigest("a")).not.toBe(await importDigest("b"));
     expect(await importDigest("a")).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("checkConsentDate (BR-15, D47)", () => {
+  const today = "2026-11-28";
+
+  it("accepts a real date up to today, a leap day included", () => {
+    expect(checkConsentDate("2026-11-28", today)).toBeNull();
+    expect(checkConsentDate("2024-02-29", today)).toBeNull();
+  });
+
+  it("refuses a date that doesn't exist, or isn't written YYYY-MM-DD", () => {
+    expect(checkConsentDate("2026-02-31", today)).toBe("invalid");
+    expect(checkConsentDate("2025-02-29", today)).toBe("invalid");
+    expect(checkConsentDate("28/11/2026", today)).toBe("invalid");
+    expect(checkConsentDate("", today)).toBe("invalid");
+  });
+
+  it("refuses a date after today", () => {
+    expect(checkConsentDate("2026-11-29", today)).toBe("future");
   });
 });

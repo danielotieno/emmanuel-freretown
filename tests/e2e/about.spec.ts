@@ -34,6 +34,34 @@ test("the header marks About as the current page and leads back to Sunday servic
   await expect(page.getByRole("heading", { level: 2, name: en.home_services_title })).toBeVisible();
 });
 
+test("first load stays under 200 KB, plus the first photo and later photos within their caps (D46)", async ({
+  page,
+}) => {
+  const rest: Promise<number>[] = [];
+  const hero: Promise<number>[] = [];
+  const later: Promise<number>[] = [];
+  page.on("requestfinished", (request) => {
+    const size = request.sizes().then((s) => s.responseBodySize + s.responseHeadersSize);
+    const url = request.url();
+    if (/\/_next\/static\/media\/church-/.test(url)) hero.push(size);
+    else if (/\/_next\/static\/media\/[^/]+\.webp/.test(url) && !/crest/.test(url))
+      later.push(size);
+    else rest.push(size);
+  });
+  await page.goto("/about", { waitUntil: "networkidle" });
+  const sum = async (sizes: Promise<number>[]) =>
+    (await Promise.all(sizes)).reduce((total, size) => total + size, 0);
+  expect(await sum(rest)).toBeLessThan(200 * 1024); // NFR-2
+
+  expect(hero).toHaveLength(1);
+  const width = page.viewportSize()!.width;
+  const cap = width <= 600 ? 35 * 1024 : width <= 1100 ? 60 * 1024 : 110 * 1024;
+  expect(await sum(hero)).toBeLessThan(cap);
+
+  for (const size of await Promise.all(later)) expect(size).toBeLessThan(50 * 1024);
+  expect(await page.locator("main img:not([loading=lazy])").count()).toBe(1);
+});
+
 test("has no WCAG 2.2 AA violations", async ({ page }) => {
   await page.goto("/about");
   const results = await new AxeBuilder({ page })

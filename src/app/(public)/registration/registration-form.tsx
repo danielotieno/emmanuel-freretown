@@ -13,7 +13,7 @@ import {
   Notice,
   PRIMARY,
   Question,
-  QUESTION_LARGE as QUESTION,
+  QUESTION_LARGE,
   SECONDARY,
   SubmitButton,
   useScripted,
@@ -245,7 +245,7 @@ function StepForm(props: {
         {step === "departments" && (
           <fieldset aria-describedby="departments-hint departments-error" className="space-y-3">
             <legend className="mb-3">
-              <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+              <h2 id="step-heading" tabIndex={-1} className={QUESTION_LARGE}>
                 {text.departmentsLabel}
               </h2>
             </legend>
@@ -300,7 +300,7 @@ function StepForm(props: {
         {step === "declarations" && (
           <fieldset className="space-y-3">
             <legend className="mb-3">
-              <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+              <h2 id="step-heading" tabIndex={-1} className={QUESTION_LARGE}>
                 {text.declarationsTitle}
               </h2>
             </legend>
@@ -333,7 +333,7 @@ function StepForm(props: {
 
         {step === "review" && (
           <section aria-labelledby="step-heading" className="space-y-5">
-            <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+            <h2 id="step-heading" tabIndex={-1} className={QUESTION_LARGE}>
               {text.reviewTitle}
             </h2>
             <dl className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
@@ -501,7 +501,7 @@ function Done({ text, reference }: { text: RegistrationText; reference?: string 
       >
         <CheckIcon size="size-7" />
       </span>
-      <h2 id="step-heading" tabIndex={-1} className={QUESTION}>
+      <h2 id="step-heading" tabIndex={-1} className={QUESTION_LARGE}>
         {text.doneTitle}
       </h2>
       <div className="rounded-[1.75rem] bg-mist p-7 sm:p-9">

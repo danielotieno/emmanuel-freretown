@@ -292,6 +292,8 @@
       border-radius: 0.625rem;
       color: var(--color-ink);
       font-size: var(--text-card);
+      /* The field cuts a long choice short; in the list it wraps instead. */
+      white-space: normal;
       cursor: pointer;
       outline-offset: -3px;
     }
