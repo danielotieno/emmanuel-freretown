@@ -1,3 +1,4 @@
+import { readFwoNumber } from "../membership";
 import { normalizeKenyanPhone } from "../verification";
 
 /**
@@ -23,16 +24,15 @@ export function checkFullName(input: string): FieldResult<string> {
 }
 
 /**
- * BR-01: digits only, stored exactly as entered: "0042" and "42" are different numbers. No
- * length rule yet. Spaces around it are trimmed; spaces inside are an error, not removed, so
- * nothing changes the number the member typed. A new member (BR-16) has none.
+ * BR-01: digits only, stored without leading zeros, which don't count: "0042" is 42 (D61). No
+ * length rule yet. Spaces around it are trimmed; spaces inside are an error, not removed. A new
+ * member (BR-16) has none.
  */
 export function checkFwoNumber(input: string, isNewMember: boolean): FieldResult<string | null> {
   if (isNewMember) return { ok: true, value: null };
-  const value = input.trim();
-  if (!value) return { ok: false, error: "required" };
-  if (!/^[0-9]+$/.test(value)) return { ok: false, error: "invalid" };
-  return { ok: true, value };
+  if (!input.trim()) return { ok: false, error: "required" };
+  const value = readFwoNumber(input);
+  return value === null ? { ok: false, error: "invalid" } : { ok: true, value };
 }
 
 /** BR-06, FR-2: a Kenyan mobile number, stored in E.164. */

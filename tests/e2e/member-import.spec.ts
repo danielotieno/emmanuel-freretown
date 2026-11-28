@@ -79,7 +79,8 @@ test("imports the parish list after a preview; the member then finds their recor
     "FWO number already belongs to a member",
   );
 
-  // The imported member checks their record on the public site.
+  // The imported member checks their record on the public site, typing the number without the
+  // file's leading zero: leading zeros don't count (D61).
   const publicPage = await page.context().newPage();
   await publicPage
     .context()
@@ -90,7 +91,7 @@ test("imports the parish list after a preview; the member then finds their recor
   );
   await publicPage.goto(ADMIN.replace("admin.", "") + "/registration/status");
   await publicPage.getByLabel(en.status_phone_label).fill(phone);
-  await publicPage.getByLabel(en.status_key_label).fill(fwo);
+  await publicPage.getByLabel(en.status_key_label).fill(fwo.slice(1));
   await publicPage.getByRole("button", { name: en.reg_continue }).click();
   await expect(publicPage.locator('input[name="cf-turnstile-response"]')).toHaveValue(/.+/, {
     timeout: 15_000,

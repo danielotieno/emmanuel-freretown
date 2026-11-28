@@ -109,10 +109,12 @@ describe("the D30 setting and its suggestion", () => {
       expect(await setHighestFwoIssued(tx, { value: "0500", actor: SECRETARY })).toEqual({
         ok: true,
       });
+      // The setting is stored without its leading zeros (D61).
+      expect(await setting(tx)).toBe("500");
       expect(await suggestFwoNumber(tx)).toBe("501");
-      // A member's "0900" counts as 900 (D29).
+      // Ordered as numbers, not as text: 900 is above 501.
       await asOwner(tx, () =>
-        tx.execute(sql`INSERT INTO member (fwo_number, full_name) VALUES ('0900', 'Test Member')`),
+        tx.execute(sql`INSERT INTO member (fwo_number, full_name) VALUES ('900', 'Test Member')`),
       );
       expect(await suggestFwoNumber(tx)).toBe("901");
       // A number typed on an open registration doesn't count: anyone can type one (BR-03 still
@@ -131,12 +133,12 @@ describe("the D30 setting and its suggestion", () => {
       });
       await setHighestFwoIssued(tx, { value: "500", actor: SECRETARY });
       await setHighestFwoIssued(tx, { value: "0700", actor: SECRETARY });
-      expect(await setting(tx)).toBe("0700");
+      expect(await setting(tx)).toBe("700"); // leading zeros don't count (D61)
       const audit = await tx.execute<{ before: unknown; after: unknown }>(sql`
         SELECT before, after FROM audit_entry WHERE action = 'fwo_setting.update' ORDER BY id`);
       expect(audit.rows).toEqual([
         { before: null, after: { highestIssued: "500" } },
-        { before: { highestIssued: "500" }, after: { highestIssued: "0700" } },
+        { before: { highestIssued: "500" }, after: { highestIssued: "700" } },
       ]);
     });
   });

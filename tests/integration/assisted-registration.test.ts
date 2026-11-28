@@ -204,7 +204,7 @@ describe("submitAssistedRegistration (FR-3)", () => {
         },
         revision: {
           full_name: "Test Person",
-          fwo_number: "0042",
+          fwo_number: "42", // typed as 0042: leading zeros don't count (D61)
           phone_e164: "+254700000081",
           no_personal_phone: false,
           adult_declared: true,
@@ -379,7 +379,7 @@ describe("only an officer records 'no personal phone' (database CHECK)", () => {
           sp.execute(sql`
             INSERT INTO registration_revision (registration_id, revision_no, full_name, fwo_number,
               hbc_id, adult_declared, transfer_consent, no_personal_phone, privacy_notice_version)
-            VALUES (${registrationId}, 2, 'Test Person', '0042', ${hbcId}, true, true, true,
+            VALUES (${registrationId}, 2, 'Test Person', '42', ${hbcId}, true, true, true,
                     ${PRIVACY_NOTICE_VERSION})`),
         ),
       ).rejects.toThrow();

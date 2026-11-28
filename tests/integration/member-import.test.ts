@@ -115,7 +115,7 @@ describe("importMembers (FR-13, D47)", () => {
         importId: expect.any(String),
         imported: 3,
         skipped: 1,
-        fwoNumbers: ["10401", "010402", "10404"],
+        fwoNumbers: ["10401", "10402", "10404"],
         phones: ["+254712104001", "+254712104004"],
       });
       if (!result.ok) return;
@@ -145,16 +145,6 @@ describe("importMembers (FR-13, D47)", () => {
          ORDER BY m.fwo_number`);
       expect(members.rows).toEqual([
         {
-          fwo_number: "010402", // leading zero kept (D29)
-          full_name: "Test Import Two",
-          phone_e164: null, // no personal phone (BR-06)
-          status: "ACTIVE",
-          language: "sw",
-          source_registration_id: null,
-          hbc: "Samaria",
-          departments: null,
-        },
-        {
           fwo_number: "10401",
           full_name: "Test Import One",
           phone_e164: "+254712104001",
@@ -163,6 +153,16 @@ describe("importMembers (FR-13, D47)", () => {
           source_registration_id: null,
           hbc: "Judea",
           departments: "English Choir:DECLARED,KAYO:DECLARED",
+        },
+        {
+          fwo_number: "10402", // the file says 010402: leading zeros don't count (D61)
+          full_name: "Test Import Two",
+          phone_e164: null, // no personal phone (BR-06)
+          status: "ACTIVE",
+          language: "sw",
+          source_registration_id: null,
+          hbc: "Samaria",
+          departments: null,
         },
         {
           fwo_number: "10404",
@@ -203,7 +203,7 @@ describe("importMembers (FR-13, D47)", () => {
       expect(entries.rows[0]!.after).toMatchObject({ status: "ACTIVE", importId: result.importId });
       // No name, phone or FWO number from the file in any entry.
       const text = JSON.stringify(entries.rows.map((e) => e.after));
-      for (const value of ["Test Import", "712104", "10401", "010402"]) {
+      for (const value of ["Test Import", "712104", "10401", "10402"]) {
         expect(text).not.toContain(value);
       }
       // No SMS on import.

@@ -233,7 +233,7 @@ describe("approveRegistration (FR-4, BR-08)", () => {
         SELECT fwo_number, full_name, phone_e164, status, language, source_registration_id
           FROM member WHERE id = ${memberId}`);
       expect(member.rows[0]).toEqual({
-        fwo_number: "0091",
+        fwo_number: "91", // typed as 0091: leading zeros don't count (D61)
         full_name: "Test Person",
         phone_e164: "+254700009100",
         status: "ACTIVE",

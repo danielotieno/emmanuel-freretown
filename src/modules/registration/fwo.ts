@@ -22,8 +22,9 @@ import { openRegistrationsWithFwo, PRIVACY_NOTICE_VERSION } from "./intake";
  * number: only `issueFwoNumber` writes those. They hold D2 ("never reused") for numbers issued
  * to registrations later rejected or withdrawn, until retention removes them (BR-14).
  *
- * FWO numbers are stored and compared exactly as written (D29); only "the next number above"
- * orders them as numbers, so "0042" sorts as 42 and the suggestion carries no leading zeros.
+ * FWO numbers are stored without leading zeros (BR-01, D61), so the suggestion has none either:
+ * after 53 it is 54, and a Secretary who types "054" issues the same number. "The next number
+ * above" orders them as numbers, not as text, so 100 comes after 99.
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -65,7 +66,7 @@ export type SetHighestResult =
   | { ok: false; reason: "below_issued"; highestIssued: string };
 
 /**
- * Records or changes D30's setting: digits only (BR-01), kept exactly as typed, and never below
+ * Records or changes D30's setting: digits only, leading zeros dropped (BR-01, D61), and never below
  * a number the platform has issued. Audited as `fwo_setting.update` with the old and new values:
  * a counter, filed under the setting, written by this action alone and never alongside a
  * registration's entries, so it can't be tied to one person.

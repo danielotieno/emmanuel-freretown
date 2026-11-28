@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { parseStatusKey } from "./status-check";
 
 describe("parseStatusKey (FR-7, D24)", () => {
-  it("reads an FWO number exactly as typed, leading zeros included (BR-01, D29)", () => {
-    expect(parseStatusKey("0042")).toEqual({ kind: "fwo", value: "0042" });
+  it("reads an FWO number without its leading zeros, which don't count (BR-01, D61)", () => {
+    expect(parseStatusKey("0042")).toEqual({ kind: "fwo", value: "42" });
+    expect(parseStatusKey("054")).toEqual({ kind: "fwo", value: "54" });
     expect(parseStatusKey(" 42 ")).toEqual({ kind: "fwo", value: "42" });
   });
 

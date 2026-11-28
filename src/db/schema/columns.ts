@@ -16,5 +16,5 @@ export const updatedAt = () => tz("updated_at").notNull().defaultNow();
  */
 export const PHONE_E164_REGEX = /^\+254[17][0-9]{8}$/;
 export const PHONE_E164_PATTERN = sql.raw(`'${PHONE_E164_REGEX.source}'`);
-/** FWO numbers: digits only, stored as text (BR-01). */
-export const FWO_PATTERN = sql.raw(`'^[0-9]+$'`);
+/** FWO numbers: digits only, stored as text without leading zeros (BR-01, D61). */
+export const FWO_PATTERN = sql.raw(`'^(0|[1-9][0-9]*)$'`);

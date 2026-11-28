@@ -123,8 +123,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
           </p>
           <p className="mt-2 text-ink-muted">
             The file holds members&rsquo; personal details. Keep it only where it is needed, and
-            delete it when you are done. To keep FWO numbers like 0042 as written, open it in Excel
-            with Data › From Text/CSV and set the fwo_number column to Text (D29).
+            delete it when you are done.
           </p>
           {/* A POST, so no link or reload runs an export (src/app/admin/members/export). */}
           <form method="post" action="/members/export" className="mt-4">

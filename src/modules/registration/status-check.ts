@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { safeQuery, type DbOrTx } from "../../db";
 import { hbc, registration, registrationRevision } from "../../db/schema";
-import { findActiveMemberForStatusCheck } from "../membership";
+import { findActiveMemberForStatusCheck, readFwoNumber } from "../membership";
 import { redeemStatusCheckVerification } from "../verification";
 import { REFERENCE_PATTERN } from "./reference";
 
@@ -16,14 +16,15 @@ import { REFERENCE_PATTERN } from "./reference";
 export type StatusKey = { kind: "fwo"; value: string } | { kind: "reference"; value: string };
 
 /**
- * Reads the FWO number or reference as typed. An FWO is digits only and kept exactly as typed,
- * leading zeros included (BR-01, D29); a reference is matched without regard to case or spaces
- * around it. Anything else is null, and the form asks again before a code is sent.
+ * Reads the FWO number or reference as typed. An FWO is digits only, its leading zeros dropped,
+ * so "054" finds the member whose number is 54 (BR-01, D61); a reference is matched without
+ * regard to case or spaces around it. Anything else is null, and the form asks again before a
+ * code is sent.
  */
 export function parseStatusKey(input: string): StatusKey | null {
-  const value = input.trim();
-  if (/^[0-9]+$/.test(value)) return { kind: "fwo", value };
-  const reference = value.toUpperCase();
+  const fwo = readFwoNumber(input);
+  if (fwo !== null) return { kind: "fwo", value: fwo };
+  const reference = input.trim().toUpperCase();
   return REFERENCE_PATTERN.test(reference) ? { kind: "reference", value: reference } : null;
 }
 

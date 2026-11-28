@@ -313,7 +313,7 @@ describe("checkRegistrationStatus (FR-7)", { timeout: 120_000 }, () => {
         tx.execute(sql`
           WITH m AS (
             INSERT INTO member (fwo_number, full_name, phone_e164, language)
-            VALUES ('0042', 'Test Imported Person', ${phone}, 'en') RETURNING id)
+            VALUES ('42', 'Test Imported Person', ${phone}, 'en') RETURNING id)
           INSERT INTO member_hbc_assignment (member_id, hbc_id)
           SELECT m.id, (SELECT id FROM hbc WHERE name = 'Jordan') FROM m`),
       );
@@ -323,8 +323,13 @@ describe("checkRegistrationStatus (FR-7)", { timeout: 120_000 }, () => {
         fullName: "Test Imported Person",
         hbcName: "Jordan",
       });
-      // Leading zeros are significant (D29): "42" is another number.
-      expect(await check(tx, phone, "42")).toEqual(NOT_FOUND);
+      // Leading zeros don't count (D61): the envelope's "0042" and "42" are one number.
+      expect(await check(tx, phone, "42")).toEqual({
+        ok: true,
+        status: "REGISTERED_MEMBER",
+        fullName: "Test Imported Person",
+        hbcName: "Jordan",
+      });
     });
   });
 
@@ -338,7 +343,7 @@ describe("checkRegistrationStatus (FR-7)", { timeout: 120_000 }, () => {
         tx.execute(sql`
           WITH m AS (
             INSERT INTO member (fwo_number, full_name, phone_e164, language)
-            VALUES ('0077', 'Test Member Of Record', ${phone}, 'en') RETURNING id)
+            VALUES ('77', 'Test Member Of Record', ${phone}, 'en') RETURNING id)
           INSERT INTO member_hbc_assignment (member_id, hbc_id)
           SELECT m.id, (SELECT id FROM hbc WHERE name = 'Jordan') FROM m`),
       );
