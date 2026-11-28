@@ -26,7 +26,7 @@ Use these terms exactly, in conversation, code, tests and docs.
 | **Revision** | An immutable snapshot of a registration's details. Corrections add a revision; nothing is edited in place |
 | **Self-registration** | Submitted by the member online, with phone OTP |
 | **Assisted registration** | Captured by a Registration Officer on the member's behalf, usually at a desk |
-| **Declared / confirmed department membership** | Declared: the member chose it. Confirmed: a department leader verified it. Department elections use confirmed rosters only |
+| **Declared / confirmed department membership** | Declared: the member chose it. Confirmed: the department's leader signed the printed list and an election committee member entered it (D62). Department elections use confirmed rosters only |
 | **Verification evidence** | A record of how something was checked: phone OTP, in person, or FWO confirmed by the Secretary. Evidence is not a status |
 | **Status check** | The public page where someone proves control of a phone by OTP and sees the status of the record matching that phone and FWO |
 
@@ -45,6 +45,7 @@ Use these terms exactly, in conversation, code, tests and docs.
 | **Registration Officer** | Captures assisted registrations; cannot approve |
 | **Membership Administrator** | Reviews and approves registrations; edits member records. Cannot approve a registration they captured |
 | **Super Administrator** | Manages staff accounts and roles. Not the Secretary or a Warden |
+| **Election Committee Member** | Release 2. Prints department and HBC lists for the leader or chairperson to sign, and enters roster confirmations and list checks (D62). HBC chairpersons, department leaders, Patrons and Matrons have no account |
 
 ## Elections (Release 2)
 
