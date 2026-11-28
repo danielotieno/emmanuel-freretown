@@ -1,15 +1,16 @@
-import type { Staff } from "@/modules/access";
+import { isAllowed, type Staff } from "@/modules/access";
 
 /**
- * Which parts of the staff portal to show a staff member. Only for showing links and tiles:
- * every page and action checks the role itself (CLAUDE.md rule 1).
+ * What a staff member's roles open, by the access module's own rule (`isAllowed`): a role counts
+ * only if it is granted for the whole parish, and a Super Administrator can do what a Membership
+ * Administrator can. The navigation uses it to choose links, and the overview to choose which
+ * figures to ask for, after `requireStaff`; every other page and action still calls
+ * `requireStaff` with its role (CLAUDE.md rule 1).
  */
 export function rolesOf(staff: Pick<Staff, "grants">) {
-  const has = (role: Staff["grants"][number]["role"]) => staff.grants.some((g) => g.role === role);
-  const superAdmin = has("SUPER_ADMIN");
   return {
-    officer: has("REGISTRATION_OFFICER"),
-    reviewer: superAdmin || has("MEMBERSHIP_ADMIN"),
-    superAdmin,
+    officer: isAllowed(staff.grants, "REGISTRATION_OFFICER"),
+    reviewer: isAllowed(staff.grants, "MEMBERSHIP_ADMIN"),
+    superAdmin: isAllowed(staff.grants, "SUPER_ADMIN"),
   };
 }

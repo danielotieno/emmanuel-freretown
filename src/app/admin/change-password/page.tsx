@@ -29,7 +29,7 @@ export default async function ChangePasswordPage({
           </p>
           <p className="mt-6">
             <Link href="/" className="btn-secondary">
-              Staff home
+              Overview
             </Link>
           </p>
         </>

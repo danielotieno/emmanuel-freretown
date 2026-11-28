@@ -7,14 +7,14 @@ import { safeQuery, type DbOrTx } from "../../db";
  */
 export interface MembershipOverview {
   active: number;
-  inactive: number;
-  /** Deceased or transferred out. */
-  closed: number;
   /** Active members whose record was created in the last seven days. */
   joinedThisWeek: number;
   /** Active members with no personal phone (BR-06): they can't receive an SMS. */
   withoutPhone: number;
-  /** Active members in each active HBC, the largest first; an HBC with none is included. */
+  /**
+   * Active members in each active HBC, the largest first; an HBC with none is included. A member
+   * whose HBC has been deactivated is in `active` but in no row here.
+   */
   byHbc: { hbcId: string; name: string; active: number }[];
 }
 
@@ -23,14 +23,10 @@ export async function membershipOverview(db: DbOrTx): Promise<MembershipOverview
     safeQuery(() =>
       db.execute<{
         active: number;
-        inactive: number;
-        closed: number;
         joined: number;
         without_phone: number;
       }>(sql`
         SELECT count(*) FILTER (WHERE status = 'ACTIVE')::int AS active,
-               count(*) FILTER (WHERE status = 'INACTIVE')::int AS inactive,
-               count(*) FILTER (WHERE status IN ('DECEASED','TRANSFERRED_OUT'))::int AS closed,
                count(*) FILTER (WHERE status = 'ACTIVE'
                                   AND created_at >= now() - interval '7 days')::int AS joined,
                count(*) FILTER (WHERE status = 'ACTIVE' AND phone_e164 IS NULL)::int AS without_phone
@@ -50,8 +46,6 @@ export async function membershipOverview(db: DbOrTx): Promise<MembershipOverview
   const c = counts.rows[0];
   return {
     active: c?.active ?? 0,
-    inactive: c?.inactive ?? 0,
-    closed: c?.closed ?? 0,
     joinedThisWeek: c?.joined ?? 0,
     withoutPhone: c?.without_phone ?? 0,
     byHbc: byHbc.rows.map((row) => ({ hbcId: row.hbc_id, name: row.name, active: row.active })),

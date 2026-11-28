@@ -56,8 +56,8 @@ test("an administrator sees the queue, the registrations and the membership", as
   await expect(
     page.getByRole("table", { name: /Registrations received on each of the last 14 days/ }),
   ).toBeAttached();
-  // The member just created is counted in their HBC.
-  await expect(page.getByRole("listitem").filter({ hasText: "Judea" }).last()).toBeVisible();
+  // The member just created is counted in their HBC: Judea's row shows at least one.
+  await expect(page.getByRole("listitem").filter({ hasText: /^Judea\s*[1-9]/ })).toBeVisible();
 
   await expectNoSidewaysScroll(page);
   await expectNoAxeViolations(page);

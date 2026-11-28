@@ -150,7 +150,7 @@ async function AdministratorOverview({ now }: { now: Date }) {
           )}
         </CardContent>
         {registrations.waiting > 0 && (
-          <Link href="/review" className="btn-on-dark self-start">
+          <Link href="/review" prefetch={false} className="btn-on-dark self-start">
             Start reviewing
             <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
@@ -186,7 +186,7 @@ async function AdministratorOverview({ now }: { now: Date }) {
       </Stat>
       <Stat
         icon={CircleCheck}
-        label="Approved this week"
+        label="Approved in the last 7 days"
         value={NUMBER.format(registrations.approvedThisWeek)}
         className="lg:col-span-3"
       >
@@ -236,7 +236,7 @@ async function AdministratorOverview({ now }: { now: Date }) {
             </CardDescription>
           </div>
           {queue.total > queue.items.length && (
-            <Link href="/review" className="btn-text min-h-11 text-sm">
+            <Link href="/review" prefetch={false} className="btn-text min-h-11 text-sm">
               See all {NUMBER.format(queue.total)}
               <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
@@ -350,7 +350,11 @@ async function OfficerOverview({ userId, alone }: { userId: string; alone: boole
                   {corrections.items.map((item) => (
                     <TableRow key={item.id} className="hover:bg-cloud">
                       <TableCell className="whitespace-nowrap">
-                        <Link href={`/corrections/${item.id}`} className="tabular-nums">
+                        <Link
+                          href={`/corrections/${item.id}`}
+                          prefetch={false}
+                          className="tabular-nums"
+                        >
                           {item.reference}
                         </Link>
                       </TableCell>
@@ -385,7 +389,7 @@ function QueueTable({ items, hbcs }: { items: QueueItem[]; hbcs: Map<string, str
         {items.map((item) => (
           <TableRow key={item.id} className="hover:bg-cloud">
             <TableCell className="whitespace-nowrap">
-              <Link href={`/review/${item.id}`} className="tabular-nums">
+              <Link href={`/review/${item.id}`} prefetch={false} className="tabular-nums">
                 {item.reference}
               </Link>
             </TableCell>

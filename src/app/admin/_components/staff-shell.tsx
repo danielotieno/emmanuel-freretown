@@ -141,6 +141,7 @@ export function StaffShell({
         <aside className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 bg-cloud px-4 pt-3 md:sticky md:top-3 md:flex md:h-[calc(100dvh-1.5rem)] md:flex-col md:items-stretch md:rounded-3xl md:p-3">
           <Link
             href="/"
+            prefetch={false}
             className="flex min-h-12 min-w-0 items-center gap-3 text-ink no-underline md:px-2 md:pt-2 md:pb-4"
           >
             <Crest className="h-9 w-auto shrink-0" />
@@ -208,32 +209,8 @@ function NavLink({ item, current }: { item: NavItem; current: boolean }) {
       {content}
     </a>
   ) : (
-    <Link href={item.href} aria-current={currentPage} className={className}>
+    <Link href={item.href} prefetch={false} aria-current={currentPage} className={className}>
       {content}
     </Link>
-  );
-}
-
-/**
- * A staff page's opening: its title, a line about it, and its main action at the far side.
- * The title is the page's one serif line.
- */
-export function PageHeader({
-  title,
-  children,
-  action,
-}: {
-  title: ReactNode;
-  children?: ReactNode;
-  action?: ReactNode;
-}) {
-  return (
-    <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-      <div className="min-w-0">
-        <h1 className="text-title">{title}</h1>
-        {children && <p className="mt-2 max-w-prose text-ink-muted">{children}</p>}
-      </div>
-      {action}
-    </header>
   );
 }

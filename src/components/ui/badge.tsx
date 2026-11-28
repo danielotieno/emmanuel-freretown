@@ -6,19 +6,15 @@ import { cn } from "@/lib/utils";
  * only supports it (DESIGN.md §2).
  */
 const VARIANTS = {
-  /** A plain fact. */
-  neutral: "border-line-strong bg-paper text-ink",
   /** Something to look at: a flag on a registration. */
   flag: "border-transparent bg-mist text-brand-deep",
-  /** A count beside a navigation link. */
-  count: "border-transparent bg-brand text-paper",
   /** On a Black tile. */
   onDark: "border-night-soft bg-night-soft text-paper",
 } as const;
 
 function Badge({
   className,
-  variant = "neutral",
+  variant = "flag",
   ...props
 }: ComponentProps<"span"> & { variant?: keyof typeof VARIANTS }) {
   return (

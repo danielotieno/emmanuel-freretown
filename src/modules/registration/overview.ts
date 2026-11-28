@@ -21,7 +21,7 @@ export interface RegistrationOverview {
   newMembers: number;
   /** Sent back for a correction (CORRECTION_REQUESTED). */
   toCorrect: number;
-  /** Decided in the last seven days. */
+  /** Decided in the last seven days (rolling, not the calendar week). */
   approvedThisWeek: number;
   rejectedThisWeek: number;
   /** Registrations received on each of the last 14 Africa/Nairobi days, oldest first. */
@@ -86,25 +86,18 @@ export interface DeskOverview {
   /** Registrations this officer took at the desk today (Africa/Nairobi) and in the last 7 days. */
   capturedToday: number;
   capturedThisWeek: number;
-  /** Sent back for a correction, by anyone: officers enter corrections with the member. */
-  toCorrect: number;
 }
 
-/** The officer's own desk figures: what `userId` captured, and what waits for a correction. */
+/** The officer's own desk figures: what `userId` captured. */
 export async function deskOverview(db: DbOrTx, userId: string): Promise<DeskOverview> {
   const { rows } = await safeQuery(() =>
-    db.execute<{ today: number; week: number; to_correct: number }>(sql`
-      SELECT count(*) FILTER (WHERE r.captured_by_user_id = ${userId}
-               AND (r.created_at AT TIME ZONE 'Africa/Nairobi')::date
-                 = (now() AT TIME ZONE 'Africa/Nairobi')::date)::int AS today,
-             count(*) FILTER (WHERE r.captured_by_user_id = ${userId}
-               AND r.created_at >= now() - interval '7 days')::int AS week,
-             count(*) FILTER (WHERE r.status = 'CORRECTION_REQUESTED')::int AS to_correct
-        FROM registration r`),
+    db.execute<{ today: number; week: number }>(sql`
+      SELECT count(*) FILTER (WHERE (r.created_at AT TIME ZONE 'Africa/Nairobi')::date
+                                  = (now() AT TIME ZONE 'Africa/Nairobi')::date)::int AS today,
+             count(*)::int AS week
+        FROM registration r
+       WHERE r.captured_by_user_id = ${userId}
+         AND r.created_at >= now() - interval '7 days'`),
   );
-  return {
-    capturedToday: rows[0]?.today ?? 0,
-    capturedThisWeek: rows[0]?.week ?? 0,
-    toCorrect: rows[0]?.to_correct ?? 0,
-  };
+  return { capturedToday: rows[0]?.today ?? 0, capturedThisWeek: rows[0]?.week ?? 0 };
 }
