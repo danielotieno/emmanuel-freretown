@@ -1,10 +1,11 @@
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, sql, type AnyColumn } from "drizzle-orm";
 import { isUniqueViolation, safeQuery, type DbOrTx, type Transaction } from "../../db";
 import {
   registration,
   registrationRevision,
   registrationRevisionDepartment,
 } from "../../db/schema";
+import * as audit from "../audit";
 import { fwoBelongsToMember, phoneBelongsToMember } from "../membership";
 import { SafeError } from "../observability";
 import { generateReference } from "./reference";
@@ -23,7 +24,9 @@ export const PRIVACY_NOTICE_VERSION = "2026-11-30";
 
 /**
  * BR-03 and BR-06: whether the FWO is held by a member or another open registration, and whether
- * the phone is held by a member. The caller stores the flags and never shows them to the public.
+ * the phone is held by an active or inactive member or another open registration (#158: two
+ * people giving one phone are both called, D28). The caller stores the flags and never shows
+ * them to the public.
  */
 export async function conflictFlags(
   tx: Transaction,
@@ -31,8 +34,8 @@ export async function conflictFlags(
   /** A correction's own registration (FR-5), which is open and must not conflict with itself. */
   exceptRegistrationId?: string,
 ): Promise<{ fwoConflict: boolean; phoneConflict: boolean }> {
-  // Both FWO checks always run: skipping the second when the first matches would make the
-  // answer measurably faster exactly when the FWO is a member's (rule 3).
+  // Both checks of each pair always run: skipping the second when the first matches would make
+  // the answer measurably faster exactly when the number is known (rule 3).
   let fwoConflict = false;
   if (details.fwoNumber !== null) {
     const heldByMember = await fwoBelongsToMember(tx, details.fwoNumber);
@@ -40,37 +43,65 @@ export async function conflictFlags(
       (await openRegistrationsWithFwo(tx, details.fwoNumber, exceptRegistrationId)).length > 0;
     fwoConflict = heldByMember || inOpenRegistration;
   }
-  const phoneConflict =
-    details.phoneE164 !== null && (await phoneBelongsToMember(tx, details.phoneE164));
+  let phoneConflict = false;
+  if (details.phoneE164 !== null) {
+    const heldByMember = await phoneBelongsToMember(tx, details.phoneE164);
+    const inOpenRegistration =
+      (await openRegistrationsWithPhone(tx, details.phoneE164, exceptRegistrationId)).length > 0;
+    phoneConflict = heldByMember || inOpenRegistration;
+  }
   return { fwoConflict, phoneConflict };
 }
 
+/** Registrations still open for review: SUBMITTED or CORRECTION_REQUESTED. */
+const OPEN = inArray(registration.status, ["SUBMITTED", "CORRECTION_REQUESTED"]);
+/** A registration joined to its current revision. */
+const CURRENT = and(
+  eq(registrationRevision.registrationId, registration.id),
+  eq(registrationRevision.revisionNo, registration.currentRevisionNo),
+);
+
 /**
- * BR-03 at review (FR-4): the references of other registrations still open (SUBMITTED or
- * CORRECTION_REQUESTED) whose current revision has this FWO, oldest first, leaving out
- * `exceptRegistrationId`. Staff screens only: an FWO collision blocks approval until the
- * administrator rejects the duplicate (D33).
+ * BR-03 at review (FR-4): the references of other registrations still open whose current
+ * revision has this FWO, oldest first, leaving out `exceptRegistrationId`. Staff screens only:
+ * an FWO collision blocks approval until the administrator rejects the duplicate (D33).
  */
-export async function openRegistrationsWithFwo(
+export function openRegistrationsWithFwo(
   db: DbOrTx,
   fwoNumber: string,
   exceptRegistrationId?: string,
+): Promise<string[]> {
+  return openRegistrationsWith(db, registrationRevision.fwoNumber, fwoNumber, exceptRegistrationId);
+}
+
+/**
+ * BR-06 at review (FR-4, #158): the references of other registrations still open whose current
+ * revision has this phone, oldest first, leaving out `exceptRegistrationId`. Staff screens only:
+ * the administrator calls both people to agree who keeps it (D28).
+ */
+export function openRegistrationsWithPhone(
+  db: DbOrTx,
+  phoneE164: string,
+  exceptRegistrationId?: string,
+): Promise<string[]> {
+  return openRegistrationsWith(db, registrationRevision.phoneE164, phoneE164, exceptRegistrationId);
+}
+
+async function openRegistrationsWith(
+  db: DbOrTx,
+  column: AnyColumn,
+  value: string,
+  exceptRegistrationId: string | undefined,
 ): Promise<string[]> {
   const rows = await safeQuery(() =>
     db
       .select({ reference: registration.reference })
       .from(registration)
-      .innerJoin(
-        registrationRevision,
-        and(
-          eq(registrationRevision.registrationId, registration.id),
-          eq(registrationRevision.revisionNo, registration.currentRevisionNo),
-        ),
-      )
+      .innerJoin(registrationRevision, CURRENT)
       .where(
         and(
-          eq(registrationRevision.fwoNumber, fwoNumber),
-          inArray(registration.status, ["SUBMITTED", "CORRECTION_REQUESTED"]),
+          eq(column, value),
+          OPEN,
           exceptRegistrationId ? ne(registration.id, exceptRegistrationId) : undefined,
         ),
       )
@@ -78,6 +109,85 @@ export async function openRegistrationsWithFwo(
       .limit(10),
   );
   return rows.map((r) => r.reference);
+}
+
+/**
+ * Sets `fwo_conflict` / `phone_conflict` on every open registration whose current revision has
+ * one of these FWO numbers or phones and isn't flagged yet, leaving out `exceptRegistrationId`,
+ * and bumps its version so a reviewer with it open sees the change. Each one gets a
+ * `registration.flag_conflict` audit entry (rule 4) naming the flags set and why. Used when the
+ * parish import makes them members' (D47) and when another registration arrives with the same
+ * phone (#158), so the review queue's conflict filters find both of a pair.
+ *
+ * Each UPDATE runs whether or not anything matches, so a public submission takes the same
+ * statements either way (rule 3); only the audit entries of a match are extra.
+ */
+export async function flagOpenRegistrations(
+  tx: Transaction,
+  held: {
+    fwoNumbers: string[];
+    phones: string[];
+    exceptRegistrationId?: string;
+    cause: "member_import" | "shared_phone";
+    actor: audit.Actor;
+    requestId?: string;
+  },
+): Promise<void> {
+  const notThis = held.exceptRegistrationId
+    ? ne(registration.id, held.exceptRegistrationId)
+    : undefined;
+  const flagged = new Map<string, { fwoConflict?: true; phoneConflict?: true }>();
+
+  if (held.fwoNumbers.length > 0) {
+    const rows = await safeQuery(() =>
+      tx
+        .update(registration)
+        .set({ fwoConflict: true, version: sql`${registration.version} + 1` })
+        .from(registrationRevision)
+        .where(
+          and(
+            CURRENT,
+            OPEN,
+            notThis,
+            eq(registration.fwoConflict, false),
+            inArray(registrationRevision.fwoNumber, held.fwoNumbers),
+          ),
+        )
+        .returning({ id: registration.id }),
+    );
+    for (const { id } of rows) flagged.set(id, { fwoConflict: true });
+  }
+  if (held.phones.length > 0) {
+    const rows = await safeQuery(() =>
+      tx
+        .update(registration)
+        .set({ phoneConflict: true, version: sql`${registration.version} + 1` })
+        .from(registrationRevision)
+        .where(
+          and(
+            CURRENT,
+            OPEN,
+            notThis,
+            eq(registration.phoneConflict, false),
+            inArray(registrationRevision.phoneE164, held.phones),
+          ),
+        )
+        .returning({ id: registration.id }),
+    );
+    for (const { id } of rows) flagged.set(id, { ...flagged.get(id), phoneConflict: true });
+  }
+
+  await audit.writeMany(
+    tx,
+    [...flagged].map(([id, after]) => ({
+      actor: held.actor,
+      action: "registration.flag_conflict" as const,
+      entityType: "registration" as const,
+      entityId: id,
+      after: { ...after, cause: held.cause },
+      requestId: held.requestId,
+    })),
+  );
 }
 
 export type NewRegistration =

@@ -415,6 +415,30 @@ describe("submitCorrection (FR-5, BR-09)", () => {
     });
   });
 
+  it("flags both when the corrected phone is another open registration's (#158, D28)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const other = await registered(tx, { phone: "0711 021 555" });
+      expect(await registrationRow(tx, other)).toMatchObject({ phone_conflict: false });
+      const id = await waitingForCorrection(tx);
+      expect(await correct(tx, id, await fieldsOf(tx, { phone: "0711 021 555" }))).toEqual({
+        ok: true,
+      });
+      expect(await registrationRow(tx, id)).toMatchObject({ phone_conflict: true });
+      expect(await registrationRow(tx, other)).toMatchObject({ phone_conflict: true });
+      const { rows } = await tx.execute(sql`
+        SELECT actor_type, actor_id, after FROM audit_entry
+         WHERE entity_id = ${other} AND action = 'registration.flag_conflict'`);
+      expect(rows).toEqual([
+        {
+          actor_type: "STAFF",
+          actor_id: OFFICER.userId,
+          after: { phoneConflict: true, cause: "shared_phone" },
+        },
+      ]);
+    });
+  });
+
   it("carries the consent over unless the privacy notice changed; then it must be confirmed (D35)", async () => {
     await rolledBack(db, async (tx) => {
       await asApp(tx);

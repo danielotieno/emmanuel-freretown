@@ -13,7 +13,7 @@ import {
   type CorrectionFields,
   type FieldError,
 } from "./fields";
-import { conflictFlags, PRIVACY_NOTICE_VERSION } from "./intake";
+import { conflictFlags, flagOpenRegistrations, PRIVACY_NOTICE_VERSION } from "./intake";
 import { openRegistrationForReview, type RegistrationForReview } from "./review";
 
 /**
@@ -246,6 +246,17 @@ export async function submitCorrection(
           )
           .returning({ id: registration.id });
         if (moved.length !== 1) throw new Refused("stale");
+        // Another open registration with the corrected phone is flagged too (#158, D28).
+        if (details.phoneE164 !== null) {
+          await flagOpenRegistrations(tx, {
+            fwoNumbers: [],
+            phones: [details.phoneE164],
+            exceptRegistrationId: registrationId,
+            cause: "shared_phone",
+            actor,
+            requestId,
+          });
+        }
 
         await audit.write(tx, {
           actor,

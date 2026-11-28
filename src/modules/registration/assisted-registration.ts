@@ -7,7 +7,12 @@ import { SafeError } from "../observability";
 import { checkUnitsForRegistration } from "../organisation";
 import { recordInPersonVerification, redeemRegistrationVerification } from "../verification";
 import type { ValidAssistedRegistration } from "./fields";
-import { conflictFlags, insertFirstRevision, insertRegistration } from "./intake";
+import {
+  conflictFlags,
+  flagOpenRegistrations,
+  insertFirstRevision,
+  insertRegistration,
+} from "./intake";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -109,6 +114,17 @@ export async function submitAssistedRegistration(
           ...details,
           submittedByUserId: officer.userId,
         });
+        // Another open registration with this phone is flagged too, so both show (#158, D28).
+        if (details.phoneE164 !== null) {
+          await flagOpenRegistrations(tx, {
+            fwoNumbers: [],
+            phones: [details.phoneE164],
+            exceptRegistrationId: registrationId,
+            cause: "shared_phone",
+            actor: officer,
+            requestId,
+          });
+        }
 
         if (details.verification === "PHONE_OTP") {
           const verified =

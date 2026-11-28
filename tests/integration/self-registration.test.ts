@@ -278,6 +278,45 @@ describe("conflicts are accepted and flagged silently (BR-03, BR-06, rule 3)", (
     });
   });
 
+  it("flags both registrations when another open one has the phone (#158, D28)", async () => {
+    await rolledBack(db, async (tx) => {
+      await asApp(tx);
+      const first = await submit(tx, { fwoNumber: "7005", phone: "0700000067" });
+      if (!first.ok) throw new Error("test registration refused");
+      const row = async (id: string) =>
+        (
+          await tx.execute<{ phone_conflict: boolean; version: number }>(
+            sql`SELECT phone_conflict, version FROM registration WHERE id = ${id}`,
+          )
+        ).rows[0]!;
+      const before = await row(first.registrationId);
+      expect(before.phone_conflict).toBe(false);
+
+      // A second code to the same phone within 60 seconds is refused (FR-2): start the limits
+      // afresh, as if the other person registered later.
+      await asOwner(tx, () => tx.execute(sql`DELETE FROM rate_limit_bucket`));
+      expect(await flags(tx, await submit(tx, { fwoNumber: "7006", phone: "0700000067" }))).toEqual(
+        { fwo: false, phone: true },
+      );
+      // The earlier one is flagged too, its version bumped, audited as the public's submission.
+      expect(await row(first.registrationId)).toEqual({
+        phone_conflict: true,
+        version: before.version + 1,
+      });
+      const { rows: entries } = await tx.execute(sql`
+        SELECT actor_type, actor_id, after, request_id FROM audit_entry
+         WHERE entity_id = ${first.registrationId} AND action = 'registration.flag_conflict'`);
+      expect(entries).toEqual([
+        {
+          actor_type: "PUBLIC",
+          actor_id: null,
+          after: { phoneConflict: true, cause: "shared_phone" },
+          request_id: "req-reg",
+        },
+      ]);
+    });
+  });
+
   it("doesn't flag a phone held only by a deceased member", async () => {
     await rolledBack(db, async (tx) => {
       await member(tx, "7003", "+254700000066", "DECEASED");
