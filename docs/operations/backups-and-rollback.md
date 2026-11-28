@@ -141,7 +141,7 @@ A failure means a live database was changed outside the migrations, or a migrati
 Monthly, and before registration opens. About 15 minutes.
 
 1. Neon → `ack-production` → **Branches → New branch** from `production`, named `restore-drill-<date>`, **auto-delete after 1 day**. On that branch, add a database named `ack_restore`.
-2. On your machine (`brew install age libpq`), put the owner strings for `ack_restore` and `neondb` on that branch in `RESTORE_DATABASE_URL` and `LIVE_COPY_URL`, then:
+2. On your machine (`brew install age libpq`), put the owner strings for `ack_restore` and `neondb` on that branch in `RESTORE_DATABASE_URL` and `LIVE_COPY_URL`. Change `sslmode=require` to `sslmode=verify-full` in both, as in `environments.md` §1: `pg_restore` refuses a weaker mode (#164). Then:
 
    ```bash
    scripts/restore-drill.sh production/<latest>.dump.age ~/path/to/ack-backup.key

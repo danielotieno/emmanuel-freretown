@@ -10,7 +10,8 @@
 # data never leaves the production project). The backup is streamed: download | decrypt |
 # pg_restore, so no unencrypted copy is written to disk. Needs wrangler (logged in), age and
 # pg_restore 18 (`brew install age libpq`). pg_restore checks the server's certificate against
-# the system's trusted roots (sslmode=verify-full in the URL, #164).
+# the system's trusted roots, so both URLs must say sslmode=verify-full: it refuses a weaker
+# mode (#164).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
